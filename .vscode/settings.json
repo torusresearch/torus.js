@@ -1,0 +1,46 @@
+{
+  "eslint.options": {
+    "extends": ["standard", "prettier", "prettier/standard", "eslint:recommended"],
+    "plugins": ["prettier", "standard", "mocha"],
+    "parserOptions": {
+      "parser": "babel-eslint",
+      "ecmaVersion": 2018,
+      "ecmaFeatures.experimentalObjectRestSpread": true
+    },
+    "rules": {
+      "quotes": [2, "single"],
+      "max-len": [
+        2,
+        {
+          "code": 150
+        }
+      ],
+      "react/jsx-filename-extension": 0,
+      "jsx-a11y/label-has-for": 0,
+      "no-console": 0,
+      "import/prefer-default-export": 0,
+      "no-nested-ternary": 0,
+      "no-confusing-arrow": 0,
+      "linebreak-style": 0,
+      "no-param-reassign": [
+        "error",
+        {
+          "props": false
+        }
+      ],
+      "prettier/prettier": [
+        "error",
+        {
+          "singleQuote": true,
+          "printWidth": 150,
+          "semi": false
+        }
+      ]
+    },
+    "env": {
+      "es6": true,
+      "browser": true,
+      "node": true
+    }
+  }
+}
