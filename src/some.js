@@ -1,19 +1,22 @@
-export const Some = (promises, count) => {
+export const Some = (promises, predicate) => {
   return new Promise((resolve, reject) => {
-    const resultArr = []
-    if (promises.length < count) reject(new Error('Invalid count'))
-    let successCount = 0
     let finishedCount = 0
-    promises.forEach(x => {
+    const resultArr = new Array(promises.length).fill(undefined)
+    promises.forEach((x, index) => {
       x.then(resp => {
-        resultArr.push(resp)
-        successCount++
+        resultArr[index] = resp
       })
         .catch(_ => {})
         .finally(() => {
-          finishedCount++
-          if (successCount >= count) return resolve(resultArr)
-          else if (finishedCount === promises.length) reject(new Error('Unable to resolve enough promises'))
+          predicate(resultArr.slice())
+            .then(resolve)
+            .catch(_ => {})
+            .finally(_ => {
+              finishedCount++
+              if (finishedCount === promises.length) {
+                reject(new Error('Unable to resolve enough promises, responses: ' + JSON.stringify(resultArr)))
+              }
+            })
         })
     })
   })

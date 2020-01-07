@@ -2,7 +2,6 @@ examples
 secrets.json
 .DS_Store
 node_modules
-src/
 
 embed.min.js
 embed.user.js

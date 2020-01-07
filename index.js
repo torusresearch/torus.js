@@ -1,3 +1,3 @@
-const embed = require('./dist/embed')
+import Torus from './dist/torus'
 
-module.exports = embed
+export default Torus

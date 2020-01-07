@@ -1,2 +1,3 @@
-import Torus from './dist/embed'
+import Torus from './src/torus'
+
 export default Torus

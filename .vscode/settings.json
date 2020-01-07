@@ -42,5 +42,16 @@
       "browser": true,
       "node": true
     }
-  }
+  },
+  "cSpell.ignoreWords": [
+    "eccrypto",
+    "k",
+    "keccak",
+    "messageprefix",
+    "secp",
+    "temppubx",
+    "temppuby",
+    "tokencommitment",
+    "verifieridentifier"
+  ]
 }

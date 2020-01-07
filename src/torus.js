@@ -5,6 +5,7 @@ import BN from 'bn.js'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
 import { Some } from './some'
+import { thresholdSame, kCombinations } from './utils'
 
 // Swallow individual fetch errors to handle node failures
 // catch only logic errors
@@ -45,37 +46,43 @@ class Torus {
         ).catch(_ => {})
         promiseArr.push(p)
       }
-      Promise.all(promiseArr)
+      /*
+      ShareRequestParams struct {
+        Item []bijson.RawMessage `json:"item"`
+      }
+      ShareRequestItem struct {
+        IDToken            string          `json:"idtoken"`
+        NodeSignatures     []NodeSignature `json:"nodesignatures"`
+        VerifierIdentifier string          `json:"verifieridentifier"`
+      }
+      NodeSignature struct {
+        Signature   string
+        Data        string
+        NodePubKeyX string
+        NodePubKeyY string
+      }
+      CommitmentRequestResult struct {
+        Signature string `json:"signature"`
+        Data      string `json:"data"`
+        NodePubX  string `json:"nodepubx"`
+        NodePubY  string `json:"nodepuby"`
+      }
+      */
+      Some(promiseArr, resultArr => {
+        const completedRequests = resultArr.filter(x => x)
+        if (completedRequests.length > ~~(endpoints.length / 4) * 3 + 1) {
+          return Promise.resolve(resultArr)
+        }
+        return Promise.reject(new Error('invalid'))
+      })
         .then(responses => {
           const promiseArrRequest = []
-          /*
-          ShareRequestParams struct {
-            Item []bijson.RawMessage `json:"item"`
-          }
-          ShareRequestItem struct {
-            IDToken            string          `json:"idtoken"`
-            NodeSignatures     []NodeSignature `json:"nodesignatures"`
-            VerifierIdentifier string          `json:"verifieridentifier"`
-          }
-          NodeSignature struct {
-            Signature   string
-            Data        string
-            NodePubKeyX string
-            NodePubKeyY string
-          }
-          CommitmentRequestResult struct {
-            Signature string `json:"signature"`
-            Data      string `json:"data"`
-            NodePubX  string `json:"nodepubx"`
-            NodePubY  string `json:"nodepuby"`
-          }
-          */
-          var nodeSigs = []
-          for (var i = 0; i < responses.length; i++) {
+          const nodeSigs = []
+          for (let i = 0; i < responses.length; i++) {
             if (responses[i]) nodeSigs.push(responses[i].result)
           }
-          for (i = 0; i < endpoints.length; i++) {
-            var p = post(
+          for (let i = 0; i < endpoints.length; i++) {
+            const p = post(
               endpoints[i],
               generateJsonRPCObject('ShareRequest', {
                 encrypted: 'yes',
@@ -84,10 +91,74 @@ class Torus {
             ).catch(_ => {})
             promiseArrRequest.push(p)
           }
-          return Promise.all(promiseArrRequest)
+          return Some(promiseArrRequest, async shareResponses => {
+            const completedRequests = shareResponses.filter(x => x)
+            const thresholdPublicKey = thresholdSame(
+              shareResponses.map(x => {
+                if (x === undefined) {
+                  return Promise.resolve(undefined)
+                } else {
+                  return Promise.resolve(x.result.keys[0].PublicKey)
+                }
+              }),
+              ~~(endpoints.length / 2) + 1
+            )
+            if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
+              const sharePromises = []
+              const nodeIndex = []
+              for (var i = 0; i < shareResponses.length; i++) {
+                if (shareResponses[i] && shareResponses[i].result && shareResponses[i].result.keys && shareResponses[i].result.keys.length > 0) {
+                  shareResponses[i].result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)))
+                  if (shareResponses[i].result.keys[0].Metadata) {
+                    const metadata = {
+                      ephemPublicKey: Buffer.from(shareResponses[i].result.keys[0].Metadata.ephemPublicKey, 'hex'),
+                      iv: Buffer.from(shareResponses[i].result.keys[0].Metadata.iv, 'hex'),
+                      mac: Buffer.from(shareResponses[i].result.keys[0].Metadata.mac, 'hex'),
+                      mode: Buffer.from(shareResponses[i].result.keys[0].Metadata.mode, 'hex')
+                    }
+                    sharePromises.push(
+                      eccrypto.decrypt(tmpKey, {
+                        ...metadata,
+                        ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex')
+                      })
+                    )
+                  } else {
+                    sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
+                  }
+                  nodeIndex.push(new BN(indexes[i], 16))
+                }
+              }
+              const sharesResolved = await Promise.all(sharePromises)
+              const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
+                if (curr) acc.push({ index: nodeIndex[index], value: new BN(curr) })
+                return acc
+              }, [])
+              const allCombis = kCombinations(endpoints.length)
+              let privateKey
+              for (let j = 0; j < allCombis.length; j++) {
+                const currentCombi = allCombis[j]
+                privateKey = this.lagrangeInterpolation(
+                  decryptedShares.map(x => x.value).filter((v, index) => currentCombi.includes(index)),
+                  decryptedShares.map(x => x.index).filter((v, index) => currentCombi.includes(index))
+                )
+                const pubKey = eccrypto.getPublic(privateKey).toString('hex')
+                const pubKeyX = pubKey.slice(2, 66)
+                const pubKeyY = pubKey.slice(66)
+                if (pubKeyX === thresholdPublicKey.X && pubKeyY === thresholdPublicKey.Y) break
+              }
+              var ethAddress = this.generateAddressFromPrivKey(privateKey)
+              return {
+                ethAddress,
+                privKey: privateKey.toString('hex', 64)
+              }
+            }
+            throw new Error('invalid')
+          })
         })
-        .then(async shareResponses => {
-          /*
+        .then(response => {
+          resolve(response)
+        })
+        /*
           ShareRequestResult struct {
             Keys []KeyAssignment
           }
@@ -105,40 +176,6 @@ class Torus {
           	Share big.Int // Or Si
           }
           */
-          var sharePromises = []
-          var nodeIndex = []
-          for (var i = 0; i < shareResponses.length; i++) {
-            if (shareResponses[i] && shareResponses[i].result && shareResponses[i].result.keys && shareResponses[i].result.keys.length > 0) {
-              shareResponses[i].result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)))
-              if (shareResponses[i].result.keys[0].Metadata) {
-                const metadata = {
-                  ephemPublicKey: Buffer.from(shareResponses[i].result.keys[0].Metadata.ephemPublicKey, 'hex'),
-                  iv: Buffer.from(shareResponses[i].result.keys[0].Metadata.iv, 'hex'),
-                  mac: Buffer.from(shareResponses[i].result.keys[0].Metadata.mac, 'hex'),
-                  mode: Buffer.from(shareResponses[i].result.keys[0].Metadata.mode, 'hex')
-                }
-                sharePromises.push(
-                  eccrypto.decrypt(tmpKey, {
-                    ...metadata,
-                    ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex')
-                  })
-                )
-              } else {
-                sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
-              }
-              nodeIndex.push(new BN(indexes[i], 16))
-            }
-          }
-
-          const sharesResolved = await Promise.all(sharePromises)
-          var shares = sharesResolved.map(x => new BN(x))
-          var privateKey = this.lagrangeInterpolation(shares.slice(0, 3), nodeIndex.slice(0, 3))
-          var ethAddress = this.generateAddressFromPrivKey(privateKey)
-          resolve({
-            ethAddress,
-            privKey: privateKey.toString('hex', 64)
-          })
-        })
         .catch(err => {
           reject(err)
         })
@@ -191,10 +228,38 @@ class Torus {
           })
         )
       )
-      Some(lookupPromises, lookupPromises / 2 + 1)
+      Some(lookupPromises, lookupResults => {
+        console.log('LOOKUPRESULTS', lookupResults)
+        if (lookupResults.filter(x => x).length >= ~~(endpoints.length / 4) * 3 + 1) {
+          return Promise.resolve(lookupResults)
+        }
+        return Promise.reject(new Error('invalid'))
+      })
         .catch(_ => {})
-        .then(lookupShares => {
-          if (lookupShares.every(x => Object.prototype.hasOwnProperty.call(x, 'error'))) {
+        .then(unfilteredLookupShares => {
+          console.log('unfiltered lookupshares')
+          const lookupShares = unfilteredLookupShares.filter(x => x)
+          const errorResult = thresholdSame(
+            lookupShares.map(x => {
+              if (typeof x === 'object') {
+                return x.error
+              } else {
+                return undefined
+              }
+            }),
+            ~~(endpoints.length / 2) + 1
+          )
+          const keyResult = thresholdSame(
+            lookupShares.map(x => {
+              if (typeof x === 'object') {
+                return x.result
+              } else {
+                return undefined
+              }
+            }),
+            ~~(endpoints.length / 2) + 1
+          )
+          if (errorResult) {
             return post(
               endpoints[Math.floor(Math.random() * endpoints.length)],
               generateJsonRPCObject('KeyAssign', {
@@ -202,16 +267,31 @@ class Torus {
                 verifier_id: verifierId.toString().toLowerCase()
               })
             )
-          } else if (lookupShares.every(x => x.result === lookupShares[0].result)) {
-            return Some(lookupPromises, lookupPromises / 2 + 1)
+          } else if (keyResult) {
+            return Some(lookupPromises, lookupResults => {
+              if (lookupResults.filter(x => x).length >= ~~(endpoints.length / 2) + 1) {
+                return Promise.resolve(lookupResults)
+              }
+              return Promise.reject(new Error('invalid'))
+            })
           } else {
             return reject(new Error('node results do not match'))
           }
         })
         .catch(_ => {})
         .then(lookupShares => {
-          if (lookupShares.every(x => x.result === lookupShares[0].result)) {
-            var ethAddress = lookupShares[0].result.keys[0].address
+          const keyResult = thresholdSame(
+            lookupShares.map(x => {
+              if (typeof x === 'object') {
+                return x.result
+              } else {
+                return undefined
+              }
+            }),
+            ~~(endpoints.length / 2) + 1
+          )
+          if (keyResult) {
+            var ethAddress = keyResult.keys[0].address
             resolve(ethAddress)
           } else {
             reject(new Error('node results do not match'))
