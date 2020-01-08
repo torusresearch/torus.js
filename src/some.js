@@ -15,7 +15,7 @@ export const Some = (promises, predicate) => {
               resolved = true
               resolve(data)
             })
-            .catch(_ => {})
+            .catch(_ => undefined)
             .finally(_ => {
               finishedCount++
               if (finishedCount === promises.length) {

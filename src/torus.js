@@ -7,8 +7,8 @@ import { generateJsonRPCObject, post } from './httpHelpers'
 import { Some } from './some'
 import { thresholdSame, kCombinations } from './utils'
 
-// Swallow individual fetch errors to handle node failures
-// catch only logic errors
+// Implement threshold logic wrappers around public APIs
+// of Torus nodes to handle malicious node responses
 class Torus {
   constructor() {
     this.ec = ec('secp256k1')
@@ -27,11 +27,15 @@ class Torus {
         VerifierIdentifier string `json:"verifieridentifier"`
       } 
       */
+
+      // generate temporary private and public key that is used to secure receive shares
       const tmpKey = eccrypto.generatePrivate()
       const pubKey = eccrypto.getPublic(tmpKey).toString('hex')
       const pubKeyX = pubKey.slice(2, 66)
       const pubKeyY = pubKey.slice(66)
       const tokenCommitment = keccak256(idToken)
+
+      // make commitment requests to endpoints
       for (let i = 0; i < endpoints.length; i++) {
         const p = post(
           endpoints[i],
@@ -43,7 +47,7 @@ class Torus {
             timestamp: (Date.now() - 2000).toString().slice(0, 10),
             verifieridentifier: verifier
           })
-        ).catch(_ => {})
+        ).catch(_ => undefined)
         promiseArr.push(p)
       }
       /*
@@ -68,6 +72,7 @@ class Torus {
         NodePubY  string `json:"nodepuby"`
       }
       */
+      // send share request once k + t number of commitment requests have completed
       Some(promiseArr, resultArr => {
         const completedRequests = resultArr.filter(x => x)
         if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
@@ -78,9 +83,7 @@ class Torus {
         .then(responses => {
           const promiseArrRequest = []
           const nodeSigs = []
-          // Do we only need 3/4th of node commitment requests to pass?
           for (let i = 0; i < responses.length; i++) {
-            // no need to check if responses[i] is valid because we only pass the predicate if it's valid
             if (responses[i]) nodeSigs.push(responses[i].result)
           }
           for (let i = 0; i < endpoints.length; i++) {
@@ -90,7 +93,7 @@ class Torus {
                 encrypted: 'yes',
                 item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier }]
               })
-            ).catch(_ => {})
+            ).catch(_ => undefined)
             promiseArrRequest.push(p)
           }
           return Some(promiseArrRequest, async shareResponses => {
@@ -112,11 +115,14 @@ class Torus {
                 Share big.Int // Or Si
               }
             */
+            // check if threshold number of nodes have returned the same user public key
             const completedRequests = shareResponses.filter(x => x)
             const thresholdPublicKey = thresholdSame(
               shareResponses.map(x => x && x.result && x.result.keys[0].PublicKey),
               ~~(endpoints.length / 2) + 1
             )
+            // optimistically run lagrange interpolation once threshold number of shares have been received
+            // this is matched against the user public key to ensure that shares are consistent
             if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
               const sharePromises = []
               const nodeIndex = []
@@ -136,7 +142,7 @@ class Torus {
                           ...metadata,
                           ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex')
                         })
-                        .catch(_ => {})
+                        .catch(_ => undefined)
                     )
                   } else {
                     sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
@@ -151,6 +157,7 @@ class Torus {
                 if (curr) acc.push({ index: nodeIndex[index], value: new BN(curr) })
                 return acc
               }, [])
+              // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
               const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1)
               let privateKey
               for (let j = 0; j < allCombis.length; j++) {
@@ -171,6 +178,7 @@ class Torus {
                 throw new Error('could not derive private key')
               }
               const ethAddress = this.generateAddressFromPrivKey(privateKey)
+              // return reconstructed private key and ethereum address
               return {
                 ethAddress,
                 privKey: privateKey.toString('hex', 64)
@@ -232,7 +240,7 @@ class Torus {
             verifier,
             verifier_id: verifierId.toString().toLowerCase()
           })
-        )
+        ).catch(_ => undefined)
       )
       Some(lookupPromises, lookupResults => {
         if (lookupResults.filter(x => x).length >= ~~(endpoints.length / 4) * 3 + 1) {
@@ -240,7 +248,7 @@ class Torus {
         }
         return Promise.reject(new Error('invalid'))
       })
-        .catch(_ => {})
+        .catch(_ => undefined)
         .then(unfilteredLookupShares => {
           const lookupShares = unfilteredLookupShares.filter(x => x)
           // getting 7 and checking if 5 are the same
@@ -258,7 +266,7 @@ class Torus {
               generateJsonRPCObject('KeyAssign', {
                 verifier,
                 verifier_id: verifierId.toString().toLowerCase()
-              })
+              }).catch(_ => undefined)
             )
           } else if (keyResult) {
             return Some(lookupPromises, lookupResults => {
@@ -271,7 +279,7 @@ class Torus {
             return reject(new Error('node results do not match'))
           }
         })
-        .catch(_ => {})
+        .catch(_ => undefined)
         .then(lookupShares => {
           // we are practically checking if all are the same here.! Should it not be based on returned responses
           // getting 5 and checking if 5 are the same.!
