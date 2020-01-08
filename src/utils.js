@@ -1,12 +1,9 @@
+import JsonStringify from 'json-stable-stringify'
+
 export const kCombinations = (s, k) => {
-  var set
-  if (typeof s === 'number') {
-    set = []
-    for (let i = 0; i < s; i++) {
-      set.push(i)
-    }
-  } else {
-    set = s
+  let set = s
+  if (typeof set === 'number') {
+    set = Array.from({ length: set }, (_, i) => i)
   }
   if (k > set.length || k <= 0) {
     return []
@@ -36,15 +33,11 @@ export const kCombinations = (s, k) => {
 export const thresholdSame = (arr, t) => {
   const hashMap = {}
   for (let i = 0; i < arr.length; i++) {
-    const str = JSON.stringify(arr[i])
-    if (hashMap[str] === undefined) {
-      hashMap[str] = 0
-    }
-    if (hashMap[str] !== undefined) {
-      hashMap[str]++
-    }
+    const str = JsonStringify(arr[i])
+    hashMap[str] = hashMap[str] ? hashMap[str] + 1 : 1
     if (hashMap[str] === t) {
       return arr[i]
     }
   }
+  return undefined
 }

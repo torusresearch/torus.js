@@ -78,7 +78,9 @@ class Torus {
         .then(responses => {
           const promiseArrRequest = []
           const nodeSigs = []
+          // Do we only need 3/4th of node commitment requests to pass?
           for (let i = 0; i < responses.length; i++) {
+            // no need to check if responses[i] is valid because we only pass the predicate if it's valid
             if (responses[i]) nodeSigs.push(responses[i].result)
           }
           for (let i = 0; i < endpoints.length; i++) {
@@ -92,15 +94,27 @@ class Torus {
             promiseArrRequest.push(p)
           }
           return Some(promiseArrRequest, async shareResponses => {
+            /*
+              ShareRequestResult struct {
+                Keys []KeyAssignment
+              }
+                      / KeyAssignmentPublic -
+              type KeyAssignmentPublic struct {
+                Index     big.Int
+                PublicKey common.Point
+                Threshold int
+                Verifiers map[string][]string // Verifier => VerifierID
+              }
+
+              // KeyAssignment -
+              type KeyAssignment struct {
+                KeyAssignmentPublic
+                Share big.Int // Or Si
+              }
+            */
             const completedRequests = shareResponses.filter(x => x)
             const thresholdPublicKey = thresholdSame(
-              shareResponses.map(x => {
-                if (x === undefined) {
-                  return undefined
-                } else {
-                  return x.result.keys[0].PublicKey
-                }
-              }),
+              shareResponses.map(x => x && x.result && x.result.keys[0].PublicKey),
               ~~(endpoints.length / 2) + 1
             )
             if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
@@ -168,24 +182,6 @@ class Torus {
         .then(response => {
           resolve(response)
         })
-        /*
-          ShareRequestResult struct {
-            Keys []KeyAssignment
-          }
-                  / KeyAssignmentPublic -
-          type KeyAssignmentPublic struct {
-          	Index     big.Int
-          	PublicKey common.Point
-          	Threshold int
-          	Verifiers map[string][]string // Verifier => VerifierID
-          }
-
-          // KeyAssignment -
-          type KeyAssignment struct {
-          	KeyAssignmentPublic
-          	Share big.Int // Or Si
-          }
-          */
         .catch(err => {
           reject(err)
         })
@@ -247,24 +243,13 @@ class Torus {
         .catch(_ => {})
         .then(unfilteredLookupShares => {
           const lookupShares = unfilteredLookupShares.filter(x => x)
+          // getting 7 and checking if 5 are the same
           const errorResult = thresholdSame(
-            lookupShares.map(x => {
-              if (typeof x === 'object') {
-                return x.error
-              } else {
-                return undefined
-              }
-            }),
+            lookupShares.map(x => x && x.error),
             ~~(endpoints.length / 2) + 1
           )
           const keyResult = thresholdSame(
-            lookupShares.map(x => {
-              if (typeof x === 'object') {
-                return x.result
-              } else {
-                return undefined
-              }
-            }),
+            lookupShares.map(x => x && x.result),
             ~~(endpoints.length / 2) + 1
           )
           if (errorResult) {
@@ -288,14 +273,10 @@ class Torus {
         })
         .catch(_ => {})
         .then(lookupShares => {
+          // we are practically checking if all are the same here.! Should it not be based on returned responses
+          // getting 5 and checking if 5 are the same.!
           const keyResult = thresholdSame(
-            lookupShares.map(x => {
-              if (typeof x === 'object') {
-                return x.result
-              } else {
-                return undefined
-              }
-            }),
+            lookupShares.map(x => x && x.result),
             ~~(endpoints.length / 2) + 1
           )
           if (keyResult) {

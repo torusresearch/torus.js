@@ -10,7 +10,7 @@ export const Some = (promises, predicate) => {
         .catch(_ => {})
         .finally(() => {
           if (resolved) return
-          predicate(resultArr.slice())
+          predicate(resultArr.slice(0))
             .then(data => {
               resolved = true
               resolve(data)
