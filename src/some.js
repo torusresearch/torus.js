@@ -1,6 +1,7 @@
 export const Some = (promises, predicate) => {
   return new Promise((resolve, reject) => {
     let finishedCount = 0
+    let resolved = false
     const resultArr = new Array(promises.length).fill(undefined)
     promises.forEach((x, index) => {
       x.then(resp => {
@@ -8,8 +9,12 @@ export const Some = (promises, predicate) => {
       })
         .catch(_ => {})
         .finally(() => {
+          if (resolved) return
           predicate(resultArr.slice())
-            .then(resolve)
+            .then(data => {
+              resolved = true
+              resolve(data)
+            })
             .catch(_ => {})
             .finally(_ => {
               finishedCount++

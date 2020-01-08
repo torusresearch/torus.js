@@ -32,8 +32,8 @@ class Torus {
       const pubKeyX = pubKey.slice(2, 66)
       const pubKeyY = pubKey.slice(66)
       const tokenCommitment = keccak256(idToken)
-      for (var i = 0; i < endpoints.length; i++) {
-        var p = post(
+      for (let i = 0; i < endpoints.length; i++) {
+        const p = post(
           endpoints[i],
           generateJsonRPCObject('CommitmentRequest', {
             messageprefix: 'mug00',
@@ -70,7 +70,7 @@ class Torus {
       */
       Some(promiseArr, resultArr => {
         const completedRequests = resultArr.filter(x => x)
-        if (completedRequests.length > ~~(endpoints.length / 4) * 3 + 1) {
+        if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
           return Promise.resolve(resultArr)
         }
         return Promise.reject(new Error('invalid'))
@@ -96,9 +96,9 @@ class Torus {
             const thresholdPublicKey = thresholdSame(
               shareResponses.map(x => {
                 if (x === undefined) {
-                  return Promise.resolve(undefined)
+                  return undefined
                 } else {
-                  return Promise.resolve(x.result.keys[0].PublicKey)
+                  return x.result.keys[0].PublicKey
                 }
               }),
               ~~(endpoints.length / 2) + 1
@@ -117,36 +117,46 @@ class Torus {
                       mode: Buffer.from(shareResponses[i].result.keys[0].Metadata.mode, 'hex')
                     }
                     sharePromises.push(
-                      eccrypto.decrypt(tmpKey, {
-                        ...metadata,
-                        ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex')
-                      })
+                      eccrypto
+                        .decrypt(tmpKey, {
+                          ...metadata,
+                          ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex')
+                        })
+                        .catch(_ => {})
                     )
                   } else {
                     sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
                   }
-                  nodeIndex.push(new BN(indexes[i], 16))
+                } else {
+                  sharePromises.push(Promise.resolve(undefined))
                 }
+                nodeIndex.push(new BN(indexes[i], 16))
               }
               const sharesResolved = await Promise.all(sharePromises)
               const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
                 if (curr) acc.push({ index: nodeIndex[index], value: new BN(curr) })
                 return acc
               }, [])
-              const allCombis = kCombinations(endpoints.length)
+              const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1)
               let privateKey
               for (let j = 0; j < allCombis.length; j++) {
                 const currentCombi = allCombis[j]
-                privateKey = this.lagrangeInterpolation(
-                  decryptedShares.map(x => x.value).filter((v, index) => currentCombi.includes(index)),
-                  decryptedShares.map(x => x.index).filter((v, index) => currentCombi.includes(index))
-                )
-                const pubKey = eccrypto.getPublic(privateKey).toString('hex')
+                const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index))
+                const shares = currentCombiShares.map(x => x.value)
+                const indices = currentCombiShares.map(x => x.index)
+                const derivedPrivateKey = this.lagrangeInterpolation(shares, indices)
+                const pubKey = eccrypto.getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
                 const pubKeyX = pubKey.slice(2, 66)
                 const pubKeyY = pubKey.slice(66)
-                if (pubKeyX === thresholdPublicKey.X && pubKeyY === thresholdPublicKey.Y) break
+                if (pubKeyX === thresholdPublicKey.X && pubKeyY === thresholdPublicKey.Y) {
+                  privateKey = derivedPrivateKey
+                  break
+                }
               }
-              var ethAddress = this.generateAddressFromPrivKey(privateKey)
+              if (privateKey === undefined) {
+                throw new Error('could not derive private key')
+              }
+              const ethAddress = this.generateAddressFromPrivKey(privateKey)
               return {
                 ethAddress,
                 privKey: privateKey.toString('hex', 64)
@@ -229,7 +239,6 @@ class Torus {
         )
       )
       Some(lookupPromises, lookupResults => {
-        console.log('LOOKUPRESULTS', lookupResults)
         if (lookupResults.filter(x => x).length >= ~~(endpoints.length / 4) * 3 + 1) {
           return Promise.resolve(lookupResults)
         }
@@ -237,7 +246,6 @@ class Torus {
       })
         .catch(_ => {})
         .then(unfilteredLookupShares => {
-          console.log('unfiltered lookupshares')
           const lookupShares = unfilteredLookupShares.filter(x => x)
           const errorResult = thresholdSame(
             lookupShares.map(x => {
