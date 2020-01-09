@@ -5,7 +5,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "build:babel": "babel ./src --out-dir dist/",
+    "build": "babel ./src --out-dir dist/ && cp ./src/torus.d.ts ./dist/torus.d.ts",
     "lint:js": "eslint --fix src/**/*.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

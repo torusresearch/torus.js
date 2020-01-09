@@ -1,3 +1,3 @@
-import Torus from './src/torus'
+import Torus from './dist/torus'
 
 export default Torus

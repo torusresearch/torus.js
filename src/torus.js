@@ -5,7 +5,7 @@ import BN from 'bn.js'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
 import { Some } from './some'
-import { thresholdSame, kCombinations } from './utils'
+import { thresholdSame, kCombinations, keyLookup, keyAssign } from './utils'
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -233,60 +233,20 @@ class Torus {
 
   getPubKeyAsync(endpoints, { verifier, verifierId }) {
     return new Promise((resolve, reject) => {
-      const lookupPromises = endpoints.map(x =>
-        post(
-          x,
-          generateJsonRPCObject('VerifierLookupRequest', {
-            verifier,
-            verifier_id: verifierId.toString().toLowerCase()
-          })
-        ).catch(_ => undefined)
-      )
-      Some(lookupPromises, lookupResults => {
-        if (lookupResults.filter(x => x).length >= ~~(endpoints.length / 4) * 3 + 1) {
-          return Promise.resolve(lookupResults)
-        }
-        return Promise.reject(new Error('invalid'))
-      })
-        .catch(_ => undefined)
-        .then(unfilteredLookupShares => {
-          const lookupShares = unfilteredLookupShares.filter(x => x)
-          // getting 7 and checking if 5 are the same
-          const errorResult = thresholdSame(
-            lookupShares.map(x => x && x.error),
-            ~~(endpoints.length / 2) + 1
-          )
-          const keyResult = thresholdSame(
-            lookupShares.map(x => x && x.result),
-            ~~(endpoints.length / 2) + 1
-          )
+      keyLookup(endpoints, verifier, verifierId)
+        .then(({ keyResult, errorResult }) => {
           if (errorResult) {
-            return post(
-              endpoints[Math.floor(Math.random() * endpoints.length)],
-              generateJsonRPCObject('KeyAssign', {
-                verifier,
-                verifier_id: verifierId.toString().toLowerCase()
-              }).catch(_ => undefined)
-            )
-          } else if (keyResult) {
-            return Some(lookupPromises, lookupResults => {
-              if (lookupResults.filter(x => x).length >= ~~(endpoints.length / 2) + 1) {
-                return Promise.resolve(lookupResults)
-              }
-              return Promise.reject(new Error('invalid'))
+            return keyAssign(endpoints, undefined, verifier, verifierId).then(_ => {
+              return keyLookup(endpoints, verifier, verifierId)
             })
-          } else {
-            return reject(new Error('node results do not match'))
           }
+          if (keyResult) {
+            return Promise.resolve({ keyResult })
+          }
+          return reject(new Error('node results do not match'))
         })
         .catch(_ => undefined)
-        .then(lookupShares => {
-          // we are practically checking if all are the same here.! Should it not be based on returned responses
-          // getting 5 and checking if 5 are the same.!
-          const keyResult = thresholdSame(
-            lookupShares.map(x => x && x.result),
-            ~~(endpoints.length / 2) + 1
-          )
+        .then(({ keyResult }) => {
           if (keyResult) {
             var ethAddress = keyResult.keys[0].address
             resolve(ethAddress)
