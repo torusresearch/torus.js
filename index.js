@@ -1,3 +1,3 @@
-const embed = require('./dist/embed')
+const Torus = require('./dist/torus')
 
-module.exports = embed
+module.exports = Torus
