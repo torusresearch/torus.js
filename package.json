@@ -14,6 +14,7 @@
     "eccrypto": "^1.1.2",
     "elliptic": "^6.5.2",
     "json-stable-stringify": "^1.0.1",
+    "loglevel": "^1.6.6",
     "web3-utils": "^1.2.4"
   },
   "devDependencies": {
@@ -33,7 +34,7 @@
     "eslint-plugin-prettier": "^3.1.2",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "husky": "^4.0.1",
+    "husky": "^4.0.3",
     "lint-staged": "^9.5.0",
     "prettier": "^1.19.1"
   },
