@@ -1,0 +1,76 @@
+{
+  "name": "@toruslabs/torus.js",
+  "version": "1.0.0",
+  "description": "Handle communication with torus nodes",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "babel ./src --out-dir dist/ && cp ./src/torus.d.ts ./dist/torus.d.ts",
+    "lint:js": "eslint --fix src/**/*.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bn.js": "^5.1.1",
+    "eccrypto": "^1.1.2",
+    "elliptic": "^6.5.2",
+    "json-stable-stringify": "^1.0.1",
+    "web3-utils": "^1.2.4"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.7.7",
+    "@babel/core": "^7.7.7",
+    "@babel/plugin-proposal-object-rest-spread": "^7.7.7",
+    "@babel/preset-env": "^7.7.7",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-config-prettier": "^6.9.0",
+    "eslint-config-standard": "^14.1.0",
+    "eslint-plugin-flowtype": "^4.5.3",
+    "eslint-plugin-html": "^6.0.0",
+    "eslint-plugin-import": "^2.19.1",
+    "eslint-plugin-mocha": "^6.2.2",
+    "eslint-plugin-node": "^11.0.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "husky": "^4.0.1",
+    "lint-staged": "^9.5.0",
+    "prettier": "^1.19.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/torusresearch/torus.js.git"
+  },
+  "keywords": [
+    "torus.js",
+    "key assign",
+    "get public address",
+    "torus nodes",
+    "torus-embed",
+    "torus-website",
+    "elliptic"
+  ],
+  "author": "Chaitanya Potti",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/torusresearch/torus.js/issues"
+  },
+  "homepage": "https://github.com/torusresearch/torus.js#readme",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "npm run lint:js --",
+      "prettier --write **/*.js",
+      "git add"
+    ],
+    "*.{json}": [
+      "prettier --write **/*.json",
+      "prettier --write **/*.css",
+      "git add"
+    ]
+  }
+}
