@@ -2,6 +2,7 @@ import { ec } from 'elliptic'
 import eccrypto from 'eccrypto'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 import BN from 'bn.js'
+import log from 'loglevel'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
 import { Some } from './some'
@@ -10,8 +11,10 @@ import { thresholdSame, kCombinations, keyLookup, keyAssign } from './utils'
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  constructor() {
+  constructor({ enableLogging = false } = {}) {
     this.ec = ec('secp256k1')
+    log.setDefaultLevel('DEBUG')
+    if (!enableLogging) log.disableAll()
   }
 
   retrieveShares(endpoints, indexes, verifier, verifierParams, idToken) {
@@ -47,7 +50,7 @@ class Torus {
             timestamp: (Date.now() - 2000).toString().slice(0, 10),
             verifieridentifier: verifier
           })
-        ).catch(_ => undefined)
+        ).catch(err => log.debug('commitment', err))
         promiseArr.push(p)
       }
       /*
@@ -93,7 +96,7 @@ class Torus {
                 encrypted: 'yes',
                 item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier }]
               })
-            ).catch(_ => undefined)
+            ).catch(err => log.debug('share req', err))
             promiseArrRequest.push(p)
           }
           return Some(promiseArrRequest, async shareResponses => {
@@ -142,7 +145,7 @@ class Torus {
                           ...metadata,
                           ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex')
                         })
-                        .catch(_ => undefined)
+                        .catch(err => log.debug('share decryption', err))
                     )
                   } else {
                     sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
@@ -245,7 +248,7 @@ class Torus {
           }
           return reject(new Error('node results do not match'))
         })
-        .catch(_ => undefined)
+        .catch(err => log.debug('key assign', err))
         .then(({ keyResult }) => {
           if (keyResult) {
             var ethAddress = keyResult.keys[0].address

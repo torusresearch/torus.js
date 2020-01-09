@@ -1,3 +1,5 @@
+import log from 'loglevel'
+
 export const Some = (promises, predicate) => {
   return new Promise((resolve, reject) => {
     let finishedCount = 0
@@ -7,7 +9,7 @@ export const Some = (promises, predicate) => {
       x.then(resp => {
         resultArr[index] = resp
       })
-        .catch(_ => {})
+        .catch(err => log.debug('some result', err))
         .finally(() => {
           if (resolved) return
           predicate(resultArr.slice(0))
@@ -15,7 +17,7 @@ export const Some = (promises, predicate) => {
               resolved = true
               resolve(data)
             })
-            .catch(_ => undefined)
+            .catch(err => log.debug('predicate', err))
             .finally(_ => {
               finishedCount++
               if (finishedCount === promises.length) {
