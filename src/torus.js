@@ -226,7 +226,7 @@ class Torus {
       .getPublic()
       .encode('hex')
       .slice(2)
-    var ethAddressLower = '0x' + keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38) // remove 0x
+    var ethAddressLower = '0x' + keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)
     var ethAddress = toChecksumAddress(ethAddressLower)
     return ethAddress
   }
