@@ -11,9 +11,9 @@ import { thresholdSame, kCombinations, keyLookup, keyAssign } from './utils'
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  constructor({ enableLogging = true } = {}) {
+  constructor({ enableLogging = false } = {}) {
     this.ec = ec('secp256k1')
-    log.setDefaultLevel('debug')
+    log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()
   }
 
