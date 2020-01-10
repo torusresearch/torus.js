@@ -11,9 +11,9 @@ import { thresholdSame, kCombinations, keyLookup, keyAssign } from './utils'
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  constructor({ enableLogging = false } = {}) {
+  constructor({ enableLogging = true } = {}) {
     this.ec = ec('secp256k1')
-    log.setDefaultLevel('DEBUG')
+    log.setDefaultLevel('debug')
     if (!enableLogging) log.disableAll()
   }
 
@@ -172,7 +172,10 @@ class Torus {
                 const pubKey = eccrypto.getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
                 const pubKeyX = pubKey.slice(2, 66)
                 const pubKeyY = pubKey.slice(66)
-                if (pubKeyX === thresholdPublicKey.X && pubKeyY === thresholdPublicKey.Y) {
+                if (
+                  new BN(pubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
+                  new BN(pubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
+                ) {
                   privateKey = derivedPrivateKey
                   break
                 }

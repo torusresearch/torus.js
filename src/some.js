@@ -19,6 +19,7 @@ export const Some = (promises, predicate) => {
             })
             .catch(err => log.debug('predicate', err))
             .finally(_ => {
+              log.debug('finally')
               finishedCount++
               if (finishedCount === promises.length) {
                 reject(new Error('Unable to resolve enough promises, responses: ' + JSON.stringify(resultArr)))
