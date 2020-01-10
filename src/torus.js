@@ -237,7 +237,7 @@ class Torus {
   getPubKeyAsync(endpoints, { verifier, verifierId }) {
     return new Promise((resolve, reject) => {
       keyLookup(endpoints, verifier, verifierId)
-        .then(({ keyResult, errorResult }) => {
+        .then(({ keyResult, errorResult } = {}) => {
           if (errorResult) {
             return keyAssign(endpoints, undefined, verifier, verifierId).then(_ => {
               return keyLookup(endpoints, verifier, verifierId)
@@ -249,7 +249,7 @@ class Torus {
           return reject(new Error('node results do not match'))
         })
         .catch(err => log.debug('key assign', err))
-        .then(({ keyResult }) => {
+        .then(({ keyResult } = {}) => {
           if (keyResult) {
             var ethAddress = keyResult.keys[0].address
             resolve(ethAddress)
