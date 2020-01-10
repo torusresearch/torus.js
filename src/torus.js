@@ -237,7 +237,7 @@ class Torus {
     return ethAddress
   }
 
-  getPubKeyAsync(endpoints, { verifier, verifierId }) {
+  getPublicAddress(endpoints, { verifier, verifierId }) {
     return new Promise((resolve, reject) => {
       keyLookup(endpoints, verifier, verifierId)
         .then(({ keyResult, errorResult } = {}) => {
