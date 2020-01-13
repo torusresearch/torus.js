@@ -72,13 +72,23 @@ export const keyLookup = (endpoints, verifier, verifierId) => {
   }).catch(_ => undefined)
 }
 
-export const keyAssign = (endpoints, lastPoint, verifier, verifierId) => {
+export const keyAssign = (endpoints, torusNodePubs, lastPoint, verifier, verifierId) => {
   const nodeNum = lastPoint === undefined ? Math.floor(Math.random() * endpoints.length) : lastPoint % endpoints.length
-  return post(
-    endpoints[nodeNum],
-    generateJsonRPCObject('KeyAssign', {
-      verifier,
-      verifier_id: verifierId.toString().toLowerCase()
-    })
-  ).catch(_ => keyAssign(endpoints, nodeNum + 1, verifier, verifierId))
+  const data = generateJsonRPCObject('KeyAssign', {
+    verifier,
+    verifier_id: verifierId.toString().toLowerCase()
+  })
+  return post('https://signer.tor.us/api/sign', data, {
+    headers: {
+      pubKeyX: torusNodePubs[nodeNum].X,
+      pubKeyY: torusNodePubs[nodeNum].Y
+    }
+  }).then(signedData => {
+    return post(endpoints[nodeNum], data, {
+      headers: {
+        ...signedData,
+        'Content-Type': 'application/json; charset=utf-8'
+      }
+    }).catch(_ => keyAssign(endpoints, torusNodePubs, nodeNum + 1, verifier, verifierId))
+  })
 }
