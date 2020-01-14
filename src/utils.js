@@ -72,8 +72,17 @@ export const keyLookup = (endpoints, verifier, verifierId) => {
   }).catch(_ => undefined)
 }
 
-export const keyAssign = (endpoints, torusNodePubs, lastPoint, verifier, verifierId) => {
-  const nodeNum = lastPoint === undefined ? Math.floor(Math.random() * endpoints.length) : lastPoint % endpoints.length
+export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId) => {
+  let nodeNum, initialPoint
+  if (lastPoint === undefined) {
+    nodeNum = Math.floor(Math.random() * endpoints.length)
+    initialPoint = nodeNum
+  } else {
+    nodeNum = lastPoint % endpoints.length
+  }
+  if (nodeNum === firstPoint) throw new Error('Looped through all')
+  if (firstPoint !== undefined) initialPoint = firstPoint
+
   const data = generateJsonRPCObject('KeyAssign', {
     verifier,
     verifier_id: verifierId.toString().toLowerCase()
@@ -84,11 +93,14 @@ export const keyAssign = (endpoints, torusNodePubs, lastPoint, verifier, verifie
       pubKeyY: torusNodePubs[nodeNum].Y
     }
   }).then(signedData => {
-    return post(endpoints[nodeNum], data, {
-      headers: {
-        ...signedData,
-        'Content-Type': 'application/json; charset=utf-8'
+    return post(
+      endpoints[nodeNum],
+      { ...data, ...signedData },
+      {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8'
+        }
       }
-    }).catch(_ => keyAssign(endpoints, torusNodePubs, nodeNum + 1, verifier, verifierId))
+    ).catch(_ => keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId))
   })
 }
