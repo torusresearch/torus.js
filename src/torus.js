@@ -242,7 +242,7 @@ class Torus {
       keyLookup(endpoints, verifier, verifierId)
         .then(({ keyResult, errorResult } = {}) => {
           if (errorResult) {
-            return keyAssign(endpoints, torusNodePubs, undefined, verifier, verifierId).then(_ => {
+            return keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId).then(_ => {
               return keyLookup(endpoints, verifier, verifierId)
             })
           }
