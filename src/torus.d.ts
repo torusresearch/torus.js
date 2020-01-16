@@ -3,7 +3,7 @@ import BN from 'bn.js'
 export default class Torus {
     constructor();
     retrieveShares(endpoints: String[], indexes: Number[], verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord', verifierParams: VerifierParams, idToken: String): Promise<ShareResponse>;
-    lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN
+    lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN;
     generateAddressFromPrivKey(privateKey: BN): String;
     getPublicAddress(endpoints: String[], torusNodePubs: TorusNodePub[], verifierArgs: VerifierArgs): String;
 }
