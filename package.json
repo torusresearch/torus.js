@@ -16,7 +16,7 @@
     "elliptic": "^6.5.2",
     "json-stable-stringify": "^1.0.1",
     "loglevel": "^1.6.6",
-    "web3-utils": "^1.2.4"
+    "web3-utils": "^1.2.5"
   },
   "devDependencies": {
     "@babel/cli": "^7.8.3",
@@ -35,8 +35,8 @@
     "eslint-plugin-prettier": "^3.1.2",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "husky": "^4.0.10",
-    "lint-staged": "^9.5.0",
+    "husky": "^4.2.1",
+    "lint-staged": "^10.0.3",
     "prettier": "^1.19.1"
   },
   "repository": {
