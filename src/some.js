@@ -1,5 +1,3 @@
-import log from 'loglevel'
-
 export const Some = (promises, predicate) => {
   return new Promise((resolve, reject) => {
     let finishedCount = 0
@@ -9,7 +7,7 @@ export const Some = (promises, predicate) => {
       x.then(resp => {
         resultArr[index] = resp
       })
-        .catch(err => log.debug('some result', err))
+        .catch(_ => {})
         .finally(() => {
           if (resolved) return
           predicate(resultArr.slice(0))
@@ -17,9 +15,8 @@ export const Some = (promises, predicate) => {
               resolved = true
               resolve(data)
             })
-            .catch(err => log.debug('predicate', err))
+            .catch(_ => {})
             .finally(_ => {
-              log.debug('finally')
               finishedCount++
               if (finishedCount === promises.length) {
                 reject(new Error('Unable to resolve enough promises, responses: ' + JSON.stringify(resultArr)))

@@ -236,7 +236,7 @@ class Torus {
     return toChecksumAddress(ethAddressLower)
   }
 
-  getPublicAddress(endpoints, torusNodePubs, isExtended = false, { verifier, verifierId }) {
+  getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     return new Promise((resolve, reject) => {
       keyLookup(endpoints, verifier, verifierId)
         .then(({ keyResult, errorResult } = {}) => {
