@@ -129,7 +129,7 @@ class Torus {
             if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
               const sharePromises = []
               const nodeIndex = []
-              for (var i = 0; i < shareResponses.length; i++) {
+              for (let i = 0; i < shareResponses.length; i++) {
                 if (shareResponses[i] && shareResponses[i].result && shareResponses[i].result.keys && shareResponses[i].result.keys.length > 0) {
                   shareResponses[i].result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)))
                   if (shareResponses[i].result.keys[0].Metadata) {
@@ -206,10 +206,10 @@ class Torus {
     if (shares.length !== nodeIndex.length) {
       return null
     }
-    var secret = new BN(0)
+    let secret = new BN(0)
     for (let i = 0; i < shares.length; i++) {
-      var upper = new BN(1)
-      var lower = new BN(1)
+      let upper = new BN(1)
+      let lower = new BN(1)
       for (let j = 0; j < shares.length; j++) {
         if (i !== j) {
           upper = upper.mul(nodeIndex[j].neg())
@@ -227,17 +227,16 @@ class Torus {
   }
 
   generateAddressFromPrivKey(privateKey) {
-    var key = this.ec.keyFromPrivate(privateKey.toString('hex', 64), 'hex')
-    var publicKey = key
+    const key = this.ec.keyFromPrivate(privateKey.toString('hex', 64), 'hex')
+    const publicKey = key
       .getPublic()
       .encode('hex')
       .slice(2)
-    var ethAddressLower = '0x' + keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)
-    var ethAddress = toChecksumAddress(ethAddressLower)
-    return ethAddress
+    const ethAddressLower = '0x' + keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)
+    return toChecksumAddress(ethAddressLower)
   }
 
-  getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }) {
+  getPublicAddress(endpoints, torusNodePubs, isExtended = false, { verifier, verifierId }) {
     return new Promise((resolve, reject) => {
       keyLookup(endpoints, verifier, verifierId)
         .then(({ keyResult, errorResult } = {}) => {
@@ -253,8 +252,14 @@ class Torus {
         })
         .then(({ keyResult } = {}) => {
           if (keyResult) {
-            var ethAddress = keyResult.keys[0].address
-            resolve(ethAddress)
+            const { address, pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0]
+            if (!isExtended) resolve(address)
+            else
+              resolve({
+                address,
+                X,
+                Y
+              })
           } else {
             reject(new Error('node results do not match'))
           }
