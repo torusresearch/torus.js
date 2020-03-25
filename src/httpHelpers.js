@@ -13,21 +13,21 @@ export const post = (url = '', data = {}, opts = {}) => {
     mode: 'cors',
     cache: 'no-cache',
     headers: {
-      'Content-Type': 'application/json; charset=utf-8'
+      'Content-Type': 'application/json; charset=utf-8',
     },
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   }
   const options = {
     ...defaultOptions,
     ...opts,
-    ...{ method: 'POST' }
+    ...{ method: 'POST' },
   }
   return promiseTimeout(
     12000,
-    fetch(url, options).then(response => {
+    fetch(url, options).then((response) => {
       if (response.ok) {
         return response.json()
-      } else throw new Error('Could not connect', response)
+      } else throw response
     })
   )
 }
@@ -37,6 +37,6 @@ export const generateJsonRPCObject = (method, params) => {
     jsonrpc: '2.0',
     method: method,
     id: 10,
-    params: params
+    params: params,
   }
 }

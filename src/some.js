@@ -4,19 +4,19 @@ export const Some = (promises, predicate) => {
     let resolved = false
     const resultArr = new Array(promises.length).fill(undefined)
     promises.forEach((x, index) => {
-      x.then(resp => {
+      x.then((resp) => {
         resultArr[index] = resp
       })
-        .catch(_ => {})
+        .catch((_) => {})
         .finally(() => {
           if (resolved) return
           predicate(resultArr.slice(0))
-            .then(data => {
+            .then((data) => {
               resolved = true
               resolve(data)
             })
-            .catch(_ => {})
-            .finally(_ => {
+            .catch((_) => {})
+            .finally((_) => {
               finishedCount++
               if (finishedCount === promises.length) {
                 reject(new Error('Unable to resolve enough promises, responses: ' + JSON.stringify(resultArr)))

@@ -9,7 +9,7 @@ export default class Torus {
 }
 
 interface TorusPublicKey extends TorusNodePub {
-  address: String;
+    address: String;
 }
 
 interface TorusNodePub {
