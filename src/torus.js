@@ -1,12 +1,13 @@
-import { ec } from 'elliptic'
-import eccrypto from 'eccrypto'
-import { keccak256, toChecksumAddress } from 'web3-utils'
+/* eslint-disable class-methods-use-this */
 import BN from 'bn.js'
+import eccrypto from 'eccrypto'
+import { ec } from 'elliptic'
 import log from 'loglevel'
+import { keccak256, toChecksumAddress } from 'web3-utils'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
 import { Some } from './some'
-import { thresholdSame, kCombinations, keyLookup, keyAssign } from './utils'
+import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -38,7 +39,7 @@ class Torus {
     const tokenCommitment = keccak256(idToken)
 
     // make commitment requests to endpoints
-    for (let i = 0; i < endpoints.length; i++) {
+    for (let i = 0; i < endpoints.length; i += 1) {
       const p = post(
         endpoints[i],
         generateJsonRPCObject('CommitmentRequest', {
@@ -84,10 +85,11 @@ class Torus {
     }).then((responses) => {
       const promiseArrRequest = []
       const nodeSigs = []
-      for (let i = 0; i < responses.length; i++) {
+      for (let i = 0; i < responses.length; i += 1) {
         if (responses[i]) nodeSigs.push(responses[i].result)
       }
-      for (let i = 0; i < endpoints.length; i++) {
+      for (let i = 0; i < endpoints.length; i += 1) {
+        // eslint-disable-next-line promise/no-nesting
         const p = post(
           endpoints[i],
           generateJsonRPCObject('ShareRequest', {
@@ -127,7 +129,7 @@ class Torus {
         if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
           const sharePromises = []
           const nodeIndex = []
-          for (let i = 0; i < shareResponses.length; i++) {
+          for (let i = 0; i < shareResponses.length; i += 1) {
             if (shareResponses[i] && shareResponses[i].result && shareResponses[i].result.keys && shareResponses[i].result.keys.length > 0) {
               shareResponses[i].result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)))
               if (shareResponses[i].result.keys[0].Metadata) {
@@ -138,6 +140,7 @@ class Torus {
                   mode: Buffer.from(shareResponses[i].result.keys[0].Metadata.mode, 'hex'),
                 }
                 sharePromises.push(
+                  // eslint-disable-next-line promise/no-nesting
                   eccrypto
                     .decrypt(tmpKey, {
                       ...metadata,
@@ -161,16 +164,19 @@ class Torus {
           // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
           const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1)
           let privateKey
-          for (let j = 0; j < allCombis.length; j++) {
+          for (let j = 0; j < allCombis.length; j += 1) {
             const currentCombi = allCombis[j]
             const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index))
             const shares = currentCombiShares.map((x) => x.value)
             const indices = currentCombiShares.map((x) => x.index)
             const derivedPrivateKey = this.lagrangeInterpolation(shares, indices)
-            const pubKey = eccrypto.getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
-            const pubKeyX = pubKey.slice(2, 66)
-            const pubKeyY = pubKey.slice(66)
-            if (new BN(pubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 && new BN(pubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0) {
+            const decryptedPubKey = eccrypto.getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
+            const decryptedPubKeyX = decryptedPubKey.slice(2, 66)
+            const decryptedPubKeyY = decryptedPubKey.slice(66)
+            if (
+              new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
+              new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
+            ) {
               privateKey = derivedPrivateKey
               break
             }
@@ -195,10 +201,10 @@ class Torus {
       return null
     }
     let secret = new BN(0)
-    for (let i = 0; i < shares.length; i++) {
+    for (let i = 0; i < shares.length; i += 1) {
       let upper = new BN(1)
       let lower = new BN(1)
-      for (let j = 0; j < shares.length; j++) {
+      for (let j = 0; j < shares.length; j += 1) {
         if (i !== j) {
           upper = upper.mul(nodeIndex[j].neg())
           upper = upper.umod(this.ec.curve.n)
@@ -217,7 +223,7 @@ class Torus {
   generateAddressFromPrivKey(privateKey) {
     const key = this.ec.keyFromPrivate(privateKey.toString('hex', 64), 'hex')
     const publicKey = key.getPublic().encode('hex').slice(2)
-    const ethAddressLower = '0x' + keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)
+    const ethAddressLower = `0x${keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)}`
     return toChecksumAddress(ethAddressLower)
   }
 
@@ -225,28 +231,27 @@ class Torus {
     return keyLookup(endpoints, verifier, verifierId)
       .then(({ keyResult, errorResult } = {}) => {
         if (errorResult) {
+          // eslint-disable-next-line promise/no-nesting
           return keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId).then((_) => {
             return keyLookup(endpoints, verifier, verifierId)
           })
         }
         if (keyResult) {
-          return Promise.resolve({ keyResult })
+          return { keyResult }
         }
-        return Promise.reject(new Error('node results do not match'))
+        throw new Error('node results do not match')
       })
       .then(({ keyResult } = {}) => {
         if (keyResult) {
           const { address, pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0]
-          if (!isExtended) return Promise.resolve(address)
-          else
-            return Promise.resolve({
-              address,
-              X,
-              Y,
-            })
-        } else {
-          return Promise.reject(new Error('node results do not match'))
+          if (!isExtended) return address
+          return {
+            address,
+            X,
+            Y,
+          }
         }
+        throw new Error('node results do not match')
       })
   }
 }

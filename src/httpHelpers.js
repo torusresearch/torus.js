@@ -2,7 +2,7 @@ export const promiseTimeout = (ms, promise) => {
   const timeout = new Promise((resolve, reject) => {
     const id = setTimeout(() => {
       clearTimeout(id)
-      reject(new Error('Timed out in ' + ms + 'ms'))
+      reject(new Error(`Timed out in ${ms}ms`))
     }, ms)
   })
   return Promise.race([promise, timeout])
@@ -27,7 +27,8 @@ export const post = (url = '', data = {}, opts = {}) => {
     fetch(url, options).then((response) => {
       if (response.ok) {
         return response.json()
-      } else throw response
+      }
+      throw response
     })
   )
 }
@@ -35,8 +36,8 @@ export const post = (url = '', data = {}, opts = {}) => {
 export const generateJsonRPCObject = (method, params) => {
   return {
     jsonrpc: '2.0',
-    method: method,
+    method,
     id: 10,
-    params: params,
+    params,
   }
 }

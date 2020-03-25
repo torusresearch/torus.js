@@ -6,6 +6,7 @@ export const Some = (promises, predicate) => {
     promises.forEach((x, index) => {
       x.then((resp) => {
         resultArr[index] = resp
+        return undefined
       })
         .catch((_) => {})
         .finally(() => {
@@ -14,12 +15,13 @@ export const Some = (promises, predicate) => {
             .then((data) => {
               resolved = true
               resolve(data)
+              return undefined
             })
             .catch((_) => {})
             .finally((_) => {
-              finishedCount++
+              finishedCount += 1
               if (finishedCount === promises.length) {
-                reject(new Error('Unable to resolve enough promises, responses: ' + JSON.stringify(resultArr)))
+                reject(new Error(`Unable to resolve enough promises, responses: ${JSON.stringify(resultArr)}`))
               }
             })
         })
