@@ -17,10 +17,9 @@ class Torus {
     if (!enableLogging) log.disableAll()
   }
 
-  retrieveShares(endpoints, indexes, verifier, verifierParams, idToken) {
-    return new Promise((resolve, reject) => {
-      const promiseArr = []
-      /* 
+  async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken) {
+    const promiseArr = []
+    /* 
       CommitmentRequestParams struct {
         MessagePrefix      string `json:"messageprefix"`
         TokenCommitment    string `json:"tokencommitment"`
@@ -31,29 +30,29 @@ class Torus {
       } 
       */
 
-      // generate temporary private and public key that is used to secure receive shares
-      const tmpKey = eccrypto.generatePrivate()
-      const pubKey = eccrypto.getPublic(tmpKey).toString('hex')
-      const pubKeyX = pubKey.slice(2, 66)
-      const pubKeyY = pubKey.slice(66)
-      const tokenCommitment = keccak256(idToken)
+    // generate temporary private and public key that is used to secure receive shares
+    const tmpKey = eccrypto.generatePrivate()
+    const pubKey = eccrypto.getPublic(tmpKey).toString('hex')
+    const pubKeyX = pubKey.slice(2, 66)
+    const pubKeyY = pubKey.slice(66)
+    const tokenCommitment = keccak256(idToken)
 
-      // make commitment requests to endpoints
-      for (let i = 0; i < endpoints.length; i++) {
-        const p = post(
-          endpoints[i],
-          generateJsonRPCObject('CommitmentRequest', {
-            messageprefix: 'mug00',
-            tokencommitment: tokenCommitment.slice(2),
-            temppubx: pubKeyX,
-            temppuby: pubKeyY,
-            timestamp: (Date.now() - 2000).toString().slice(0, 10),
-            verifieridentifier: verifier
-          })
-        ).catch(err => log.debug('commitment', err))
-        promiseArr.push(p)
-      }
-      /*
+    // make commitment requests to endpoints
+    for (let i = 0; i < endpoints.length; i++) {
+      const p = post(
+        endpoints[i],
+        generateJsonRPCObject('CommitmentRequest', {
+          messageprefix: 'mug00',
+          tokencommitment: tokenCommitment.slice(2),
+          temppubx: pubKeyX,
+          temppuby: pubKeyY,
+          timestamp: (Date.now() - 2000).toString().slice(0, 10),
+          verifieridentifier: verifier,
+        })
+      ).catch((err) => log.debug('commitment', err))
+      promiseArr.push(p)
+    }
+    /*
       ShareRequestParams struct {
         Item []bijson.RawMessage `json:"item"`
       }
@@ -75,32 +74,31 @@ class Torus {
         NodePubY  string `json:"nodepuby"`
       }
       */
-      // send share request once k + t number of commitment requests have completed
-      Some(promiseArr, resultArr => {
-        const completedRequests = resultArr.filter(x => x)
-        if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
-          return Promise.resolve(resultArr)
-        }
-        return Promise.reject(new Error('invalid'))
-      })
-        .then(responses => {
-          const promiseArrRequest = []
-          const nodeSigs = []
-          for (let i = 0; i < responses.length; i++) {
-            if (responses[i]) nodeSigs.push(responses[i].result)
-          }
-          for (let i = 0; i < endpoints.length; i++) {
-            const p = post(
-              endpoints[i],
-              generateJsonRPCObject('ShareRequest', {
-                encrypted: 'yes',
-                item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier }]
-              })
-            ).catch(err => log.debug('share req', err))
-            promiseArrRequest.push(p)
-          }
-          return Some(promiseArrRequest, async shareResponses => {
-            /*
+    // send share request once k + t number of commitment requests have completed
+    return Some(promiseArr, (resultArr) => {
+      const completedRequests = resultArr.filter((x) => x)
+      if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
+        return Promise.resolve(resultArr)
+      }
+      return Promise.reject(new Error('invalid'))
+    }).then((responses) => {
+      const promiseArrRequest = []
+      const nodeSigs = []
+      for (let i = 0; i < responses.length; i++) {
+        if (responses[i]) nodeSigs.push(responses[i].result)
+      }
+      for (let i = 0; i < endpoints.length; i++) {
+        const p = post(
+          endpoints[i],
+          generateJsonRPCObject('ShareRequest', {
+            encrypted: 'yes',
+            item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier }],
+          })
+        ).catch((err) => log.debug('share req', err))
+        promiseArrRequest.push(p)
+      }
+      return Some(promiseArrRequest, async (shareResponses) => {
+        /*
               ShareRequestResult struct {
                 Keys []KeyAssignment
               }
@@ -118,87 +116,77 @@ class Torus {
                 Share big.Int // Or Si
               }
             */
-            // check if threshold number of nodes have returned the same user public key
-            const completedRequests = shareResponses.filter(x => x)
-            const thresholdPublicKey = thresholdSame(
-              shareResponses.map(x => x && x.result && x.result.keys[0].PublicKey),
-              ~~(endpoints.length / 2) + 1
-            )
-            // optimistically run lagrange interpolation once threshold number of shares have been received
-            // this is matched against the user public key to ensure that shares are consistent
-            if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
-              const sharePromises = []
-              const nodeIndex = []
-              for (let i = 0; i < shareResponses.length; i++) {
-                if (shareResponses[i] && shareResponses[i].result && shareResponses[i].result.keys && shareResponses[i].result.keys.length > 0) {
-                  shareResponses[i].result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)))
-                  if (shareResponses[i].result.keys[0].Metadata) {
-                    const metadata = {
-                      ephemPublicKey: Buffer.from(shareResponses[i].result.keys[0].Metadata.ephemPublicKey, 'hex'),
-                      iv: Buffer.from(shareResponses[i].result.keys[0].Metadata.iv, 'hex'),
-                      mac: Buffer.from(shareResponses[i].result.keys[0].Metadata.mac, 'hex'),
-                      mode: Buffer.from(shareResponses[i].result.keys[0].Metadata.mode, 'hex')
-                    }
-                    sharePromises.push(
-                      eccrypto
-                        .decrypt(tmpKey, {
-                          ...metadata,
-                          ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex')
-                        })
-                        .catch(err => log.debug('share decryption', err))
-                    )
-                  } else {
-                    sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
-                  }
-                } else {
-                  sharePromises.push(Promise.resolve(undefined))
+        // check if threshold number of nodes have returned the same user public key
+        const completedRequests = shareResponses.filter((x) => x)
+        const thresholdPublicKey = thresholdSame(
+          shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
+          ~~(endpoints.length / 2) + 1
+        )
+        // optimistically run lagrange interpolation once threshold number of shares have been received
+        // this is matched against the user public key to ensure that shares are consistent
+        if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
+          const sharePromises = []
+          const nodeIndex = []
+          for (let i = 0; i < shareResponses.length; i++) {
+            if (shareResponses[i] && shareResponses[i].result && shareResponses[i].result.keys && shareResponses[i].result.keys.length > 0) {
+              shareResponses[i].result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)))
+              if (shareResponses[i].result.keys[0].Metadata) {
+                const metadata = {
+                  ephemPublicKey: Buffer.from(shareResponses[i].result.keys[0].Metadata.ephemPublicKey, 'hex'),
+                  iv: Buffer.from(shareResponses[i].result.keys[0].Metadata.iv, 'hex'),
+                  mac: Buffer.from(shareResponses[i].result.keys[0].Metadata.mac, 'hex'),
+                  mode: Buffer.from(shareResponses[i].result.keys[0].Metadata.mode, 'hex'),
                 }
-                nodeIndex.push(new BN(indexes[i], 16))
+                sharePromises.push(
+                  eccrypto
+                    .decrypt(tmpKey, {
+                      ...metadata,
+                      ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex'),
+                    })
+                    .catch((err) => log.debug('share decryption', err))
+                )
+              } else {
+                sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
               }
-              const sharesResolved = await Promise.all(sharePromises)
-              const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
-                if (curr) acc.push({ index: nodeIndex[index], value: new BN(curr) })
-                return acc
-              }, [])
-              // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
-              const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1)
-              let privateKey
-              for (let j = 0; j < allCombis.length; j++) {
-                const currentCombi = allCombis[j]
-                const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index))
-                const shares = currentCombiShares.map(x => x.value)
-                const indices = currentCombiShares.map(x => x.index)
-                const derivedPrivateKey = this.lagrangeInterpolation(shares, indices)
-                const pubKey = eccrypto.getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
-                const pubKeyX = pubKey.slice(2, 66)
-                const pubKeyY = pubKey.slice(66)
-                if (
-                  new BN(pubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
-                  new BN(pubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
-                ) {
-                  privateKey = derivedPrivateKey
-                  break
-                }
-              }
-              if (privateKey === undefined) {
-                throw new Error('could not derive private key')
-              }
-              const ethAddress = this.generateAddressFromPrivKey(privateKey)
-              // return reconstructed private key and ethereum address
-              return {
-                ethAddress,
-                privKey: privateKey.toString('hex', 64)
-              }
+            } else {
+              sharePromises.push(Promise.resolve(undefined))
             }
-            throw new Error('invalid')
-          })
-        })
-        .then(response => {
-          resolve(response)
-        })
-        .catch(err => {
-          reject(err)
-        })
+            nodeIndex.push(new BN(indexes[i], 16))
+          }
+          const sharesResolved = await Promise.all(sharePromises)
+          const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
+            if (curr) acc.push({ index: nodeIndex[index], value: new BN(curr) })
+            return acc
+          }, [])
+          // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
+          const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1)
+          let privateKey
+          for (let j = 0; j < allCombis.length; j++) {
+            const currentCombi = allCombis[j]
+            const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index))
+            const shares = currentCombiShares.map((x) => x.value)
+            const indices = currentCombiShares.map((x) => x.index)
+            const derivedPrivateKey = this.lagrangeInterpolation(shares, indices)
+            const pubKey = eccrypto.getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
+            const pubKeyX = pubKey.slice(2, 66)
+            const pubKeyY = pubKey.slice(66)
+            if (new BN(pubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 && new BN(pubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0) {
+              privateKey = derivedPrivateKey
+              break
+            }
+          }
+          if (privateKey === undefined) {
+            throw new Error('could not derive private key')
+          }
+          const ethAddress = this.generateAddressFromPrivKey(privateKey)
+          // return reconstructed private key and ethereum address
+          return {
+            ethAddress,
+            privKey: privateKey.toString('hex', 64),
+          }
+        }
+        throw new Error('invalid')
+      })
     })
   }
 
@@ -228,44 +216,38 @@ class Torus {
 
   generateAddressFromPrivKey(privateKey) {
     const key = this.ec.keyFromPrivate(privateKey.toString('hex', 64), 'hex')
-    const publicKey = key
-      .getPublic()
-      .encode('hex')
-      .slice(2)
+    const publicKey = key.getPublic().encode('hex').slice(2)
     const ethAddressLower = '0x' + keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)
     return toChecksumAddress(ethAddressLower)
   }
 
   getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
-    return new Promise((resolve, reject) => {
-      keyLookup(endpoints, verifier, verifierId)
-        .then(({ keyResult, errorResult } = {}) => {
-          if (errorResult) {
-            return keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId).then(_ => {
-              return keyLookup(endpoints, verifier, verifierId)
+    return keyLookup(endpoints, verifier, verifierId)
+      .then(({ keyResult, errorResult } = {}) => {
+        if (errorResult) {
+          return keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId).then((_) => {
+            return keyLookup(endpoints, verifier, verifierId)
+          })
+        }
+        if (keyResult) {
+          return Promise.resolve({ keyResult })
+        }
+        return Promise.reject(new Error('node results do not match'))
+      })
+      .then(({ keyResult } = {}) => {
+        if (keyResult) {
+          const { address, pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0]
+          if (!isExtended) return Promise.resolve(address)
+          else
+            return Promise.resolve({
+              address,
+              X,
+              Y,
             })
-          }
-          if (keyResult) {
-            return Promise.resolve({ keyResult })
-          }
-          return reject(new Error('node results do not match'))
-        })
-        .then(({ keyResult } = {}) => {
-          if (keyResult) {
-            const { address, pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0]
-            if (!isExtended) resolve(address)
-            else
-              resolve({
-                address,
-                X,
-                Y
-              })
-          } else {
-            reject(new Error('node results do not match'))
-          }
-        })
-        .catch(err => reject(err))
-    })
+        } else {
+          return Promise.reject(new Error('node results do not match'))
+        }
+      })
   }
 }
 

@@ -46,30 +46,30 @@ export const thresholdSame = (arr, t) => {
 }
 
 export const keyLookup = (endpoints, verifier, verifierId) => {
-  const lookupPromises = endpoints.map(x =>
+  const lookupPromises = endpoints.map((x) =>
     post(
       x,
       generateJsonRPCObject('VerifierLookupRequest', {
         verifier,
-        verifier_id: verifierId.toString().toLowerCase()
+        verifier_id: verifierId.toString().toLowerCase(),
       })
-    ).catch(_ => undefined)
+    ).catch((_) => undefined)
   )
-  return Some(lookupPromises, lookupResults => {
-    const lookupShares = lookupResults.filter(x => x)
+  return Some(lookupPromises, (lookupResults) => {
+    const lookupShares = lookupResults.filter((x) => x)
     const errorResult = thresholdSame(
-      lookupShares.map(x => x && x.error),
+      lookupShares.map((x) => x && x.error),
       ~~(endpoints.length / 2) + 1
     )
     const keyResult = thresholdSame(
-      lookupShares.map(x => x && x.result),
+      lookupShares.map((x) => x && x.result),
       ~~(endpoints.length / 2) + 1
     )
     if (keyResult || errorResult) {
       return Promise.resolve({ keyResult, errorResult })
     }
     return Promise.reject(new Error('invalid'))
-  }).catch(_ => undefined)
+  }).catch((_) => undefined)
 }
 
 export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId) => {
@@ -85,22 +85,22 @@ export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verif
 
   const data = generateJsonRPCObject('KeyAssign', {
     verifier,
-    verifier_id: verifierId.toString().toLowerCase()
+    verifier_id: verifierId.toString().toLowerCase(),
   })
   return post('https://signer.tor.us/api/sign', data, {
     headers: {
       pubKeyX: torusNodePubs[nodeNum].X,
-      pubKeyY: torusNodePubs[nodeNum].Y
-    }
-  }).then(signedData => {
+      pubKeyY: torusNodePubs[nodeNum].Y,
+    },
+  }).then((signedData) => {
     return post(
       endpoints[nodeNum],
       { ...data, ...signedData },
       {
         headers: {
-          'Content-Type': 'application/json; charset=utf-8'
-        }
+          'Content-Type': 'application/json; charset=utf-8',
+        },
       }
-    ).catch(_ => keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId))
+    ).catch((_) => keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId))
   })
 }
