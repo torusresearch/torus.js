@@ -67,13 +67,11 @@
   "lint-staged": {
     "*.js": [
       "npm run lint:js --",
-      "prettier --write **/*.js",
-      "git add"
+      "prettier --write **/*.js"
     ],
     "*.{json}": [
       "prettier --write **/*.json",
-      "prettier --write **/*.css",
-      "git add"
+      "prettier --write **/*.css"
     ]
   }
 }
