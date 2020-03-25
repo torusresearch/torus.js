@@ -23,9 +23,9 @@ export const kCombinations = (s, k) => {
   const combs = []
   let tailCombs = []
 
-  for (let i = 0; i <= set.length - k + 1; i++) {
+  for (let i = 0; i <= set.length - k + 1; i += 1) {
     tailCombs = kCombinations(set.slice(i + 1), k - 1)
-    for (let j = 0; j < tailCombs.length; j++) {
+    for (let j = 0; j < tailCombs.length; j += 1) {
       combs.push([set[i], ...tailCombs[j]])
     }
   }
@@ -35,7 +35,7 @@ export const kCombinations = (s, k) => {
 
 export const thresholdSame = (arr, t) => {
   const hashMap = {}
-  for (let i = 0; i < arr.length; i++) {
+  for (let i = 0; i < arr.length; i += 1) {
     const str = JsonStringify(arr[i])
     hashMap[str] = hashMap[str] ? hashMap[str] + 1 : 1
     if (hashMap[str] === t) {
@@ -73,7 +73,8 @@ export const keyLookup = (endpoints, verifier, verifierId) => {
 }
 
 export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId) => {
-  let nodeNum, initialPoint
+  let nodeNum
+  let initialPoint
   if (lastPoint === undefined) {
     nodeNum = Math.floor(Math.random() * endpoints.length)
     initialPoint = nodeNum
@@ -92,15 +93,17 @@ export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verif
       pubKeyX: torusNodePubs[nodeNum].X,
       pubKeyY: torusNodePubs[nodeNum].Y,
     },
-  }).then((signedData) => {
-    return post(
-      endpoints[nodeNum],
-      { ...data, ...signedData },
-      {
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-        },
-      }
-    ).catch((_) => keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId))
   })
+    .then((signedData) =>
+      post(
+        endpoints[nodeNum],
+        { ...data, ...signedData },
+        {
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+        }
+      )
+    )
+    .catch((_) => keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId))
 }
