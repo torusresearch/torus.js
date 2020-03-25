@@ -93,17 +93,16 @@ export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verif
       pubKeyX: torusNodePubs[nodeNum].X,
       pubKeyY: torusNodePubs[nodeNum].Y,
     },
-  })
-    .then((signedData) =>
-      post(
-        endpoints[nodeNum],
-        { ...data, ...signedData },
-        {
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-          },
-        }
-      )
-    )
-    .catch((_) => keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId))
+  }).then((signedData) =>
+    // eslint-disable-next-line promise/no-nesting
+    post(
+      endpoints[nodeNum],
+      { ...data, ...signedData },
+      {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      }
+    ).catch((_) => keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId))
+  )
 }
