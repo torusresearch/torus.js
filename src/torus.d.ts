@@ -5,7 +5,7 @@ export default class Torus {
     retrieveShares(endpoints: String[], indexes: Number[], verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord', verifierParams: VerifierParams, idToken: String): Promise<ShareResponse>;
     lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN;
     generateAddressFromPrivKey(privateKey: BN): String;
-    getPublicAddress(endpoints: String[], torusNodePubs: TorusNodePub[], verifierArgs: VerifierArgs, isExtended: Boolean): String | TorusPublicKey;
+    getPublicAddress(endpoints: String[], torusNodePubs: TorusNodePub[], verifierArgs: VerifierArgs, isExtended: Boolean): Promise<String | TorusPublicKey>;
 }
 
 interface TorusPublicKey extends TorusNodePub {
