@@ -226,7 +226,7 @@ class Torus {
       pub_key_X: key.getPublic().getX().toString('hex'),
       pub_key_Y: key.getPublic().getY().toString('hex'),
       set_data: setData,
-      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64), 'hex').toString('base64'),
+      signature: Buffer.from(sig.r.toString(16, 32) + sig.s.toString(16, 32) + new BN(sig.recoveryParam).toString(16, 2), 'hex').toString('base64'),
     }
   }
 
