@@ -1,10 +1,8 @@
+import { keccak256 } from 'eth-lib/lib/hash'
 import JsonStringify from 'json-stable-stringify'
-import { Keccak } from 'sha3'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
 import { Some } from './some'
-
-export const keccak256 = Keccak
 
 /**
  * Converts to a checksum address

@@ -2,11 +2,12 @@
 import BN from 'bn.js'
 import eccrypto from 'eccrypto'
 import { ec } from 'elliptic'
+import { keccak256 } from 'eth-lib/lib/hash'
 import log from 'loglevel'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
 import { Some } from './some'
-import { kCombinations, keccak256, keyAssign, keyLookup, thresholdSame, toChecksumAddress } from './utils'
+import { kCombinations, keyAssign, keyLookup, thresholdSame, toChecksumAddress } from './utils'
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
