@@ -257,7 +257,8 @@ class Torus {
   }
 
   generateAddressFromPubKey(publicKeyX, publicKeyY) {
-    const publicKey = this.ec.keyFromPublic({ x: publicKeyX.toString('hex', 64), y: publicKeyY.toString('hex', 64) })
+    const key = this.ec.keyFromPublic({ x: publicKeyX.toString('hex', 64), y: publicKeyY.toString('hex', 64) })
+    const publicKey = key.getPublic().encode('hex').slice(2)
     const ethAddressLower = `0x${keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)}`
     return toChecksumAddress(ethAddressLower)
   }
