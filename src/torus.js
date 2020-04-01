@@ -200,7 +200,7 @@ class Torus {
     })
   }
 
-  getMetadata = async (data, options) => {
+  async getMetadata(data, options) {
     return post(`${this.metadataHost}/get`, data, options)
       .then((metadataResponse) => {
         if (!metadataResponse || !metadataResponse.message) {
@@ -214,7 +214,7 @@ class Torus {
       })
   }
 
-  setMetadata = async (data, options) => {
+  async setMetadata(data, options) {
     return post(`${this.metadataHost}/set`, data, options)
       .then((metadataResponse) => {
         return metadataResponse.message // IPFS hash
