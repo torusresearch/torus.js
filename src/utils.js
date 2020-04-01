@@ -1,7 +1,38 @@
 import JsonStringify from 'json-stable-stringify'
+import { Keccak } from 'sha3'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
 import { Some } from './some'
+
+export const keccak256 = Keccak
+
+/**
+ * Converts to a checksum address
+ *
+ * @method toChecksumAddress
+ * @param {String} address the given HEX address
+ * @return {String}
+ */
+export const toChecksumAddress = (addr) => {
+  if (typeof addr === 'undefined') return ''
+  let address = addr
+
+  if (!/^(0x)?[0-9a-f]{40}$/i.test(address)) throw new Error(`Given address "${address}" is not a valid Ethereum address.`)
+
+  address = address.toLowerCase().replace(/^0x/i, '')
+  const addressHash = keccak256(address).replace(/^0x/i, '')
+  let checksumAddress = '0x'
+
+  for (let i = 0; i < address.length; i += 1) {
+    // If ith character is 9 to f then make it uppercase
+    if (parseInt(addressHash[i], 16) > 7) {
+      checksumAddress += address[i].toUpperCase()
+    } else {
+      checksumAddress += address[i]
+    }
+  }
+  return checksumAddress
+}
 
 export const kCombinations = (s, k) => {
   let set = s
