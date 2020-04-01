@@ -221,7 +221,7 @@ class Torus {
       data: message,
       timestamp: new BN(Date.now()).toString(16),
     }
-    const sig = key.sign(JSON.stringify(setData))
+    const sig = key.sign(keccak256(JSON.stringify(setData)))
     return {
       pub_key_X: key.getPublic().getX().toString('hex'),
       pub_key_Y: key.getPublic().getY().toString('hex'),
