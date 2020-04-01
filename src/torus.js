@@ -215,6 +215,21 @@ class Torus {
       })
   }
 
+  generateMetadataParams(message, privateKey) {
+    const key = this.ec.keyFromPrivate(privateKey.toString('hex', 64))
+    const setData = {
+      data: message,
+      timestamp: new BN(Date.now()).toString(16),
+    }
+    const sig = key.sign(JSON.stringify(setData))
+    return {
+      pub_key_X: key.getPublic().getX().toString('hex'),
+      pub_key_Y: key.getPublic().getY().toString('hex'),
+      set_data: setData,
+      signature: Buffer.from(sig.r.toString(16), 'hex').toString('base64'),
+    }
+  }
+
   async setMetadata(data, options) {
     return post(`${this.metadataHost}/set`, data, options)
       .then((metadataResponse) => {
