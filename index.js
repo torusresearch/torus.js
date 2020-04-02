@@ -1,3 +1,3 @@
-const Torus = require('./dist/torus')
+import Torus from './src/torus'
 
-module.exports = Torus
+export default Torus
