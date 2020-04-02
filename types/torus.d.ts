@@ -8,7 +8,7 @@ declare class Torus {
     getPublicAddress(endpoints: String[], torusNodePubs: TorusNodePub[], verifierArgs: VerifierArgs, isExtended: Boolean): Promise<String | TorusPublicKey>;
 }
 
-export as namespace torus;
+export as namespace torusUtils;
 
 export = Torus;
 
