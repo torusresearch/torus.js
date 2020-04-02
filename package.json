@@ -1,6 +1,6 @@
 {
   "name": "@toruslabs/torus.js",
-  "version": "1.0.10",
+  "version": "1.1.0",
   "description": "Handle communication with torus nodes",
   "main": "index.js",
   "types": "index.d.ts",

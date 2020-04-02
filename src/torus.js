@@ -12,8 +12,9 @@ import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  constructor({ enableLogging = false } = {}) {
+  constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us' } = {}) {
     this.ec = ec('secp256k1')
+    this.metadataHost = metadataHost
     log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()
   }
@@ -184,6 +185,10 @@ class Torus {
           if (privateKey === undefined) {
             throw new Error('could not derive private key')
           }
+
+          const metadataNonce = await this.getMetadata({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
+          privateKey = privateKey.add(metadataNonce).mod(this.ec.curve.n)
+
           const ethAddress = this.generateAddressFromPrivKey(privateKey)
           // return reconstructed private key and ethereum address
           return {
@@ -194,6 +199,46 @@ class Torus {
         throw new Error('invalid')
       })
     })
+  }
+
+  async getMetadata(data, options) {
+    return post(`${this.metadataHost}/get`, data, options)
+      .then((metadataResponse) => {
+        if (!metadataResponse || !metadataResponse.message) {
+          return new BN(0)
+        }
+        return new BN(metadataResponse.message, 16) // nonce
+      })
+      .catch((error) => {
+        log.error(error)
+        return new BN(0)
+      })
+  }
+
+  generateMetadataParams(message, privateKey) {
+    const key = this.ec.keyFromPrivate(privateKey.toString('hex', 64))
+    const setData = {
+      data: message,
+      timestamp: new BN(Date.now()).toString(16),
+    }
+    const sig = key.sign(keccak256(JSON.stringify(setData)).slice(2))
+    return {
+      pub_key_X: key.getPublic().getX().toString('hex'),
+      pub_key_Y: key.getPublic().getY().toString('hex'),
+      set_data: setData,
+      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN(sig.v).toString(16, 2), 'hex').toString('base64'),
+    }
+  }
+
+  async setMetadata(data, options) {
+    return post(`${this.metadataHost}/set`, data, options)
+      .then((metadataResponse) => {
+        return metadataResponse.message // IPFS hash
+      })
+      .catch((error) => {
+        log.error(error)
+        return ''
+      })
   }
 
   lagrangeInterpolation(shares, nodeIndex) {
@@ -227,6 +272,13 @@ class Torus {
     return toChecksumAddress(ethAddressLower)
   }
 
+  generateAddressFromPubKey(publicKeyX, publicKeyY) {
+    const key = this.ec.keyFromPublic({ x: publicKeyX.toString('hex', 64), y: publicKeyY.toString('hex', 64) })
+    const publicKey = key.getPublic().encode('hex').slice(2)
+    const ethAddressLower = `0x${keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)}`
+    return toChecksumAddress(ethAddressLower)
+  }
+
   getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     return keyLookup(endpoints, verifier, verifierId)
       .then(({ keyResult, errorResult } = {}) => {
@@ -241,9 +293,17 @@ class Torus {
         }
         throw new Error('node results do not match')
       })
-      .then(({ keyResult } = {}) => {
+      .then(async ({ keyResult } = {}) => {
         if (keyResult) {
-          const { address, pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0]
+          let { pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0]
+          const nonce = await this.getMetadata({ pub_key_X: X, pub_key_Y: Y })
+          const modifiedPubKey = this.ec
+            .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+            .getPublic()
+            .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
+          X = modifiedPubKey.getX().toString(16)
+          Y = modifiedPubKey.getY().toString(16)
+          const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY())
           if (!isExtended) return address
           return {
             address,
