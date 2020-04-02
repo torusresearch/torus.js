@@ -1,7 +1,7 @@
 export const Some = (promises, predicate) => {
   return new Promise((resolve, reject) => {
     let finishedCount = 0
-    let resolved = false
+    const sharedState = { resolved: false }
     const resultArr = new Array(promises.length).fill(undefined)
     promises.forEach((x, index) => {
       x.then((resp) => {
@@ -10,10 +10,10 @@ export const Some = (promises, predicate) => {
       })
         .catch((_) => {})
         .finally(() => {
-          if (resolved) return
-          predicate(resultArr.slice(0))
+          if (sharedState.resolved) return
+          predicate(resultArr.slice(0), sharedState)
             .then((data) => {
-              resolved = true
+              sharedState.resolved = true
               resolve(data)
               return undefined
             })

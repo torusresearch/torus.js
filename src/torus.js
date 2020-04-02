@@ -100,7 +100,7 @@ class Torus {
         ).catch((err) => log.debug('share req', err))
         promiseArrRequest.push(p)
       }
-      return Some(promiseArrRequest, async (shareResponses) => {
+      return Some(promiseArrRequest, async (shareResponses, sharedState) => {
         /*
               ShareRequestResult struct {
                 Keys []KeyAssignment
@@ -158,6 +158,8 @@ class Torus {
             nodeIndex.push(new BN(indexes[i], 16))
           }
           const sharesResolved = await Promise.all(sharePromises)
+          if (sharedState.resolved) return undefined
+
           const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
             if (curr) acc.push({ index: nodeIndex[index], value: new BN(curr) })
             return acc
@@ -187,6 +189,7 @@ class Torus {
           }
 
           const metadataNonce = await this.getMetadata({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
+          if (sharedState.resolved) return undefined
           privateKey = privateKey.add(metadataNonce).mod(this.ec.curve.n)
 
           const ethAddress = this.generateAddressFromPrivKey(privateKey)
@@ -202,17 +205,16 @@ class Torus {
   }
 
   async getMetadata(data, options) {
-    return post(`${this.metadataHost}/get`, data, options)
-      .then((metadataResponse) => {
-        if (!metadataResponse || !metadataResponse.message) {
-          return new BN(0)
-        }
-        return new BN(metadataResponse.message, 16) // nonce
-      })
-      .catch((error) => {
-        log.error(error)
+    try {
+      const metadataResponse = await post(`${this.metadataHost}/get`, data, options)
+      if (!metadataResponse || !metadataResponse.message) {
         return new BN(0)
-      })
+      }
+      return new BN(metadataResponse.message, 16) // nonce
+    } catch (error) {
+      log.error(error)
+      return new BN(0)
+    }
   }
 
   generateMetadataParams(message, privateKey) {
@@ -231,14 +233,13 @@ class Torus {
   }
 
   async setMetadata(data, options) {
-    return post(`${this.metadataHost}/set`, data, options)
-      .then((metadataResponse) => {
-        return metadataResponse.message // IPFS hash
-      })
-      .catch((error) => {
-        log.error(error)
-        return ''
-      })
+    try {
+      const metadataResponse = await post(`${this.metadataHost}/set`, data, options)
+      return metadataResponse.message // IPFS hash
+    } catch (error) {
+      log.error(error)
+      return ''
+    }
   }
 
   lagrangeInterpolation(shares, nodeIndex) {
