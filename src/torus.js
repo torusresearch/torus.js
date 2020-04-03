@@ -1,7 +1,7 @@
 /* eslint-disable class-methods-use-this */
 import BN from 'bn.js'
-import eccrypto from 'eccrypto'
-import ec from 'elliptic/lib/elliptic/ec'
+import { decrypt, generatePrivate, getPublic } from 'eccrypto'
+import EC from 'elliptic/lib/elliptic/ec'
 import log from 'loglevel'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
@@ -13,7 +13,7 @@ import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
 // of Torus nodes to handle malicious node responses
 class Torus {
   constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us' } = {}) {
-    this.ec = ec('secp256k1')
+    this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()
@@ -33,8 +33,8 @@ class Torus {
       */
 
     // generate temporary private and public key that is used to secure receive shares
-    const tmpKey = eccrypto.generatePrivate()
-    const pubKey = eccrypto.getPublic(tmpKey).toString('hex')
+    const tmpKey = generatePrivate()
+    const pubKey = getPublic(tmpKey).toString('hex')
     const pubKeyX = pubKey.slice(2, 66)
     const pubKeyY = pubKey.slice(66)
     const tokenCommitment = keccak256(idToken)
@@ -142,12 +142,10 @@ class Torus {
                 }
                 sharePromises.push(
                   // eslint-disable-next-line promise/no-nesting
-                  eccrypto
-                    .decrypt(tmpKey, {
-                      ...metadata,
-                      ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex'),
-                    })
-                    .catch((err) => log.debug('share decryption', err))
+                  decrypt(tmpKey, {
+                    ...metadata,
+                    ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex'),
+                  }).catch((err) => log.debug('share decryption', err))
                 )
               } else {
                 sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
@@ -173,7 +171,7 @@ class Torus {
             const shares = currentCombiShares.map((x) => x.value)
             const indices = currentCombiShares.map((x) => x.index)
             const derivedPrivateKey = this.lagrangeInterpolation(shares, indices)
-            const decryptedPubKey = eccrypto.getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
+            const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
             const decryptedPubKeyX = decryptedPubKey.slice(2, 66)
             const decryptedPubKeyY = decryptedPubKey.slice(66)
             if (
