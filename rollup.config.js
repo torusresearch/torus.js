@@ -27,12 +27,12 @@ export default [
       },
     ],
     plugins: [
-      nodebns(),
+      nodebns({ crypto: true }),
       json(),
       babel({ runtimeHelpers: true }),
       resolve({ preferBuiltins: false, browser: true }), // so Rollup can find dependencies
-      commonjs(), // so Rollup can convert dependencies to an ES module
-      nodeglob({ baseDir: false, dirname: false, filename: false, global: true, process: false }),
+      commonjs({ ignoreGlobal: true }), // so Rollup can convert dependencies to an ES module
+      nodeglob({ baseDir: false, dirname: false, filename: false, global: true, process: true }),
       terser({ include: '*.min.*' }),
     ],
   },
@@ -52,12 +52,12 @@ export default [
       },
     ],
     plugins: [
-      nodebns(),
+      nodebns({ crypto: true }),
       json(),
       babel({ runtimeHelpers: true, plugins: ['@babel/transform-runtime'] }),
       resolve({ preferBuiltins: false, browser: true }), // so Rollup can find dependencies
-      commonjs(), // so Rollup can convert dependencies to an ES module
-      nodeglob({ baseDir: false, dirname: false, filename: false, global: true, process: false }),
+      commonjs({ ignoreGlobal: true }), // so Rollup can convert dependencies to an ES module
+      nodeglob({ baseDir: false, dirname: false, filename: false, global: true, process: true }),
       terser({ include: '*.min.*' }),
     ],
   },
@@ -85,10 +85,10 @@ export default [
       { file: pkg.module, format: 'es' },
     ],
     plugins: [
+      nodebns({ crypto: true }),
       json(),
       babel({ runtimeHelpers: true, plugins: ['@babel/transform-runtime'] }),
-      nodebns(),
-      nodeglob({ baseDir: false, dirname: false, filename: false, global: true, process: false }),
+      nodeglob({ baseDir: false, dirname: false, filename: false, global: true, process: true }),
       terser({ include: '*.min.*' }),
     ],
   },
