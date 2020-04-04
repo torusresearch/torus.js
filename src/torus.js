@@ -1,7 +1,7 @@
 /* eslint-disable class-methods-use-this */
 import BN from 'bn.js'
-import eccrypto from 'eccrypto'
-import ec from 'elliptic/lib/elliptic/ec'
+import { decrypt, generatePrivate, getPublic } from 'eccrypto'
+import EC from 'elliptic/lib/elliptic/ec'
 import log from 'loglevel'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
@@ -13,7 +13,7 @@ import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
 // of Torus nodes to handle malicious node responses
 class Torus {
   constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us' } = {}) {
-    this.ec = ec('secp256k1')
+    this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()
@@ -33,8 +33,8 @@ class Torus {
       */
 
     // generate temporary private and public key that is used to secure receive shares
-    const tmpKey = eccrypto.generatePrivate()
-    const pubKey = eccrypto.getPublic(tmpKey).toString('hex')
+    const tmpKey = generatePrivate()
+    const pubKey = getPublic(tmpKey).toString('hex')
     const pubKeyX = pubKey.slice(2, 66)
     const pubKeyY = pubKey.slice(66)
     const tokenCommitment = keccak256(idToken)
@@ -100,7 +100,7 @@ class Torus {
         ).catch((err) => log.debug('share req', err))
         promiseArrRequest.push(p)
       }
-      return Some(promiseArrRequest, async (shareResponses) => {
+      return Some(promiseArrRequest, async (shareResponses, sharedState) => {
         /*
               ShareRequestResult struct {
                 Keys []KeyAssignment
@@ -142,12 +142,10 @@ class Torus {
                 }
                 sharePromises.push(
                   // eslint-disable-next-line promise/no-nesting
-                  eccrypto
-                    .decrypt(tmpKey, {
-                      ...metadata,
-                      ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex'),
-                    })
-                    .catch((err) => log.debug('share decryption', err))
+                  decrypt(tmpKey, {
+                    ...metadata,
+                    ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex'),
+                  }).catch((err) => log.debug('share decryption', err))
                 )
               } else {
                 sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
@@ -158,6 +156,8 @@ class Torus {
             nodeIndex.push(new BN(indexes[i], 16))
           }
           const sharesResolved = await Promise.all(sharePromises)
+          if (sharedState.resolved) return undefined
+
           const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
             if (curr) acc.push({ index: nodeIndex[index], value: new BN(curr) })
             return acc
@@ -171,7 +171,7 @@ class Torus {
             const shares = currentCombiShares.map((x) => x.value)
             const indices = currentCombiShares.map((x) => x.index)
             const derivedPrivateKey = this.lagrangeInterpolation(shares, indices)
-            const decryptedPubKey = eccrypto.getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
+            const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
             const decryptedPubKeyX = decryptedPubKey.slice(2, 66)
             const decryptedPubKeyY = decryptedPubKey.slice(66)
             if (
@@ -187,6 +187,7 @@ class Torus {
           }
 
           const metadataNonce = await this.getMetadata({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
+          if (sharedState.resolved) return undefined
           privateKey = privateKey.add(metadataNonce).mod(this.ec.curve.n)
 
           const ethAddress = this.generateAddressFromPrivKey(privateKey)
@@ -202,17 +203,16 @@ class Torus {
   }
 
   async getMetadata(data, options) {
-    return post(`${this.metadataHost}/get`, data, options)
-      .then((metadataResponse) => {
-        if (!metadataResponse || !metadataResponse.message) {
-          return new BN(0)
-        }
-        return new BN(metadataResponse.message, 16) // nonce
-      })
-      .catch((error) => {
-        log.error(error)
+    try {
+      const metadataResponse = await post(`${this.metadataHost}/get`, data, options)
+      if (!metadataResponse || !metadataResponse.message) {
         return new BN(0)
-      })
+      }
+      return new BN(metadataResponse.message, 16) // nonce
+    } catch (error) {
+      log.error(error)
+      return new BN(0)
+    }
   }
 
   generateMetadataParams(message, privateKey) {
@@ -231,14 +231,13 @@ class Torus {
   }
 
   async setMetadata(data, options) {
-    return post(`${this.metadataHost}/set`, data, options)
-      .then((metadataResponse) => {
-        return metadataResponse.message // IPFS hash
-      })
-      .catch((error) => {
-        log.error(error)
-        return ''
-      })
+    try {
+      const metadataResponse = await post(`${this.metadataHost}/set`, data, options)
+      return metadataResponse.message // IPFS hash
+    } catch (error) {
+      log.error(error)
+      return ''
+    }
   }
 
   lagrangeInterpolation(shares, nodeIndex) {
