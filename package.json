@@ -12,7 +12,9 @@
   "jsdelivr": "dist/torusUtils.umd.min.js",
   "types": "types/torusUtils.d.ts",
   "scripts": {
-    "build": "rimraf dist/ && rollup -c",
+    "build": "rimraf dist/ && npm run build:elliptic && npm run build:rollup",
+    "build:elliptic": "webpack --config webpack.elliptic.js",
+    "build:rollup": "rollup -c",
     "prepack": "npm run build",
     "lint:js": "eslint --fix 'src/**/*.js'",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -36,6 +38,7 @@
     "@babel/plugin-proposal-object-rest-spread": "^7.9.0",
     "@babel/plugin-transform-runtime": "^7.9.0",
     "@babel/preset-env": "^7.9.0",
+    "@rollup/plugin-alias": "^3.0.1",
     "@rollup/plugin-commonjs": "^11.0.2",
     "@rollup/plugin-json": "^4.0.2",
     "@rollup/plugin-node-resolve": "^7.1.1",
@@ -56,11 +59,13 @@
     "lint-staged": "^10.1.1",
     "prettier": "^2.0.2",
     "rimraf": "^3.0.2",
-    "rollup": "^2.3.2",
+    "rollup": "^2.3.3",
     "rollup-plugin-babel": "^4.4.0",
     "rollup-plugin-node-builtins": "^2.1.2",
     "rollup-plugin-node-globals": "^1.4.0",
-    "rollup-plugin-terser": "^5.3.0"
+    "rollup-plugin-terser": "^5.3.0",
+    "webpack": "^4.42.1",
+    "webpack-cli": "^3.3.11"
   },
   "repository": {
     "type": "git",
