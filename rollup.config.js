@@ -4,13 +4,15 @@ import json from '@rollup/plugin-json'
 import resolve from '@rollup/plugin-node-resolve'
 import path from 'path'
 import babel from 'rollup-plugin-babel'
-import nodebns from 'rollup-plugin-node-builtins'
+// import nodebns from 'rollup-plugin-node-builtins'
+import nodebns from 'rollup-plugin-node-polyfills'
+
 import nodeglob from 'rollup-plugin-node-globals'
 import { terser } from 'rollup-plugin-terser'
 import typescript2 from 'rollup-plugin-typescript2'
 import ts from 'typescript'
 
-// import pkg from './package.json'
+import pkg from './package.json'
 
 const pkgName = 'torusUtils'
 
@@ -53,6 +55,7 @@ export default [
   // browser-friendly UMD build - not polyfilled
   {
     input: 'index.js',
+    external: ['crypto', 'buffer'],
     output: [
       {
         name: pkgName,
@@ -69,10 +72,10 @@ export default [
       // alias({
       //   entries: [{ find: 'elliptic', replacement: path.resolve(__dirname, 'includes/elliptic.js') }],
       // }),
-      nodebns({ crypto: true }),
       json(),
       babel({ runtimeHelpers: true, plugins: ['@babel/transform-runtime'], exclude: 'node_modules/**' }),
-      resolve({ preferBuiltins: false, browser: true }), // so Rollup can find dependencies
+      resolve({ preferBuiltins: true, browser: true }), // so Rollup can find dependencies
+      nodebns({ crypto: true }),
       commonjs({
         ignoreGlobal: true,
         include: [/node_modules/, /includes/],
@@ -80,23 +83,24 @@ export default [
         //   elliptic: ['ec'],
         // },
       }), // so Rollup can convert dependencies to an ES module
-      nodeglob({ baseDir: false, dirname: false, filename: false, global: true, process: true }),
-      typescript2({
-        tsconfig: path.join(__dirname, 'tsconfig.json'),
-        typescript: ts, // ensure we're using the same typescript (3.x) for rollup as for regular builds etc
-        tsconfigOverride: {
-          compilerOptions: {
-            module: 'esnext',
-            stripInternal: true,
-            emitDeclarationOnly: false,
-            composite: false,
-            declaration: false,
-            declarationMap: false,
-            sourceMap: true,
-          },
-        },
-      }),
-      terser({ include: '*.min.*' }),
+
+      // nodeglob({ baseDir: false, dirname: false, filename: false, global: true, process: true }),
+      // typescript2({
+      //   tsconfig: path.join(__dirname, 'tsconfig.json'),
+      //   typescript: ts, // ensure we're using the same typescript (3.x) for rollup as for regular builds etc
+      //   tsconfigOverride: {
+      //     compilerOptions: {
+      //       module: 'esnext',
+      //       stripInternal: true,
+      //       emitDeclarationOnly: false,
+      //       composite: false,
+      //       declaration: false,
+      //       declarationMap: false,
+      //       sourceMap: true,
+      //     },
+      //   },
+      // }),
+      // terser({ include: '*.min.*' }),
     ],
   },
   // CommonJS (for Node) and ES module (for bundlers) build.
@@ -122,19 +126,19 @@ export default [
   //     { file: pkg.module, format: 'es' },
   //   ],
   //   plugins: [
-  //     alias({
-  //       entries: [{ find: 'elliptic', replacement: path.resolve(__dirname, 'includes/elliptic.js') }],
-  //     }),
-  //     nodebns({ crypto: true }),
+  //     // alias({
+  //     //   entries: [{ find: 'elliptic', replacement: path.resolve(__dirname, 'includes/elliptic.js') }],
+  //     // }),
+  //     // nodebns({ crypto: true }),
   //     json(),
   //     babel({ runtimeHelpers: true, plugins: ['@babel/transform-runtime'] }),
-  //     resolve({ preferBuiltins: false, browser: true }),
+  //     resolve({ preferBuiltins: true, browser: true }),
   //     commonjs({
   //       ignoreGlobal: true,
   //       include: [/node_modules/, /includes/],
-  //       namedExports: {
-  //         elliptic: ['ec'],
-  //       },
+  //       // namedExports: {
+  //       //   elliptic: ['ec'],
+  //       // },
   //     }),
   //     nodeglob({ baseDir: false, dirname: false, filename: false, global: true, process: true }),
   //     terser({ include: '*.min.*' }),
