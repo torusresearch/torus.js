@@ -2,7 +2,7 @@
 import BN from 'bn.js'
 import { decrypt, generatePrivate, getPublic } from 'eccrypto'
 // import { ec as EC } from 'elliptic'
-import * as elliptic from 'elliptic'
+import elliptic from 'elliptic'
 import log from 'loglevel'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
@@ -10,11 +10,13 @@ import { generateJsonRPCObject, post } from './httpHelpers'
 import { Some } from './some'
 import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
 
+// const EC = elliptic.ec
+
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
   constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us' } = {}) {
-    this.ec = new elliptic.EC('secp256k1')
+    this.ec = elliptic.ec('secp256k1')
     this.metadataHost = metadataHost
     log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()

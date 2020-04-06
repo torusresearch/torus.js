@@ -2,12 +2,11 @@ const path = require('path')
 
 module.exports = {
   entry: {
-    elliptic: path.resolve(__dirname, 'node_modules/elliptic/lib/elliptic.js'),
+    elliptic: path.resolve(__dirname, 'node_modules/elliptic/lib/elliptic/ec/index.js'),
   },
   output: {
     filename: 'elliptic.js',
     library: 'elliptic',
-    libraryExport: 'default',
     libraryTarget: 'commonjs2',
     path: path.resolve(__dirname, 'includes'),
   },
