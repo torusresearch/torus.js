@@ -75,8 +75,8 @@ import TorusJs from '@toruslabs/torus.js'
 
 const fetchNodeDetails = new FetchNodeDetails()
 const TorusJs = new TorusJs()
-const verifier = 'google' // any verifier
-const verifierId = 'hello@tor.us' // any verifier id
+const verifier = 'google'
+const verifierId = 'hello@tor.us'
 const { torusNodeEndpoints, torusNodePub } = await fetchNodeDetails.getNodeDetails()
 const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId })
 ```
