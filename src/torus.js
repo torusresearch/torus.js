@@ -1,8 +1,7 @@
 /* eslint-disable class-methods-use-this */
 import BN from 'bn.js'
 import { decrypt, generatePrivate, getPublic } from 'eccrypto'
-// import { ec as EC } from 'elliptic'
-import elliptic from 'elliptic'
+import { ec as EC } from 'elliptic'
 import log from 'loglevel'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
@@ -16,7 +15,7 @@ import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
 // of Torus nodes to handle malicious node responses
 class Torus {
   constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us' } = {}) {
-    this.ec = elliptic.ec('secp256k1')
+    this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()
