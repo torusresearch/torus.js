@@ -3,16 +3,16 @@ const pkg = require('./package.json')
 
 const pkgName = 'torusUtils'
 
+const packagesToInclude = ['eccrypto', 'elliptic', 'web3-utils', 'bn.js']
+
 const baseConfig = {
   mode: 'production',
   entry: './index.js',
   target: 'web',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    // filename: 'bundle.js',
     library: pkgName,
     libraryExport: 'default',
-    // libraryTarget: 'umd',
   },
   module: {
     rules: [],
@@ -94,16 +94,7 @@ const cjsConfig = {
   module: {
     rules: [eslintLoader, babelLoader],
   },
-  externals: [
-    ...Object.keys(pkg.dependencies).filter((x) => x !== 'eccrypto' && x !== 'elliptic'),
-    '@babel/runtime/helpers/toConsumableArray',
-    '@babel/runtime/regenerator',
-    '@babel/runtime/helpers/asyncToGenerator',
-    '@babel/runtime/helpers/classCallCheck',
-    '@babel/runtime/helpers/createClass',
-    '@babel/runtime/helpers/defineProperty',
-    '@babel/runtime/helpers/typeof',
-  ],
+  externals: [...Object.keys(pkg.dependencies).filter((x) => !packagesToInclude.includes(x)), /^(@babel\/runtime)/i],
 }
 
 module.exports = [umdPolyfilledConfig, umdPolyfilledConfigMinified, umdConfig, umdConfigMinified, cjsConfig]
