@@ -1,7 +1,7 @@
 /* eslint-disable class-methods-use-this */
 import BN from 'bn.js'
 import { decrypt, generatePrivate, getPublic } from 'eccrypto'
-import EC from 'elliptic/lib/elliptic/ec'
+import { ec as EC } from 'elliptic'
 import log from 'loglevel'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
