@@ -9,8 +9,6 @@ import { generateJsonRPCObject, post } from './httpHelpers'
 import { Some } from './some'
 import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
 
-// const EC = elliptic.ec
-
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
