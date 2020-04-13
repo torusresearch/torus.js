@@ -188,7 +188,7 @@ class Torus {
 
           const metadataNonce = await this.getMetadata({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
           if (sharedState.resolved) return undefined
-          privateKey = privateKey.add(metadataNonce).mod(this.ec.curve.n)
+          privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n)
 
           const ethAddress = this.generateAddressFromPrivKey(privateKey)
           // return reconstructed private key and ethereum address
