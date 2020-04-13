@@ -2,6 +2,7 @@ const path = require('path')
 const pkg = require('./package.json')
 
 const pkgName = 'torusUtils'
+const libraryName = pkgName.charAt(0).toUpperCase() + pkgName.slice(1)
 
 const packagesToInclude = ['eccrypto', 'elliptic', 'web3-utils', 'bn.js']
 
@@ -11,7 +12,7 @@ const baseConfig = {
   target: 'web',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    library: pkgName,
+    library: libraryName,
     libraryExport: 'default',
   },
   module: {
