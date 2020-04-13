@@ -70,28 +70,39 @@ Needs to be used in conjuction with [`@toruslabs/fetch-node-details`](https://ww
 
 ```ts
 import FetchNodeDetails from '@toruslabs/fetch-node-details'
-import TorusJs from '@toruslabs/torus.js'
+import TorusUtils from '@toruslabs/torus.js'
 
 const fetchNodeDetails = new FetchNodeDetails()
-const TorusJs = new TorusJs()
+const torus = new TorusUtils()
 const verifier = 'google'
 const verifierId = 'hello@tor.us'
-const { torusNodeEndpoints, torusNodePub } = await fetchNodeDetails.getNodeDetails()
+const { torusNodeEndpoints, torusNodePub, torusIndexes } = await fetchNodeDetails.getNodeDetails()
 const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId })
+
+const idToken = 'YOUR_ID_TOKEN'
+const keyData = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, verifier, { verifier_id: verifierId }, idToken)
 ```
 
 ```js
 const FetchNodeDetails = require('@toruslabs/fetch-node-details')
-const TorusJs = require('@toruslabs/torus.js')
+const TorusUtils = require('@toruslabs/torus.js')
 
 const fetchNodeDetails = new FetchNodeDetails()
-const TorusJs = new TorusJs()
+const torus = new TorusUtils()
 const verifier = 'google' // any verifier
 const verifierId = 'hello@tor.us' // any verifier id
 fetchNodeDetails
   .getNodeDetails()
   .then(({ torusNodeEndpoints, torusNodePub }) => torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId }))
   .then((publicAddress) => console.log(publicAddress))
+
+const idToken = 'YOUR_ID_TOKEN'
+fetchNodeDetails
+  .getNodeDetails()
+  .then(({ torusNodeEndpoints, torusIndexes }) =>
+    torus.retrieveShares(torusNodeEndpoints, torusIndexes, verifier, { verifier_id: verifierId }, idToken)
+  )
+  .then((keyData) => console.log(keyData))
 ```
 
 ## Requirements

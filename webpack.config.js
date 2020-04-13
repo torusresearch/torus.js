@@ -18,6 +18,9 @@ const baseConfig = {
   module: {
     rules: [],
   },
+  node: {
+    vm: 'empty',
+  },
 }
 
 const eslintLoader = {
