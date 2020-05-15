@@ -28,12 +28,10 @@ This library handles these checks and allows you to query the Torus network easi
 
 ### Bundling
 
-This module is distributed in 6 formats
+This module is distributed in 3 formats
 
 - `commonjs` build `dist/torusUtils.cjs.js` in es5 format
-- `umd` build `dist/torusUtils.umd.js` in es5 format without polyfilling corejs
 - `umd` build `dist/torusUtils.umd.min.js` in es5 format without polyfilling corejs minified
-- `umd` build `dist/torusUtils.polyfill.umd.js` in es5 format with polyfilling corejs
 - `umd` build `dist/torusUtils.polyfill.umd.min.js` in es5 format with polyfilling corejs minified
 
 By default, the appropriate format is used for your specified usecase
@@ -107,5 +105,5 @@ fetchNodeDetails
 
 ## Requirements
 
-- This package requires a peer dependency of `@babel/runtime` or `@babel/runtime-corejs3`
+- This package requires a peer dependency of `@babel/runtime`
 - Node 10+
