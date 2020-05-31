@@ -9,7 +9,7 @@ const packagesToInclude = ['eccrypto', 'elliptic', 'web3-utils', 'bn.js']
 const baseConfig = {
   mode: 'production',
   entry: './index.js',
-  target: 'web',
+  target: 'node',
   output: {
     path: path.resolve(__dirname, 'dist'),
     library: libraryName,

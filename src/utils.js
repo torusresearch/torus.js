@@ -72,7 +72,7 @@ export const keyLookup = (endpoints, verifier, verifierId) => {
   }).catch((_) => undefined)
 }
 
-export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId) => {
+export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId, apiKey) => {
   let nodeNum
   let initialPoint
   if (lastPoint === undefined) {
@@ -88,10 +88,11 @@ export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verif
     verifier,
     verifier_id: verifierId.toString().toLowerCase(),
   })
-  return post('https://signer.tor.us/api/sign', data, {
+  return post('http://localhost:8080/torus-signer/api/sign', data, {
     headers: {
       pubKeyX: torusNodePubs[nodeNum].X,
       pubKeyY: torusNodePubs[nodeNum].Y,
+      authorization: apiKey,
     },
   }).then((signedData) =>
     // eslint-disable-next-line promise/no-nesting
