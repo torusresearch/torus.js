@@ -284,7 +284,7 @@ class Torus {
       .then(({ keyResult, errorResult } = {}) => {
         if (errorResult) {
           // eslint-disable-next-line promise/no-nesting
-          return keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId).then((_) => {
+          return keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId, this.apiKey).then((_) => {
             return keyLookup(endpoints, verifier, verifierId)
           })
         }

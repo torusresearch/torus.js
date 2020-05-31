@@ -104,6 +104,6 @@ export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verif
           'Content-Type': 'application/json; charset=utf-8',
         },
       }
-    ).catch((_) => keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId))
+    ).catch((_) => keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId, apiKey))
   )
 }

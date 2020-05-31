@@ -11,7 +11,7 @@ console.log(fetchNodeDetails)
 fetchNodeDetails
   .getNodeDetails()
   .then((nodeInfo) => {
-    return torus.getPublicAddress(nodeInfo.torusNodeEndpoints, nodeInfo.torusNodePub, { verifier: 'google', verifierId: 'zhen@tor.us' })
+    return torus.getPublicAddress(nodeInfo.torusNodeEndpoints, nodeInfo.torusNodePub, { verifier: 'google', verifierId: 'test4@tor.us' })
   })
   .then((response) => {
     console.log('private key assigned to user at address ', response)
