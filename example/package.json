@@ -12,6 +12,7 @@
     "@toruslabs/fetch-node-details": "file:../../fetch-node-details/toruslabs-fetch-node-details-2.2.2.tgz",
     "@toruslabs/torus.js": "file:../toruslabs-torus.js-2.1.3.tgz",
     "fetch": "^1.1.0",
-    "node-fetch": "^2.6.0"
+    "node-fetch": "^2.6.0",
+    "r": "0.0.5"
   }
 }
