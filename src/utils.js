@@ -51,7 +51,7 @@ export const keyLookup = (endpoints, verifier, verifierId) => {
       x,
       generateJsonRPCObject('VerifierLookupRequest', {
         verifier,
-        verifier_id: verifierId.toString().toLowerCase(),
+        verifier_id: verifierId.toString(),
       })
     ).catch((_) => undefined)
   )
@@ -86,7 +86,7 @@ export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verif
 
   const data = generateJsonRPCObject('KeyAssign', {
     verifier,
-    verifier_id: verifierId.toString().toLowerCase(),
+    verifier_id: verifierId.toString(),
   })
   return post('https://signer.tor.us/api/sign', data, {
     headers: {
