@@ -28,14 +28,15 @@ This library handles these checks and allows you to query the Torus network easi
 
 ### Bundling
 
-This module is distributed in 3 formats
+This module is distributed in 4 formats
 
 - `commonjs` build `dist/torusUtils.cjs.js` in es5 format
 - `umd` build `dist/torusUtils.umd.min.js` in es5 format without polyfilling corejs minified
 - `umd` build `dist/torusUtils.polyfill.umd.min.js` in es5 format with polyfilling corejs minified
+- `nodejs` build `dist/torusUtils-node.js` in es5 format
 
 By default, the appropriate format is used for your specified usecase
-You can use a different format (if you know what you're doing) by referencing the correct file
+You can use a different format (if you know what you're doing eg. node) by referencing the correct file
 
 The cjs build is not polyfilled with core-js.
 It is upto the user to polyfill based on the browserlist they target
@@ -102,6 +103,23 @@ fetchNodeDetails
   )
   .then((keyData) => console.log(keyData))
 ```
+
+```js
+// For Node.js
+const FetchNodeDetails = require("@toruslabs/fetch-node-details/dist/fetchNodeDetails-node.js");
+const TorusUtils = require('@toruslabs/torus.js/dist/torusUtils-node.js')
+
+const fetchNodeDetails = new FetchNodeDetails()
+const torus = new TorusUtils()
+const verifier = 'google' // any verifier
+const verifierId = 'hello@tor.us' // any verifier id
+fetchNodeDetails
+  .getNodeDetails()
+  .then(({ torusNodeEndpoints, torusNodePub }) => torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId }))
+  .then((publicAddress) => console.log(publicAddress))
+
+```
+
 
 ## Requirements
 

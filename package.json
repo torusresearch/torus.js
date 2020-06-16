@@ -51,6 +51,7 @@
     "eslint-plugin-standard": "^4.0.1",
     "husky": "^4.2.5",
     "lint-staged": "^10.2.9",
+    "node-fetch": "^2.6.0",
     "parallel-webpack": "^2.6.0",
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
