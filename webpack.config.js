@@ -101,7 +101,7 @@ const nodeConfig = {
   module: {
     rules: [eslintLoader, babelLoader],
   },
-  externals: [/^(@babel\/runtime)/i],
+  externals: [...Object.keys(pkg.dependencies), /^(@babel\/runtime)/i],
   target: 'node',
   plugins: [
     new webpack.ProvidePlugin({
