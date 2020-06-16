@@ -1,4 +1,5 @@
 const path = require('path')
+const webpack = require('webpack')
 const pkg = require('./package.json')
 
 const pkgName = 'torusUtils'
@@ -26,6 +27,12 @@ const baseConfig = {
   },
   node: {
     vm: 'empty',
+  },
+}
+
+const optimization = {
+  optimization: {
+    minimize: false,
   },
 }
 
@@ -83,7 +90,27 @@ const cjsConfig = {
   externals: [...Object.keys(pkg.dependencies).filter((x) => !packagesToInclude.includes(x)), /^(@babel\/runtime)/i],
 }
 
-module.exports = [umdPolyfilledConfig, umdConfig, cjsConfig]
+const nodeConfig = {
+  ...baseConfig,
+  ...optimization,
+  output: {
+    ...baseConfig.output,
+    filename: `${pkgName}-node.js`,
+    libraryTarget: 'commonjs2',
+  },
+  module: {
+    rules: [eslintLoader, babelLoader],
+  },
+  externals: [/^(@babel\/runtime)/i],
+  target: 'node',
+  plugins: [
+    new webpack.ProvidePlugin({
+      fetch: ['node-fetch', 'default'],
+    }),
+  ],
+}
+
+module.exports = [umdPolyfilledConfig, umdConfig, cjsConfig, nodeConfig]
 // module.exports = [cjsConfig]
 
 // V5
