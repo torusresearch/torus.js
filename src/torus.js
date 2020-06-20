@@ -2,10 +2,10 @@
 import BN from 'bn.js'
 import { decrypt, generatePrivate, getPublic } from 'eccrypto'
 import { ec as EC } from 'elliptic'
-import log from 'loglevel'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
+import log from './loglevel'
 import { Some } from './some'
 import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
 
