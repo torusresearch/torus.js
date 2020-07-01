@@ -7,8 +7,11 @@ const libraryName = pkgName.charAt(0).toUpperCase() + pkgName.slice(1)
 
 const packagesToInclude = ['eccrypto', 'elliptic', 'web3-utils', 'bn.js']
 
+const { NODE_ENV = 'production' } = process.env
+
 const baseConfig = {
-  mode: 'production',
+  mode: NODE_ENV,
+  devtool: NODE_ENV === 'production' ? false : 'source-map',
   entry: './index.js',
   target: 'web',
   output: {
