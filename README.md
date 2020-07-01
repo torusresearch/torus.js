@@ -31,6 +31,7 @@ This library handles these checks and allows you to query the Torus network easi
 This module is distributed in 4 formats
 
 - `commonjs` build `dist/torusUtils.cjs.js` in es5 format
+- `commonjs` build `dist/torusUtils-bundled.cjs.js` in es5 format with problematic packages bundled (benfits non-webpack users)
 - `umd` build `dist/torusUtils.umd.min.js` in es5 format without polyfilling corejs minified
 - `umd` build `dist/torusUtils.polyfill.umd.min.js` in es5 format with polyfilling corejs minified
 - `nodejs` build `dist/torusUtils-node.js` in es5 format
