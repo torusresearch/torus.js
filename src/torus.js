@@ -50,9 +50,7 @@ class Torus {
           temppuby: pubKeyY,
           timestamp: (Date.now() - 2000).toString().slice(0, 10),
           verifieridentifier: verifier,
-        }),
-        {},
-        { useAPIKey: true }
+        })
       ).catch((err) => log.debug('commitment', err))
       promiseArr.push(p)
     }
@@ -98,9 +96,7 @@ class Torus {
           generateJsonRPCObject('ShareRequest', {
             encrypted: 'yes',
             item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier }],
-          }),
-          {},
-          { useAPIKey: true }
+          })
         ).catch((err) => log.debug('share req', err))
         promiseArrRequest.push(p)
       }
