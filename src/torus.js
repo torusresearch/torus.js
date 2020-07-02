@@ -1,4 +1,5 @@
 /* eslint-disable class-methods-use-this */
+import { get } from '@toruslabs/http-helpers'
 import BN from 'bn.js'
 import { decrypt, generatePrivate, getPublic } from 'eccrypto'
 import { ec as EC } from 'elliptic'
@@ -12,15 +13,17 @@ import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us' } = {}) {
+  constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us', allowHost = 'https://signer.tor.us/api/allow' } = {}) {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
+    this.allowHost = allowHost
     log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()
   }
 
   async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken) {
     const promiseArr = []
+    await get(this.allowHost)
     /* 
       CommitmentRequestParams struct {
         MessagePrefix      string `json:"messageprefix"`
