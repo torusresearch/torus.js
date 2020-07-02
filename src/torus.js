@@ -50,7 +50,9 @@ class Torus {
           temppuby: pubKeyY,
           timestamp: (Date.now() - 2000).toString().slice(0, 10),
           verifieridentifier: verifier,
-        })
+        }),
+        {},
+        { useAPIKey: true }
       ).catch((err) => log.debug('commitment', err))
       promiseArr.push(p)
     }
@@ -96,7 +98,9 @@ class Torus {
           generateJsonRPCObject('ShareRequest', {
             encrypted: 'yes',
             item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier }],
-          })
+          }),
+          {},
+          { useAPIKey: true }
         ).catch((err) => log.debug('share req', err))
         promiseArrRequest.push(p)
       }
@@ -204,7 +208,7 @@ class Torus {
 
   async getMetadata(data, options) {
     try {
-      const metadataResponse = await post(`${this.metadataHost}/get`, data, options)
+      const metadataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true })
       if (!metadataResponse || !metadataResponse.message) {
         return new BN(0)
       }
@@ -232,7 +236,7 @@ class Torus {
 
   async setMetadata(data, options) {
     try {
-      const metadataResponse = await post(`${this.metadataHost}/set`, data, options)
+      const metadataResponse = await post(`${this.metadataHost}/set`, data, options, { useAPIKey: true })
       return metadataResponse.message // IPFS hash
     } catch (error) {
       log.error(error)
