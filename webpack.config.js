@@ -92,6 +92,10 @@ const cjsConfig = {
     rules: [eslintLoader, babelLoader],
   },
   externals: [...Object.keys(pkg.dependencies), /^(@babel\/runtime)/i],
+  node: {
+    ...baseConfig.node,
+    Buffer: false,
+  },
 }
 
 const cjsBundledConfig = {
