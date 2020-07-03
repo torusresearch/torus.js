@@ -78,7 +78,15 @@ class Torus {
       */
     // send share request once k + t number of commitment requests have completed
     return Some(promiseArr, (resultArr) => {
-      const completedRequests = resultArr.filter((x) => x)
+      const completedRequests = resultArr.filter((x) => {
+        if (!x || typeof x !== 'object') {
+          return false
+        }
+        if (x.error) {
+          return false
+        }
+        return true
+      })
       if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
         return Promise.resolve(resultArr)
       }
