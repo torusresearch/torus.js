@@ -3,6 +3,7 @@ import { get } from '@toruslabs/http-helpers'
 import BN from 'bn.js'
 import { decrypt, generatePrivate, getPublic } from 'eccrypto'
 import { ec as EC } from 'elliptic'
+import memoryCache from 'memory-cache'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
@@ -17,6 +18,7 @@ class Torus {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     this.allowHost = allowHost
+    this.metadataCache = memoryCache
     log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()
   }
@@ -215,10 +217,17 @@ class Torus {
 
   async getMetadata(data, options) {
     try {
+      const dataKey = JSON.stringify(data)
+      const cachedResult = this.metadataCache.get(dataKey)
+      if (cachedResult !== null) {
+        return cachedResult
+      }
       const metadataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true })
       if (!metadataResponse || !metadataResponse.message) {
+        this.metadata.set(dataKey, new BN(0), 60000)
         return new BN(0)
       }
+      this.metadata.set(dataKey, new BN(metadataResponse.message, 16), 60000)
       return new BN(metadataResponse.message, 16) // nonce
     } catch (error) {
       log.error(error)
@@ -292,7 +301,7 @@ class Torus {
   getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     return keyLookup(endpoints, verifier, verifierId)
       .then(({ keyResult, errorResult } = {}) => {
-        if (errorResult) {
+        if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
           // eslint-disable-next-line promise/no-nesting
           return keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId).then((_) => {
             return keyLookup(endpoints, verifier, verifierId)
