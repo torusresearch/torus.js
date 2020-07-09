@@ -1,5 +1,5 @@
 /* eslint-disable class-methods-use-this */
-import { get } from '@toruslabs/http-helpers'
+import { get, setAPIKey } from '@toruslabs/http-helpers'
 import BN from 'bn.js'
 import { decrypt, generatePrivate, getPublic } from 'eccrypto'
 import { ec as EC } from 'elliptic'
@@ -333,6 +333,10 @@ class Torus {
         throw new Error('node results do not match')
       })
   }
+}
+
+export function setKey(apiKey) {
+  setAPIKey(apiKey)
 }
 
 export default Torus
