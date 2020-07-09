@@ -5,7 +5,7 @@ const pkg = require('./package.json')
 const pkgName = 'torusUtils'
 const libraryName = pkgName.charAt(0).toUpperCase() + pkgName.slice(1)
 
-const packagesToInclude = ['eccrypto', 'elliptic', 'web3-utils', 'bn.js']
+const packagesToInclude = ['@toruslabs/eccrypto', 'elliptic', 'web3-utils', 'bn.js']
 
 const { NODE_ENV = 'production' } = process.env
 

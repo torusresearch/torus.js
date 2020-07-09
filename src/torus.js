@@ -1,6 +1,6 @@
 /* eslint-disable class-methods-use-this */
+import { decrypt, generatePrivate, getPublic } from '@toruslabs/eccrypto'
 import BN from 'bn.js'
-import { decrypt, generatePrivate, getPublic } from 'eccrypto'
 import { ec as EC } from 'elliptic'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
