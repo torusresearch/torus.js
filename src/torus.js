@@ -1,5 +1,5 @@
 /* eslint-disable class-methods-use-this */
-import { get, setAPIKey } from '@toruslabs/http-helpers'
+import { get, setAPIKey, setEmbedHost } from '@toruslabs/http-helpers'
 import BN from 'bn.js'
 import { decrypt, generatePrivate, getPublic } from 'eccrypto'
 import { ec as EC } from 'elliptic'
@@ -337,6 +337,10 @@ class Torus {
 
 export function setKey(apiKey) {
   setAPIKey(apiKey)
+}
+
+export function setHost(embedHost) {
+  setEmbedHost(embedHost)
 }
 
 export default Torus
