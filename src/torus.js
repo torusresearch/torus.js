@@ -27,7 +27,6 @@ class Torus {
         TokenCommitment    string `json:"tokencommitment"`
         TempPubX           string `json:"temppubx"`
         TempPubY           string `json:"temppuby"`
-        Timestamp          string `json:"timestamp"`
         VerifierIdentifier string `json:"verifieridentifier"`
       } 
       */
@@ -48,7 +47,6 @@ class Torus {
           tokencommitment: tokenCommitment.slice(2),
           temppubx: pubKeyX,
           temppuby: pubKeyY,
-          timestamp: (Date.now() - 2000).toString().slice(0, 10),
           verifieridentifier: verifier,
         })
       ).catch((err) => log.debug('commitment', err))
@@ -227,7 +225,7 @@ class Torus {
     const key = this.ec.keyFromPrivate(privateKey.toString('hex', 64))
     const setData = {
       data: message,
-      timestamp: new BN(Date.now()).toString(16),
+      timestamp: new BN(~~(Date.now() / 1000)).toString(16),
     }
     const sig = key.sign(keccak256(JSON.stringify(setData)).slice(2))
     return {
