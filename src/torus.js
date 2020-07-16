@@ -341,12 +341,4 @@ class Torus {
   }
 }
 
-export function setKey(apiKey) {
-  setAPIKey(apiKey)
-}
-
-export function setHost(embedHost) {
-  setEmbedHost(embedHost)
-}
-
 export default Torus
