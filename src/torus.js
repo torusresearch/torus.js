@@ -23,9 +23,17 @@ class Torus {
     if (!enableLogging) log.disableAll()
   }
 
+  static setAPIKey(apiKey) {
+    setAPIKey(apiKey)
+  }
+
+  static setEmbedHost(embedHost) {
+    setEmbedHost(embedHost)
+  }
+
   async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken) {
     const promiseArr = []
-    await get(this.allowHost)
+    await get(this.allowHost, {}, { useAPIKey: true })
     /* 
       CommitmentRequestParams struct {
         MessagePrefix      string `json:"messageprefix"`
