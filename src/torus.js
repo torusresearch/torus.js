@@ -230,10 +230,10 @@ class Torus {
       }
       const metadataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true })
       if (!metadataResponse || !metadataResponse.message) {
-        this.metadata.set(dataKey, new BN(0), 60000)
+        this.metadataCache.set(dataKey, new BN(0), 60000)
         return new BN(0)
       }
-      this.metadata.set(dataKey, new BN(metadataResponse.message, 16), 60000)
+      this.metadataCache.set(dataKey, new BN(metadataResponse.message, 16), 60000)
       return new BN(metadataResponse.message, 16) // nonce
     } catch (error) {
       log.error(error)
