@@ -237,8 +237,8 @@ class Torus {
               resolve()
             }
           })
+          break
         }
-        break
       }
       const dataKey = JSON.stringify(data)
       const cachedResult = this.metadataCache.get(dataKey)
