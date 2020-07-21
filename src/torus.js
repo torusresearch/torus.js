@@ -1,4 +1,3 @@
-/* eslint-disable class-methods-use-this */
 import { decrypt, generatePrivate, getPublic } from '@toruslabs/eccrypto'
 import { get, setAPIKey, setEmbedHost } from '@toruslabs/http-helpers'
 import BN from 'bn.js'
@@ -21,7 +20,7 @@ class Torus {
     this.metadataCache = memoryCache
     log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()
-    this.metadataLock = null
+    this.metadataLock = {}
   }
 
   static setAPIKey(apiKey) {
@@ -225,22 +224,17 @@ class Torus {
   async getMetadata(data, options) {
     let unlock
     try {
-      while (true) {
-        if (this.metadataLock !== null) {
-          /* eslint-disable no-await-in-loop */
-          await this.metadataLock
-        } else {
-          /* eslint-disable no-loop-func */
-          this.metadataLock = new Promise((resolve) => {
-            unlock = () => {
-              this.metadataLock = null
-              resolve()
-            }
-          })
-          break
-        }
-      }
       const dataKey = JSON.stringify(data)
+      if (this.metadataLock[dataKey] !== null) {
+        await this.metadataLock[dataKey]
+      } else {
+        this.metadataLock[dataKey] = new Promise((resolve) => {
+          unlock = () => {
+            this.metadataLock[dataKey] = null
+            resolve()
+          }
+        })
+      }
       const cachedResult = this.metadataCache.get(dataKey)
       if (cachedResult !== null) {
         if (unlock) unlock()
