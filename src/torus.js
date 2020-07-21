@@ -1,7 +1,8 @@
-/* eslint-disable class-methods-use-this */
 import { decrypt, generatePrivate, getPublic } from '@toruslabs/eccrypto'
+import { get, setAPIKey, setEmbedHost } from '@toruslabs/http-helpers'
 import BN from 'bn.js'
 import { ec as EC } from 'elliptic'
+import memoryCache from 'memory-cache'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
@@ -12,15 +13,27 @@ import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us' } = {}) {
+  constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us', allowHost = 'https://signer.tor.us/api/allow' } = {}) {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
+    this.allowHost = allowHost
+    this.metadataCache = memoryCache
     log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()
+    this.metadataLock = {}
+  }
+
+  static setAPIKey(apiKey) {
+    setAPIKey(apiKey)
+  }
+
+  static setEmbedHost(embedHost) {
+    setEmbedHost(embedHost)
   }
 
   async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken) {
     const promiseArr = []
+    await get(this.allowHost, {}, { useAPIKey: true })
     /* 
       CommitmentRequestParams struct {
         MessagePrefix      string `json:"messageprefix"`
@@ -209,14 +222,35 @@ class Torus {
   }
 
   async getMetadata(data, options) {
+    let unlock
     try {
-      const metadataResponse = await post(`${this.metadataHost}/get`, data, options)
+      const dataKey = JSON.stringify(data)
+      if (this.metadataLock[dataKey] !== null) {
+        await this.metadataLock[dataKey]
+      } else {
+        this.metadataLock[dataKey] = new Promise((resolve) => {
+          unlock = () => {
+            this.metadataLock[dataKey] = null
+            resolve()
+          }
+        })
+      }
+      const cachedResult = this.metadataCache.get(dataKey)
+      if (cachedResult !== null) {
+        if (unlock) unlock()
+        return cachedResult
+      }
+      const metadataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true })
       if (!metadataResponse || !metadataResponse.message) {
+        this.metadataCache.put(dataKey, new BN(0), 60000)
+        if (unlock) unlock()
         return new BN(0)
       }
+      this.metadataCache.put(dataKey, new BN(metadataResponse.message, 16), 60000)
       return new BN(metadataResponse.message, 16) // nonce
     } catch (error) {
       log.error(error)
+      if (unlock) unlock()
       return new BN(0)
     }
   }
@@ -238,7 +272,7 @@ class Torus {
 
   async setMetadata(data, options) {
     try {
-      const metadataResponse = await post(`${this.metadataHost}/set`, data, options)
+      const metadataResponse = await post(`${this.metadataHost}/set`, data, options, { useAPIKey: true })
       return metadataResponse.message // IPFS hash
     } catch (error) {
       log.error(error)
@@ -287,7 +321,7 @@ class Torus {
   getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     return keyLookup(endpoints, verifier, verifierId)
       .then(({ keyResult, errorResult } = {}) => {
-        if (errorResult) {
+        if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
           // eslint-disable-next-line promise/no-nesting
           return keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId).then((_) => {
             return keyLookup(endpoints, verifier, verifierId)

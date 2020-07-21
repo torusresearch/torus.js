@@ -1,7 +1,9 @@
 import BN from 'bn.js'
 
 declare class Torus {
-    constructor();
+    constructor(options: {enableLogging?: Boolean, metadataHost?: string, allowHost?: string });
+    static setAPIKey(apiKey: string): void;
+    static setEmbedHost(embedHost: string): void;
     retrieveShares(endpoints: String[], indexes: Number[], verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string, verifierParams: VerifierParams, idToken: String): Promise<ShareResponse>;
     lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN;
     generateAddressFromPrivKey(privateKey: BN): String;

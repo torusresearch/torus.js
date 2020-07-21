@@ -88,12 +88,17 @@ export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verif
     verifier,
     verifier_id: verifierId.toString(),
   })
-  return post('https://signer.tor.us/api/sign', data, {
-    headers: {
-      pubKeyX: torusNodePubs[nodeNum].X,
-      pubKeyY: torusNodePubs[nodeNum].Y,
+  return post(
+    'https://signer.tor.us/api/sign',
+    data,
+    {
+      headers: {
+        pubKeyX: torusNodePubs[nodeNum].X,
+        pubKeyY: torusNodePubs[nodeNum].Y,
+      },
     },
-  }).then((signedData) =>
+    { useAPIKey: true }
+  ).then((signedData) =>
     // eslint-disable-next-line promise/no-nesting
     post(
       endpoints[nodeNum],
