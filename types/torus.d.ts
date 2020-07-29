@@ -1,7 +1,7 @@
 import BN from 'bn.js'
 
 declare class Torus {
-    constructor(options: {enableLogging?: Boolean, metadataHost?: string, allowHost?: string });
+    constructor(options?: TorusCtorOptions);
     static setAPIKey(apiKey: string): void;
     static setEmbedHost(embedHost: string): void;
     retrieveShares(endpoints: String[], indexes: Number[], verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string, verifierParams: VerifierParams, idToken: String): Promise<ShareResponse>;
@@ -13,6 +13,12 @@ declare class Torus {
 export as namespace TorusUtils;
 
 export = Torus;
+
+interface TorusCtorOptions { 
+    enableLogging?: Boolean;
+    metadataHost?: string;
+    allowHost?: string;
+}
 
 interface TorusPublicKey extends TorusNodePub {
     address: String;
