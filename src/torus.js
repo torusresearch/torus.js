@@ -2,6 +2,7 @@ import { decrypt, generatePrivate, getPublic } from '@toruslabs/eccrypto'
 import { get, setAPIKey, setEmbedHost } from '@toruslabs/http-helpers'
 import BN from 'bn.js'
 import { ec as EC } from 'elliptic'
+import stringify from 'json-stable-stringify'
 import memoryCache from 'memory-cache'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
@@ -224,7 +225,7 @@ class Torus {
   async getMetadata(data, options) {
     let unlock
     try {
-      const dataKey = JSON.stringify(data)
+      const dataKey = stringify(data)
       if (this.metadataLock[dataKey] !== null) {
         await this.metadataLock[dataKey]
       } else {
@@ -261,7 +262,7 @@ class Torus {
       data: message,
       timestamp: new BN(~~(Date.now() / 1000)).toString(16),
     }
-    const sig = key.sign(keccak256(JSON.stringify(setData)).slice(2))
+    const sig = key.sign(keccak256(stringify(setData)).slice(2))
     return {
       pub_key_X: key.getPublic().getX().toString('hex'),
       pub_key_Y: key.getPublic().getY().toString('hex'),
