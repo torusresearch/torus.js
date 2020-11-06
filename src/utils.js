@@ -1,6 +1,7 @@
 import JsonStringify from 'json-stable-stringify'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
+import log from './loglevel'
 import { Some } from './some'
 
 export const kCombinations = (s, k) => {
@@ -53,7 +54,7 @@ export const keyLookup = (endpoints, verifier, verifierId) => {
         verifier,
         verifier_id: verifierId.toString(),
       })
-    ).catch((_) => undefined)
+    ).catch((err) => log.error('lookup request failed', err))
   )
   return Some(lookupPromises, (lookupResults) => {
     const lookupShares = lookupResults.filter((x) => x)
@@ -69,7 +70,7 @@ export const keyLookup = (endpoints, verifier, verifierId) => {
       return Promise.resolve({ keyResult, errorResult })
     }
     return Promise.reject(new Error('invalid'))
-  }).catch((_) => undefined)
+  }).catch((err) => log.error('Some for keylookup failed', err))
 }
 
 export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId) => {
