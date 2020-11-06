@@ -19,7 +19,6 @@ class Torus {
     this.metadataHost = metadataHost
     this.allowHost = allowHost
     this.metadataCache = memoryCache
-    log.setDefaultLevel('DEBUG')
     if (!enableLogging) log.disableAll()
     this.metadataLock = {}
   }
@@ -63,7 +62,7 @@ class Torus {
           temppuby: pubKeyY,
           verifieridentifier: verifier,
         })
-      ).catch((err) => log.debug('commitment', err))
+      ).catch((err) => log.error('commitment', err))
       promiseArr.push(p)
     }
     /*
@@ -117,7 +116,7 @@ class Torus {
             encrypted: 'yes',
             item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier }],
           })
-        ).catch((err) => log.debug('share req', err))
+        ).catch((err) => log.error('share req', err))
         promiseArrRequest.push(p)
       }
       return Some(promiseArrRequest, async (shareResponses, sharedState) => {
@@ -250,7 +249,7 @@ class Torus {
       this.metadataCache.put(dataKey, new BN(metadataResponse.message, 16), 60000)
       return new BN(metadataResponse.message, 16) // nonce
     } catch (error) {
-      log.error(error)
+      log.error('get metadata error', error)
       if (unlock) unlock()
       return new BN(0)
     }
@@ -276,7 +275,7 @@ class Torus {
       const metadataResponse = await post(`${this.metadataHost}/set`, data, options, { useAPIKey: true })
       return metadataResponse.message // IPFS hash
     } catch (error) {
-      log.error(error)
+      log.error('set metadata error', error)
       return ''
     }
   }
@@ -331,7 +330,7 @@ class Torus {
         if (keyResult) {
           return { keyResult }
         }
-        throw new Error('node results do not match')
+        throw new Error('node results do not match at key assign', keyResult, errorResult)
       })
       .then(async ({ keyResult } = {}) => {
         if (keyResult) {
@@ -351,7 +350,7 @@ class Torus {
             Y,
           }
         }
-        throw new Error('node results do not match')
+        throw new Error('node results do not match at lookup', keyResult)
       })
   }
 }
