@@ -69,7 +69,7 @@ export const keyLookup = (endpoints, verifier, verifierId) => {
     if (keyResult || errorResult) {
       return Promise.resolve({ keyResult, errorResult })
     }
-    throw new Error(`invalid results ${JSON.stringify(lookupResults)}`)
+    return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`))
   }).catch((err) => log.error('Some for keylookup failed', err))
 }
 

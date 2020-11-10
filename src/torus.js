@@ -101,7 +101,7 @@ class Torus {
       if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
         return Promise.resolve(resultArr)
       }
-      throw new Error(`invalid ${JSON.stringify(resultArr)}`)
+      return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`))
     }).then((responses) => {
       const promiseArrRequest = []
       const nodeSigs = []
