@@ -9,7 +9,7 @@ import { keccak256, toChecksumAddress } from 'web3-utils'
 import { generateJsonRPCObject, post } from './httpHelpers'
 import log from './loglevel'
 import { Some } from './some'
-import { kCombinations, keyAssign, keyLookup, thresholdSame } from './utils'
+import { kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from './utils'
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -318,40 +318,36 @@ class Torus {
     return toChecksumAddress(ethAddressLower)
   }
 
-  getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
-    return keyLookup(endpoints, verifier, verifierId)
-      .then(({ keyResult, errorResult } = {}) => {
-        if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
-          // eslint-disable-next-line promise/no-nesting
-          return keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId).then((_) => {
-            return keyLookup(endpoints, verifier, verifierId)
-          })
-        }
-        if (keyResult) {
-          return { keyResult }
-        }
-        throw new Error('node results do not match at key assign', keyResult, errorResult)
-      })
-      .then(async ({ keyResult } = {}) => {
-        if (keyResult) {
-          let { pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0]
-          const nonce = await this.getMetadata({ pub_key_X: X, pub_key_Y: Y })
-          const modifiedPubKey = this.ec
-            .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
-            .getPublic()
-            .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
-          X = modifiedPubKey.getX().toString(16)
-          Y = modifiedPubKey.getY().toString(16)
-          const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY())
-          if (!isExtended) return address
-          return {
-            address,
-            X,
-            Y,
-          }
-        }
-        throw new Error('node results do not match at lookup', keyResult)
-      })
+  async getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
+    let finalKeyResult
+    const { keyResult, errorResult } = await keyLookup(endpoints, verifier, verifierId)
+    if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
+      await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
+      finalKeyResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000)
+    } else if (keyResult) {
+      finalKeyResult = keyResult
+    } else {
+      throw new Error('node results do not match at first lookup', keyResult, errorResult)
+    }
+
+    if (finalKeyResult) {
+      let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
+      const nonce = await this.getMetadata({ pub_key_X: X, pub_key_Y: Y })
+      const modifiedPubKey = this.ec
+        .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+        .getPublic()
+        .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
+      X = modifiedPubKey.getX().toString(16)
+      Y = modifiedPubKey.getY().toString(16)
+      const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY())
+      if (!isExtended) return address
+      return {
+        address,
+        X,
+        Y,
+      }
+    }
+    throw new Error('node results do not match at final lookup', keyResult, errorResult)
   }
 }
 

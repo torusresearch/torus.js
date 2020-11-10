@@ -73,6 +73,14 @@ export const keyLookup = (endpoints, verifier, verifierId) => {
   }).catch((err) => log.error('Some for keylookup failed', err))
 }
 
+export const waitKeyLookup = (endpoints, verifier, verifierId, timeout) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      keyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject)
+    }, timeout)
+  })
+}
+
 export const keyAssign = (endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId) => {
   let nodeNum
   let initialPoint
