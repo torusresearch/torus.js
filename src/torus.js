@@ -31,7 +31,7 @@ class Torus {
     setEmbedHost(embedHost)
   }
 
-  async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken) {
+  async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams = {}) {
     const promiseArr = []
     await get(this.allowHost, {}, { useAPIKey: true })
     /* 
@@ -114,7 +114,7 @@ class Torus {
           endpoints[i],
           generateJsonRPCObject('ShareRequest', {
             encrypted: 'yes',
-            item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier }],
+            item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
           })
         ).catch((err) => log.error('share req', err))
         promiseArrRequest.push(p)
