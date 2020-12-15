@@ -4,7 +4,7 @@ declare class Torus {
     constructor(options?: TorusCtorOptions);
     static setAPIKey(apiKey: string): void;
     static setEmbedHost(embedHost: string): void;
-    retrieveShares(endpoints: String[], indexes: Number[], verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string, verifierParams: VerifierParams, idToken: String): Promise<ShareResponse>;
+    retrieveShares(endpoints: String[], indexes: Number[], verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string, verifierParams: VerifierParams, idToken: String, extraParams: extraParams): Promise<ShareResponse>;
     lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN;
     generateAddressFromPrivKey(privateKey: BN): String;
     getPublicAddress(endpoints: String[], torusNodePubs: TorusNodePub[], verifierArgs: VerifierArgs, isExtended: Boolean): Promise<String | TorusPublicKey>;
@@ -13,6 +13,9 @@ declare class Torus {
 export as namespace TorusUtils;
 
 export = Torus;
+export interface extraParams {
+    [key: string]: unknown;
+  }
 
 interface TorusCtorOptions { 
     enableLogging?: Boolean;
