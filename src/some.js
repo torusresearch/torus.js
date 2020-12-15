@@ -1,5 +1,5 @@
-export const Some = (promises, predicate) => {
-  return new Promise((resolve, reject) => {
+export const Some = (promises, predicate) =>
+  new Promise((resolve, reject) => {
     let finishedCount = 0
     const sharedState = { resolved: false }
     const errorArr = new Array(promises.length).fill(undefined)
@@ -40,4 +40,3 @@ export const Some = (promises, predicate) => {
         })
     })
   })
-}

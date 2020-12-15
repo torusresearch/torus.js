@@ -1,1 +1,1 @@
-export { promiseTimeout, post, generateJsonRPCObject } from '@toruslabs/http-helpers'
+export { generateJsonRPCObject, post, promiseTimeout } from '@toruslabs/http-helpers'
