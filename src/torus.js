@@ -320,10 +320,10 @@ class Torus {
 
   async getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     let finalKeyResult
-    const { keyResult, errorResult } = await keyLookup(endpoints, verifier, verifierId)
+    const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
     if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
       await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
-      const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000)
+      const assignResult = (await waitKeyLookup(endpoints, verifier, verifierId, 1000)) || {}
       finalKeyResult = assignResult.keyResult
     } else if (keyResult) {
       finalKeyResult = keyResult
