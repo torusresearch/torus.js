@@ -328,7 +328,7 @@ class Torus {
     } else if (keyResult) {
       finalKeyResult = keyResult
     } else {
-      throw new Error('node results do not match at first lookup', keyResult, errorResult)
+      throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
     }
 
     if (finalKeyResult) {
@@ -348,7 +348,7 @@ class Torus {
         Y,
       }
     }
-    throw new Error('node results do not match at final lookup', keyResult, errorResult)
+    throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
   }
 }
 
