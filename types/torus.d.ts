@@ -35,6 +35,7 @@ interface TorusNodePub {
 interface ShareResponse {
     ethAddress: String;
     privKey: String;
+    metadataNoce: BN;
 }
 
 interface VerifierArgs {

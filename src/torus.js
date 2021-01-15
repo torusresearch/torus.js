@@ -214,6 +214,7 @@ class Torus {
           return {
             ethAddress,
             privKey: privateKey.toString('hex', 64),
+            metadataNonce,
           }
         }
         throw new Error('invalid')
