@@ -25,6 +25,7 @@ interface TorusCtorOptions {
 
 interface TorusPublicKey extends TorusNodePub {
     address: String;
+    metadataNonce: BN;
 }
 
 interface TorusNodePub {
@@ -35,7 +36,7 @@ interface TorusNodePub {
 interface ShareResponse {
     ethAddress: String;
     privKey: String;
-    metadataNoce: BN;
+    metadataNonce: BN;
 }
 
 interface VerifierArgs {

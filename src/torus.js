@@ -347,6 +347,7 @@ class Torus {
         address,
         X,
         Y,
+        metadataNonce: nonce,
       }
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
