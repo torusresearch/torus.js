@@ -122,7 +122,7 @@ const nodeConfig = {
   module: {
     rules: [babelLoader],
   },
-  externals: [...Object.keys(pkg.dependencies), /^(@babel\/runtime)/i],
+  externals: [...Object.keys(pkg.dependencies).filter((x) => !['@toruslabs/http-helpers'].includes(x)), /^(@babel\/runtime)/i],
   target: 'node',
   plugins: [
     new webpack.ProvidePlugin({
