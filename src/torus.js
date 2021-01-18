@@ -7,20 +7,27 @@ import memoryCache from 'memory-cache'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
 import { generateJsonRPCObject, post } from './httpHelpers'
-import log from './loglevel'
+import log, { sentry } from './loglevel'
 import { Some } from './some'
 import { kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from './utils'
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us', allowHost = 'https://signer.tor.us/api/allow' } = {}) {
+  constructor({
+    enableLogging = false,
+    enableErrorTracking = false,
+    metadataHost = 'https://metadata.tor.us',
+    allowHost = 'https://signer.tor.us/api/allow',
+  } = {}) {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     this.allowHost = allowHost
     this.metadataCache = memoryCache
-    if (!enableLogging) log.disableAll()
     this.metadataLock = {}
+
+    if (!enableLogging) log.disableAll()
+    sentry.setEnabled(enableErrorTracking)
   }
 
   static setAPIKey(apiKey) {

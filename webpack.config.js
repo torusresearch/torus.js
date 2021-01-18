@@ -7,7 +7,7 @@ const pkg = require('./package.json')
 const pkgName = 'torusUtils'
 const libraryName = pkgName.charAt(0).toUpperCase() + pkgName.slice(1)
 
-const packagesToInclude = ['@toruslabs/eccrypto', 'elliptic', 'web3-utils', 'bn.js']
+const packagesToInclude = ['@toruslabs/eccrypto', '@toruslabs/loglevel-sentry', 'elliptic', 'web3-utils', 'bn.js']
 
 const { NODE_ENV = 'production' } = process.env
 
@@ -34,6 +34,11 @@ const baseConfig = {
   node: {
     vm: 'empty',
   },
+  plugins: [
+    new webpack.DefinePlugin({
+      'process.env.SENTRY_RELEASE': JSON.stringify(`torus-js@v${pkg.version}`),
+    }),
+  ],
 }
 
 const optimization = {
@@ -87,6 +92,7 @@ const cjsConfig = {
     rules: [babelLoader],
   },
   plugins: [
+    ...baseConfig.plugins,
     new ESLintPlugin({
       files: 'src',
     }),
@@ -125,6 +131,7 @@ const nodeConfig = {
   externals: [...Object.keys(pkg.dependencies).filter((x) => !['@toruslabs/http-helpers'].includes(x)), /^(@babel\/runtime)/i],
   target: 'node',
   plugins: [
+    ...baseConfig.plugins,
     new webpack.ProvidePlugin({
       fetch: ['node-fetch', 'default'],
     }),
