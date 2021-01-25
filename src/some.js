@@ -31,7 +31,7 @@ export const Some = (promises, predicate) =>
                 reject(
                   new Error(
                     `Unable to resolve enough promises, errors: ${JSON.stringify(errorArr)}, responses: ${JSON.stringify(resultArr)}, predicate: ${
-                      predicateError.message || predicateError
+                      predicateError?.message || predicateError
                     }`
                   )
                 )
