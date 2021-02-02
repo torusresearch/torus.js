@@ -273,6 +273,8 @@ class Torus {
 
   async setMetadata(data, options) {
     try {
+      const dataKey = stringify(data)
+      this.metadataCache.del(dataKey)
       const metadataResponse = await post(`${this.metadataHost}/set`, data, options, { useAPIKey: true })
       return metadataResponse.message // IPFS hash
     } catch (error) {
