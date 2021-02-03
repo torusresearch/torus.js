@@ -4,10 +4,10 @@ declare class Torus {
     constructor(options?: TorusCtorOptions);
     static setAPIKey(apiKey: string): void;
     static setEmbedHost(embedHost: string): void;
-    retrieveShares(endpoints: String[], indexes: Number[], verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string, verifierParams: VerifierParams, idToken: String, extraParams?: extraParams): Promise<ShareResponse>;
+    retrieveShares(endpoints: string[], indexes: Number[], verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string, verifierParams: VerifierParams, idToken: string, extraParams?: extraParams): Promise<ShareResponse>;
     lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN;
-    generateAddressFromPrivKey(privateKey: BN): String;
-    getPublicAddress(endpoints: String[], torusNodePubs: TorusNodePub[], verifierArgs: VerifierArgs, isExtended: Boolean): Promise<String | TorusPublicKey>;
+    generateAddressFromPrivKey(privateKey: BN): string;
+    getPublicAddress(endpoints: string[], torusNodePubs: TorusNodePub[], verifierArgs: VerifierArgs, isExtended: boolean): Promise<string | TorusPublicKey>;
 }
 
 export as namespace TorusUtils;
@@ -18,32 +18,32 @@ interface extraParams {
 }
 
 interface TorusCtorOptions {
-    enableLogging?: Boolean;
+    enableLogging?: boolean;
     metadataHost?: string;
     allowHost?: string;
 }
 
 interface TorusPublicKey extends TorusNodePub {
-    address: String;
+    address: string;
     metadataNonce: BN;
 }
 
 interface TorusNodePub {
-    X: String;
-    Y: String;
+    X: string;
+    Y: string;
 }
 
 interface ShareResponse {
-    ethAddress: String;
-    privKey: String;
+    ethAddress: string;
+    privKey: string;
     metadataNonce: BN;
 }
 
 interface VerifierArgs {
     verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string;
-    verifierId: String;
+    verifierId: string;
 }
 
 interface VerifierParams {
-    verifier_id: String;
+    verifier_id: string;
 }
