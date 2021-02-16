@@ -7,7 +7,7 @@ declare class Torus {
     retrieveShares(endpoints: string[], indexes: Number[], verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string, verifierParams: VerifierParams, idToken: string, extraParams?: extraParams): Promise<ShareResponse>;
     lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN;
     generateAddressFromPrivKey(privateKey: BN): string;
-    setCustomKey(options?: setCustomKeyOptions)
+    setCustomKey(options?: setCustomKeyOptions): Promise<void>;
     getPublicAddress(endpoints: string[], torusNodePubs: TorusNodePub[], verifierArgs: VerifierArgs, isExtended: boolean): Promise<string | TorusPublicKey>;
 }
 
