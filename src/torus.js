@@ -31,10 +31,24 @@ class Torus {
     setEmbedHost(embedHost)
   }
 
+  async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }) {
+    let torusKey
+    if (torusKeyHex) {
+      torusKey = new BN(torusKeyHex, 16)
+    } else {
+      const privKey = new BN(privKeyHex, 16)
+      torusKey = privKey.sub(metadataNonce).umod(this.ec.curve.n)
+    }
+    const customKey = new BN(customKeyHex, 16)
+    const newMetadataNonce = customKey.sub(torusKey).umod(this.ec.curve.n)
+    const data = this.generateMetadataParams(newMetadataNonce.toString(16), torusKey.toString(16))
+    await this.setMetadata(data)
+  }
+
   async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams = {}) {
     const promiseArr = []
     await get(this.allowHost, {}, { useAPIKey: true })
-    /* 
+    /*
       CommitmentRequestParams struct {
         MessagePrefix      string `json:"messageprefix"`
         TokenCommitment    string `json:"tokencommitment"`
