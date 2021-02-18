@@ -127,6 +127,7 @@ const nodeConfig = {
   plugins: [
     new webpack.ProvidePlugin({
       fetch: ['node-fetch', 'default'],
+      atob: ['atob'],
     }),
   ],
 }
