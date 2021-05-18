@@ -3,18 +3,20 @@
     "standard",
     "eslint:recommended",
     "plugin:prettier/recommended",
-    "prettier/babel",
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:promise/recommended",
     "airbnb-base",
     "prettier"
   ],
-  "plugins": ["prettier", "babel", "promise", "import", "standard", "simple-import-sort"],
-  "parser": "babel-eslint",
+  "plugins": ["prettier", "@babel", "promise", "import", "standard", "simple-import-sort"],
+  "parser": "@babel/eslint-parser",
   "parserOptions": {
     "sourceType": "module",
-    "ecmaVersion": 9
+    "ecmaVersion": 11,
+    "babelOptions": {
+      "configFile": "./babel.config.json"
+    }
   },
   "rules": {
     "promise/catch-or-return": [2, { "allowFinally": true }],
