@@ -1,57 +1,69 @@
 import BN from 'bn.js'
 
 declare class Torus {
-    constructor(options?: TorusCtorOptions);
-    static setAPIKey(apiKey: string): void;
-    static setEmbedHost(embedHost: string): void;
-    retrieveShares(endpoints: string[], indexes: Number[], verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string, verifierParams: VerifierParams, idToken: string, extraParams?: extraParams): Promise<ShareResponse>;
-    lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN;
-    generateAddressFromPrivKey(privateKey: BN): string;
-    setCustomKey(options?: setCustomKeyOptions): Promise<void>;
-    getPublicAddress(endpoints: string[], torusNodePubs: TorusNodePub[], verifierArgs: VerifierArgs, isExtended: boolean): Promise<string | TorusPublicKey>;
+  constructor(options?: TorusCtorOptions)
+  static setAPIKey(apiKey: string): void
+  static setEmbedHost(embedHost: string): void
+  retrieveShares(
+    endpoints: string[],
+    indexes: Number[],
+    verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string,
+    verifierParams: VerifierParams,
+    idToken: string,
+    extraParams?: extraParams
+  ): Promise<ShareResponse>
+  lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN
+  generateAddressFromPrivKey(privateKey: BN): string
+  setCustomKey(options?: setCustomKeyOptions): Promise<void>
+  getPublicAddress(
+    endpoints: string[],
+    torusNodePubs: TorusNodePub[],
+    verifierArgs: VerifierArgs,
+    isExtended: boolean
+  ): Promise<string | TorusPublicKey>
 }
 
-export as namespace TorusUtils;
+export as namespace TorusUtils
 
-export = Torus;
+export = Torus
 interface extraParams {
-    [key: string]: unknown;
+  [key: string]: unknown
 }
 
 interface TorusCtorOptions {
-    enableLogging?: boolean;
-    metadataHost?: string;
-    allowHost?: string;
+  enableLogging?: boolean
+  metadataHost?: string
+  allowHost?: string
 }
 
 interface TorusPublicKey extends TorusNodePub {
-    address: string;
-    metadataNonce: BN;
+  address: string
+  metadataNonce: BN
 }
 
 interface TorusNodePub {
-    X: string;
-    Y: string;
+  X: string
+  Y: string
 }
 
 interface ShareResponse {
-    ethAddress: string;
-    privKey: string;
-    metadataNonce: BN;
+  ethAddress: string
+  privKey: string
+  metadataNonce: BN
 }
 
 interface VerifierArgs {
-    verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string;
-    verifierId: string;
+  verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string
+  verifierId: string
 }
 
 interface VerifierParams {
-    verifier_id: string;
+  verifier_id: string
 }
 
 interface setCustomKeyOptions {
-    privKeyHex?: string;
-    metadataNonce?: BN;
-    torusKeyHex?: string;
-    customKeyHex: BN;
+  privKeyHex?: string
+  metadataNonce?: BN
+  torusKeyHex?: string
+  customKeyHex: BN
 }
