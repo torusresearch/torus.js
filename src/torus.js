@@ -47,7 +47,16 @@ class Torus {
 
   async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams = {}) {
     const promiseArr = []
-    await get(this.allowHost, {}, { useAPIKey: true })
+    await get(
+      this.allowHost,
+      {
+        headers: {
+          verifier,
+          verifier_id: verifierParams.verifier_id,
+        },
+      },
+      { useAPIKey: true }
+    )
     /*
       CommitmentRequestParams struct {
         MessagePrefix      string `json:"messageprefix"`
