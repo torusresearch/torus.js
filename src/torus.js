@@ -14,13 +14,19 @@ import { kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } fro
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  constructor({ enableLogging = false, metadataHost = 'https://metadata.tor.us', allowHost = 'https://signer.tor.us/api/allow' } = {}) {
+  constructor({
+    enableLogging = false,
+    metadataHost = 'https://metadata.tor.us',
+    allowHost = 'https://signer.tor.us/api/allow',
+    serverTimeOffset = 0,
+  } = {}) {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     this.allowHost = allowHost
     this.metadataCache = memoryCache
     if (!enableLogging) log.disableAll()
     this.metadataLock = {}
+    this.serverTimeOffset = serverTimeOffset || 0 // ms
   }
 
   static setAPIKey(apiKey) {
@@ -283,7 +289,7 @@ class Torus {
     const key = this.ec.keyFromPrivate(privateKey.toString('hex', 64))
     const setData = {
       data: message,
-      timestamp: new BN(~~(Date.now() / 1000)).toString(16),
+      timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
     }
     const sig = key.sign(keccak256(stringify(setData)).slice(2))
     return {
