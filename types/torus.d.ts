@@ -34,6 +34,7 @@ interface TorusCtorOptions {
   enableLogging?: boolean
   metadataHost?: string
   allowHost?: string
+  serverTimeOffset?: number
 }
 
 interface TorusPublicKey extends TorusNodePub {
