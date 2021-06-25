@@ -2,6 +2,15 @@ function capitalizeFirstLetter(str) {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
+export class SomeError extends Error {
+  constructor({ errors, responses, predicate }) {
+    super('Unable to resolve enough promises.')
+    this.errors = errors
+    this.responses = responses
+    this.predicate = predicate
+  }
+}
+
 export const Some = (promises, predicate) =>
   new Promise((resolve, reject) => {
     let finishedCount = 0
@@ -42,11 +51,11 @@ export const Some = (promises, predicate) =>
                   reject(new Error(msg))
                 } else {
                   reject(
-                    new Error(
-                      `Unable to resolve enough promises, errors: ${JSON.stringify(errorArr)}, responses: ${JSON.stringify(resultArr)}, predicate: ${
-                        predicateError?.message || predicateError
-                      }`
-                    )
+                    new SomeError({
+                      errors: errorArr,
+                      responses: resultArr,
+                      predicate: predicateError?.message || predicateError,
+                    })
                   )
                 }
               }
