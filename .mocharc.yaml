@@ -1,0 +1,5 @@
+require:
+  - "./test/setup.js"
+  - '@babel/register'
+exit: true
+timeout: 0

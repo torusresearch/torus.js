@@ -1,7 +1,8 @@
-const FetchNodeDetails = require('@toruslabs/fetch-node-details/dist/fetchNodeDetails-node')
-const TorusUtils = require('../dist/torusUtils-node')
+import NodeManager from '@toruslabs/fetch-node-details'
 
-const fetchNodeDetails = new FetchNodeDetails()
+import TorusUtils from '../src/torus'
+
+const fetchNodeDetails = new NodeManager()
 const torus = new TorusUtils()
 const verifier = 'google' // any verifier
 const verifierId = 'hello@tor.us' // any verifier id
