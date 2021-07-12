@@ -40,7 +40,7 @@ describe('torus utils', function () {
 
   it('should be able to login', async function () {
     const torusUtils = new TorusUtils()
-    const token = generateIdToken(TORUS_TEST_EMAIL, 'RS256')
+    const token = generateIdToken(TORUS_TEST_EMAIL, 'ES256')
     console.log('token', token)
     const retrieveSharesResponse = await torusUtils.retrieveShares(
       torusNodeEndpoints,
@@ -54,7 +54,7 @@ describe('torus utils', function () {
 
   it('should be able to aggregate login', async function () {
     const torusUtils = new TorusUtils()
-    const idToken = generateIdToken(TORUS_TEST_EMAIL, 'RS256')
+    const idToken = generateIdToken(TORUS_TEST_EMAIL, 'ES256')
     const hashedIdToken = keccak256(idToken)
     const retrieveSharesResponse = await torusUtils.retrieveShares(
       torusNodeEndpoints,
