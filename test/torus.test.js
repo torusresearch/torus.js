@@ -33,7 +33,6 @@ describe('torus utils', function () {
     const torusUtils = new TorusUtils()
     const email = faker.internet.email()
     const publicAddress = await torusUtils.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId: email })
-    console.log('public address', publicAddress)
     expect(publicAddress).to.not.equal('')
     expect(publicAddress).to.not.equal(null)
   })
@@ -41,7 +40,6 @@ describe('torus utils', function () {
   it('should be able to login', async function () {
     const torusUtils = new TorusUtils()
     const token = generateIdToken(TORUS_TEST_EMAIL, 'ES256')
-    console.log('token', token)
     const retrieveSharesResponse = await torusUtils.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
