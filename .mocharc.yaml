@@ -1,5 +1,6 @@
 require:
   - "./test/setup.js"
-  - '@babel/register'
+  - "@babel/register"
 exit: true
 timeout: 0
+spec: "test/**/*.test.js"

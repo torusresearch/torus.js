@@ -8,9 +8,10 @@
     "plugin:promise/recommended",
     "airbnb-base",
     "plugin:mocha/recommended",
+    "plugin:chai-expect/recommended",
     "prettier"
   ],
-  "plugins": ["prettier", "@babel", "promise", "import", "mocha", "simple-import-sort"],
+  "plugins": ["prettier", "@babel", "promise", "import", "mocha", "chai-expect", "simple-import-sort"],
   "parser": "@babel/eslint-parser",
   "parserOptions": {
     "sourceType": "module",
