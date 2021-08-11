@@ -52,7 +52,6 @@ export const Some = (promises, predicate) =>
                   }, {})
                 )
 
-                console.log(errors)
                 if (errors.length > 0) {
                   // Format-able errors
                   const msg = errors.length > 1 ? `\n${errors.map((it) => `• ${it}`).join('\n')}` : errors[0]
