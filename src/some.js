@@ -41,10 +41,18 @@ export const Some = (promises, predicate) =>
             .finally((_) => {
               finishedCount += 1
               if (finishedCount === promises.length) {
-                // Filter same responses with same ID and extract non empty error messages
-                const errors = Object.values(Object.fromEntries(resultArr.map((it) => [it?.id, it.error?.data])))
-                  .filter((it) => typeof it === 'string' && it.length > 0)
-                  .map((it) => (it.startsWith('Error occurred while verifying params') ? capitalizeFirstLetter(it.substr(37)) : it))
+                const errors = Object.values(
+                  resultArr.reduce((acc, z) => {
+                    const { id, error } = z || {}
+                    if (error?.data?.length > 0) {
+                      if (error.data.startsWith('Error occurred while verifying params')) acc[id] = capitalizeFirstLetter(error.data)
+                      else acc[id] = error.data
+                    }
+                    return acc
+                  }, {})
+                )
+
+                console.log(errors)
                 if (errors.length > 0) {
                   // Format-able errors
                   const msg = errors.length > 1 ? `\n${errors.map((it) => `• ${it}`).join('\n')}` : errors[0]
