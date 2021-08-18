@@ -56,26 +56,21 @@ export const keyLookup = async (endpoints, verifier, verifierId) => {
       })
     ).catch((err) => log.error('lookup request failed', err))
   )
-  try {
-    return Some(lookupPromises, (lookupResults) => {
-      const lookupShares = lookupResults.filter((x1) => x1)
-      const errorResult = thresholdSame(
-        lookupShares.map((x2) => x2 && x2.error),
-        ~~(endpoints.length / 2) + 1
-      )
-      const keyResult = thresholdSame(
-        lookupShares.map((x3) => x3 && x3.result),
-        ~~(endpoints.length / 2) + 1
-      )
-      if (keyResult || errorResult) {
-        return Promise.resolve({ keyResult, errorResult })
-      }
-      return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`))
-    })
-  } catch (err) {
-    log.error('Some for keylookup failed', err)
-    return undefined
-  }
+  return Some(lookupPromises, (lookupResults) => {
+    const lookupShares = lookupResults.filter((x1) => x1)
+    const errorResult = thresholdSame(
+      lookupShares.map((x2) => x2 && x2.error),
+      ~~(endpoints.length / 2) + 1
+    )
+    const keyResult = thresholdSame(
+      lookupShares.map((x3) => x3 && x3.result),
+      ~~(endpoints.length / 2) + 1
+    )
+    if (keyResult || errorResult) {
+      return Promise.resolve({ keyResult, errorResult })
+    }
+    return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`))
+  })
 }
 
 export const waitKeyLookup = (endpoints, verifier, verifierId, timeout) =>
