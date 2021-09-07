@@ -1,6 +1,10 @@
 import BN from 'bn.js'
 
 declare class Torus {
+  public metadataHost: string
+  public allowHost: string
+  public serverTimeOffset: number
+
   constructor(options?: TorusCtorOptions)
   static setAPIKey(apiKey: string): void
   static setEmbedHost(embedHost: string): void
