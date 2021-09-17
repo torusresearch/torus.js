@@ -383,7 +383,59 @@ class Torus {
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
   }
 
-  // getsPublicAddress from torus nodes
+  // V2 functions
+
+  async getOrSetNonce(X, Y) {
+    try {
+      const nonce = generatePrivate()
+      const data = {
+        pub_key_X: X,
+        pub_key_Y: Y,
+        set_data: nonce.toString('hex'),
+      }
+      const metadataResponse = await post(`${this.metadataHost}/get_or_set_nonce`, data, {}, { useAPIKey: true })
+      return metadataResponse
+    } catch (error) {
+      log.error('set metadata error', error)
+      return ''
+    }
+  }
+
+  // async getMetadata(data, options) {
+  //   let unlock
+  //   try {
+  //     const dataKey = stringify(data)
+  //     if (this.metadataLock[dataKey] !== null) {
+  //       await this.metadataLock[dataKey]
+  //     } else {
+  //       this.metadataLock[dataKey] = new Promise((resolve) => {
+  //         unlock = () => {
+  //           this.metadataLock[dataKey] = null
+  //           resolve()
+  //         }
+  //       })
+  //     }
+  //     const cachedResult = this.metadataCache.get(dataKey)
+  //     if (cachedResult !== null) {
+  //       if (unlock) unlock()
+  //       return cachedResult
+  //     }
+  //     const metadataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true })
+  //     if (!metadataResponse || !metadataResponse.message) {
+  //       this.metadataCache.put(dataKey, new BN(0), 60000)
+  //       if (unlock) unlock()
+  //       return new BN(0)
+  //     }
+  //     this.metadataCache.put(dataKey, new BN(metadataResponse.message, 16), 60000)
+  //     return new BN(metadataResponse.message, 16) // nonce
+  //   } catch (error) {
+  //     log.error('get metadata error', error)
+  //     if (unlock) unlock()
+  //     return new BN(0)
+  //   }
+  // }
+
+  // getUserDetails mimics getPublicAddress from torus nodes but includes addition of some user data
   // Version2 differenciates from v1 by also setting nonce if key has not been assigned
   // also indicates if the user has is new or not
   // TODO: different space or same space on metadata? answer: because all old users MUST have
@@ -392,18 +444,13 @@ class Torus {
   // TODO: though we should edit the rules for default metadata to only allow to ever be set ONCE
   // - ah for lookups to work we need to remove authentication, but thats also fine, for now.
   // - idea in the future is for torus nodes to just delete instead of this stupid thing
-  async getPublicAddressV2(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
+  async getUserDetailsV2(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     let finalKeyResult
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
     if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
       await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
       const assignResult = (await waitKeyLookup(endpoints, verifier, verifierId, 1000)) || {}
       finalKeyResult = assignResult.keyResult
-      // for v2 in the case of new key we also set nonce
-      // TODO: edit metadata backend for this schema
-      // const newMetadataNonce = customKey.sub(torusKey).umod(this.ec.curve.n)
-      // const data = this.generateMetadataParams(newMetadataNonce.toString(16), torusKey.toString(16))
-      // await this.setMetadata(data)
     } else if (keyResult) {
       finalKeyResult = keyResult
     } else {
@@ -412,7 +459,8 @@ class Torus {
 
     if (finalKeyResult) {
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
-      const nonce = await this.getMetadata({ pub_key_X: X, pub_key_Y: Y })
+      const getSetResponse = await this.getOrSetNonce(X, Y)
+      const { nonce, typeOfUser, newUser } = getSetResponse
       const modifiedPubKey = this.ec
         .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
         .getPublic()
@@ -426,6 +474,8 @@ class Torus {
         X,
         Y,
         metadataNonce: nonce,
+        typeOfUser,
+        newUser,
       }
     }
     throw new Error(`node results do not match at end of lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
