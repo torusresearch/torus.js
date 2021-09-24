@@ -25,6 +25,14 @@ declare class Torus {
     verifierArgs: VerifierArgs,
     isExtended: boolean
   ): Promise<string | TorusPublicKey>
+  retrieveSharesV2(
+    endpoints: string[],
+    indexes: Number[],
+    verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string,
+    verifierParams: VerifierParams,
+    idToken: string,
+    extraParams?: extraParams
+  ): Promise<ShareResponse>
   getPublicAddressV2(
     endpoints: string[],
     torusNodePubs: TorusNodePub[],
