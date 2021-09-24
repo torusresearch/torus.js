@@ -25,6 +25,12 @@ declare class Torus {
     verifierArgs: VerifierArgs,
     isExtended: boolean
   ): Promise<string | TorusPublicKey>
+  getPublicAddressV2(
+    endpoints: string[],
+    torusNodePubs: TorusNodePub[],
+    verifierArgs: VerifierArgs,
+    isExtended: boolean
+  ): Promise<string | TorusPublicKeyV2>
 }
 
 export as namespace TorusUtils
@@ -44,6 +50,11 @@ interface TorusCtorOptions {
 interface TorusPublicKey extends TorusNodePub {
   address: string
   metadataNonce: BN
+}
+
+interface TorusPublicKeyV2 extends TorusPublicKey {
+  typeOfUser: 'v1' | 'v2'
+  newUser: boolean
 }
 
 interface TorusNodePub {

@@ -383,9 +383,21 @@ class Torus {
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
   }
 
-  // V2 functions
+  // v2
 
-  async getOrSetNonce(X, Y) {
+  // Mimics getPublicAddress from torus nodes but includes addition of some user data
+  // v2 differentiates from v1 by also setting nonce if key has not been assigned
+  // also indicates if the user has is new or not
+
+  // TODO: different space or same space on metadata? answer: because all old users MUST have
+  // a key to even exist, we can use the same space. Issues will only arise in the case of
+  // front end unable to tell if it should be assigning a new key or not.
+
+  // TODO: though we should edit the rules for default metadata to only allow to ever be set ONCE
+  // - ah for lookups to work we need to remove authentication, but thats also fine, for now.
+  // - idea in the future is for torus nodes to just delete instead of this stupid thing
+
+  async getOrSetNonceV2(X, Y) {
     try {
       const nonce = generatePrivate()
       const data = {
@@ -401,50 +413,7 @@ class Torus {
     }
   }
 
-  // async getMetadata(data, options) {
-  //   let unlock
-  //   try {
-  //     const dataKey = stringify(data)
-  //     if (this.metadataLock[dataKey] !== null) {
-  //       await this.metadataLock[dataKey]
-  //     } else {
-  //       this.metadataLock[dataKey] = new Promise((resolve) => {
-  //         unlock = () => {
-  //           this.metadataLock[dataKey] = null
-  //           resolve()
-  //         }
-  //       })
-  //     }
-  //     const cachedResult = this.metadataCache.get(dataKey)
-  //     if (cachedResult !== null) {
-  //       if (unlock) unlock()
-  //       return cachedResult
-  //     }
-  //     const metadataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true })
-  //     if (!metadataResponse || !metadataResponse.message) {
-  //       this.metadataCache.put(dataKey, new BN(0), 60000)
-  //       if (unlock) unlock()
-  //       return new BN(0)
-  //     }
-  //     this.metadataCache.put(dataKey, new BN(metadataResponse.message, 16), 60000)
-  //     return new BN(metadataResponse.message, 16) // nonce
-  //   } catch (error) {
-  //     log.error('get metadata error', error)
-  //     if (unlock) unlock()
-  //     return new BN(0)
-  //   }
-  // }
-
-  // getUserDetails mimics getPublicAddress from torus nodes but includes addition of some user data
-  // Version2 differenciates from v1 by also setting nonce if key has not been assigned
-  // also indicates if the user has is new or not
-  // TODO: different space or same space on metadata? answer: because all old users MUST have
-  // a key to even exist, we can use the same space. Issues will only arise in the case of
-  // front end unable to tell if it should be assigning a new key or not.
-  // TODO: though we should edit the rules for default metadata to only allow to ever be set ONCE
-  // - ah for lookups to work we need to remove authentication, but thats also fine, for now.
-  // - idea in the future is for torus nodes to just delete instead of this stupid thing
-  async getUserDetailsV2(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
+  async getPublicAddressV2(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     let finalKeyResult
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
     if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
@@ -459,7 +428,7 @@ class Torus {
 
     if (finalKeyResult) {
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
-      const getSetResponse = await this.getOrSetNonce(X, Y)
+      const getSetResponse = await this.getOrSetNonceV2(X, Y)
       const { nonce, typeOfUser, newUser } = getSetResponse
       const modifiedPubKey = this.ec
         .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
