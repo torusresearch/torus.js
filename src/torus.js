@@ -405,7 +405,7 @@ class Torus {
         pub_key_Y: Y,
         set_data: nonce.toString('hex'),
       }
-      const metadataResponse = await post(`${this.metadataHost}/get_or_set_nonce`, data, {}, { useAPIKey: true })
+      const metadataResponse = await post(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true })
       return metadataResponse
     } catch (error) {
       log.error('set metadata error', error)
@@ -596,7 +596,8 @@ class Torus {
             throw new Error('could not derive private key')
           }
 
-          const metadataNonce = await this.getOrSetNonceV2({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
+          const getOrSetNonce = await this.getOrSetNonceV2(thresholdPublicKey.X, thresholdPublicKey.Y)
+          const metadataNonce = new BN(getOrSetNonce.nonce, 16)
           if (sharedState.resolved) return undefined
           privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n)
 
