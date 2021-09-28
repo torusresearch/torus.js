@@ -39,6 +39,7 @@ declare class Torus {
     verifierArgs: VerifierArgs,
     isExtended: boolean
   ): Promise<string | TorusPublicKeyV2>
+  getPostboxKeyFrom1OutOf1(privKey: string, nonce: string): string
 }
 
 export as namespace TorusUtils

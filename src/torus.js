@@ -650,6 +650,12 @@ class Torus {
     }
     throw new Error(`node results do not match at end of lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
   }
+
+  getPostboxKeyFrom1OutOf1(privKey, nonce) {
+    const privKeyBN = new BN(privKey, 16)
+    const nonceBN = new BN(nonce, 16)
+    return privKeyBN.sub(nonceBN).umod(this.ec.curve.n).toString('hex')
+  }
 }
 
 export default Torus
