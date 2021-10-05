@@ -1,9 +1,27 @@
 import BN from 'bn.js'
 
+declare interface OneKeyUtils {
+  retrieveShares(
+    endpoints: string[],
+    indexes: Number[],
+    verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string,
+    verifierParams: VerifierParams,
+    idToken: string,
+    extraParams?: extraParams
+  ): Promise<ShareResponse>
+  getPublicAddress(
+    endpoints: string[],
+    torusNodePubs: TorusNodePub[],
+    verifierArgs: VerifierArgs,
+    isExtended: boolean
+  ): Promise<string | TorusPublicKey>
+}
+
 declare class Torus {
   public metadataHost: string
   public allowHost: string
   public serverTimeOffset: number
+  public oneKey: OneKeyUtils
 
   constructor(options?: TorusCtorOptions)
   static setAPIKey(apiKey: string): void
@@ -25,20 +43,23 @@ declare class Torus {
     verifierArgs: VerifierArgs,
     isExtended: boolean
   ): Promise<string | TorusPublicKey>
-  retrieveSharesV2(
-    endpoints: string[],
-    indexes: Number[],
-    verifier: 'google' | 'facebook' | 'twitch' | 'reddit' | 'discord' | 'jwt' | string,
-    verifierParams: VerifierParams,
-    idToken: string,
-    extraParams?: extraParams
-  ): Promise<ShareResponse>
-  getPublicAddressV2(
-    endpoints: string[],
-    torusNodePubs: TorusNodePub[],
-    verifierArgs: VerifierArgs,
-    isExtended: boolean
-  ): Promise<string | TorusPublicKeyV2>
+  // Internal functions for OneKey (OpenLogin v2), do not call this directly if you don't know what you are doing
+  getOrSetNonce(
+    pubKeyX: string,
+    pubKeyY: string,
+    privateKey?: BN
+  ): Promise<
+    | { typeOfUser: 'v1'; nonce?: string }
+    | {
+        typeOfUser: 'v2'
+        nonce?: string
+        pubNonce: string
+        ipfs?: string
+        newUser: boolean
+      }
+  >
+  retrieveOneKeyShares: OneKeyUtils['retrieveShares']
+  getOneKeyPublicAddress: OneKeyUtils['getPublicAddress']
   getPostboxKeyFrom1OutOf1(privKey: string, nonce: string): string
 }
 

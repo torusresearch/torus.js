@@ -27,6 +27,10 @@ class Torus {
     if (!enableLogging) log.disableAll()
     this.metadataLock = {}
     this.serverTimeOffset = serverTimeOffset || 0 // ms
+    this.oneKey = {
+      getPublicAddress: this.getOneKeyPublicAddress.bind(this),
+      retrieveShares: this.retrieveOneKeyShares.bind(this),
+    }
   }
 
   static setAPIKey(apiKey) {
@@ -51,7 +55,17 @@ class Torus {
     await this.setMetadata(data)
   }
 
-  async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams = {}) {
+  async retrieveShares(
+    endpoints,
+    indexes,
+    verifier,
+    verifierParams,
+    idToken,
+    {
+      __getMetadataNonce__, // Allow custom nonce getter, e.g. in OneKey, we have a different impl of retrieving metadata nonce
+      ...extraParams
+    } = {}
+  ) {
     const promiseArr = []
     await get(
       this.allowHost,
@@ -234,7 +248,8 @@ class Torus {
             throw new Error('could not derive private key')
           }
 
-          const metadataNonce = await this.getMetadata({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
+          const getMetadataNonce = __getMetadataNonce__ ?? this.getMetadata.bind(this)
+          const metadataNonce = await getMetadataNonce({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y, private_key: privateKey })
           if (sharedState.resolved) return undefined
           privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n)
 
@@ -383,21 +398,7 @@ class Torus {
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
   }
 
-  // v2
-
-  // Mimics getPublicAddress from torus nodes but includes addition of some user data
-  // v2 differentiates from v1 by also setting nonce if key has not been assigned
-  // also indicates if the user has is new or not
-
-  // TODO: different space or same space on metadata? answer: because all old users MUST have
-  // a key to even exist, we can use the same space. Issues will only arise in the case of
-  // front end unable to tell if it should be assigning a new key or not.
-
-  // TODO: though we should edit the rules for default metadata to only allow to ever be set ONCE
-  // - ah for lookups to work we need to remove authentication, but thats also fine, for now.
-  // - idea in the future is for torus nodes to just delete instead of this stupid thing
-
-  async getOrSetNonceV2(X, Y, privKey) {
+  async getOrSetNonce(X, Y, privKey) {
     try {
       let data
       if (privKey) {
@@ -411,214 +412,23 @@ class Torus {
       const metadataResponse = await post(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true })
       return metadataResponse
     } catch (error) {
-      log.error('getOrSetNonceV2 error', error)
+      log.error('getOrSetNonce error', error)
       return ''
     }
   }
 
-  async retrieveSharesV2(endpoints, indexes, verifier, verifierParams, idToken, extraParams = {}) {
-    const promiseArr = []
-    await get(
-      this.allowHost,
-      {
-        headers: {
-          verifier,
-          verifier_id: verifierParams.verifier_id,
-        },
+  async retrieveOneKeyShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams = {}) {
+    return this.retrieveShares(endpoints, indexes, verifier, verifierParams, idToken, {
+      ...extraParams,
+      // OneKey get metadata nonce, works for both existing v1, v2 and new v2 users, but may generate unnecessary nonce for v1 users
+      __getMetadataNonce__: async ({ pub_key_X: pubKeyX, pub_key_Y: publicKeyY, private_key: privKey }) => {
+        const { nonce } = await this.getOrSetNonce(pubKeyX, publicKeyY, privKey)
+        return new BN(nonce, 16)
       },
-      { useAPIKey: true }
-    )
-    /*
-      CommitmentRequestParams struct {
-        MessagePrefix      string `json:"messageprefix"`
-        TokenCommitment    string `json:"tokencommitment"`
-        TempPubX           string `json:"temppubx"`
-        TempPubY           string `json:"temppuby"`
-        VerifierIdentifier string `json:"verifieridentifier"`
-      } 
-      */
-
-    // generate temporary private and public key that is used to secure receive shares
-    const tmpKey = generatePrivate()
-    const pubKey = getPublic(tmpKey).toString('hex')
-    const pubKeyX = pubKey.slice(2, 66)
-    const pubKeyY = pubKey.slice(66)
-    const tokenCommitment = keccak256(idToken)
-
-    // make commitment requests to endpoints
-    for (let i = 0; i < endpoints.length; i += 1) {
-      const p = post(
-        endpoints[i],
-        generateJsonRPCObject('CommitmentRequest', {
-          messageprefix: 'mug00',
-          tokencommitment: tokenCommitment.slice(2),
-          temppubx: pubKeyX,
-          temppuby: pubKeyY,
-          verifieridentifier: verifier,
-        })
-      ).catch((err) => log.error('commitment', err))
-      promiseArr.push(p)
-    }
-    /*
-      ShareRequestParams struct {
-        Item []bijson.RawMessage `json:"item"`
-      }
-      ShareRequestItem struct {
-        IDToken            string          `json:"idtoken"`
-        NodeSignatures     []NodeSignature `json:"nodesignatures"`
-        VerifierIdentifier string          `json:"verifieridentifier"`
-      }
-      NodeSignature struct {
-        Signature   string
-        Data        string
-        NodePubKeyX string
-        NodePubKeyY string
-      }
-      CommitmentRequestResult struct {
-        Signature string `json:"signature"`
-        Data      string `json:"data"`
-        NodePubX  string `json:"nodepubx"`
-        NodePubY  string `json:"nodepuby"`
-      }
-      */
-    // send share request once k + t number of commitment requests have completed
-    return Some(promiseArr, (resultArr) => {
-      const completedRequests = resultArr.filter((x) => {
-        if (!x || typeof x !== 'object') {
-          return false
-        }
-        if (x.error) {
-          return false
-        }
-        return true
-      })
-      if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
-        return Promise.resolve(resultArr)
-      }
-      return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`))
-    }).then((responses) => {
-      const promiseArrRequest = []
-      const nodeSigs = []
-      for (let i = 0; i < responses.length; i += 1) {
-        if (responses[i]) nodeSigs.push(responses[i].result)
-      }
-      for (let i = 0; i < endpoints.length; i += 1) {
-        // eslint-disable-next-line promise/no-nesting
-        const p = post(
-          endpoints[i],
-          generateJsonRPCObject('ShareRequest', {
-            encrypted: 'yes',
-            item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
-          })
-        ).catch((err) => log.error('share req', err))
-        promiseArrRequest.push(p)
-      }
-      return Some(promiseArrRequest, async (shareResponses, sharedState) => {
-        /*
-              ShareRequestResult struct {
-                Keys []KeyAssignment
-              }
-                      / KeyAssignmentPublic -
-              type KeyAssignmentPublic struct {
-                Index     big.Int
-                PublicKey common.Point
-                Threshold int
-                Verifiers map[string][]string // Verifier => VerifierID
-              }
-
-              // KeyAssignment -
-              type KeyAssignment struct {
-                KeyAssignmentPublic
-                Share big.Int // Or Si
-              }
-            */
-        // check if threshold number of nodes have returned the same user public key
-        const completedRequests = shareResponses.filter((x) => x)
-        const thresholdPublicKey = thresholdSame(
-          shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
-          ~~(endpoints.length / 2) + 1
-        )
-        // optimistically run lagrange interpolation once threshold number of shares have been received
-        // this is matched against the user public key to ensure that shares are consistent
-        if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
-          const sharePromises = []
-          const nodeIndex = []
-          for (let i = 0; i < shareResponses.length; i += 1) {
-            if (shareResponses[i] && shareResponses[i].result && shareResponses[i].result.keys && shareResponses[i].result.keys.length > 0) {
-              shareResponses[i].result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)))
-              if (shareResponses[i].result.keys[0].Metadata) {
-                const metadata = {
-                  ephemPublicKey: Buffer.from(shareResponses[i].result.keys[0].Metadata.ephemPublicKey, 'hex'),
-                  iv: Buffer.from(shareResponses[i].result.keys[0].Metadata.iv, 'hex'),
-                  mac: Buffer.from(shareResponses[i].result.keys[0].Metadata.mac, 'hex'),
-                  mode: Buffer.from(shareResponses[i].result.keys[0].Metadata.mode, 'hex'),
-                }
-                sharePromises.push(
-                  // eslint-disable-next-line promise/no-nesting
-                  decrypt(tmpKey, {
-                    ...metadata,
-                    ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex'),
-                  }).catch((err) => log.debug('share decryption', err))
-                )
-              } else {
-                sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
-              }
-            } else {
-              sharePromises.push(Promise.resolve(undefined))
-            }
-            nodeIndex.push(new BN(indexes[i], 16))
-          }
-          const sharesResolved = await Promise.all(sharePromises)
-          if (sharedState.resolved) return undefined
-
-          const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
-            if (curr) acc.push({ index: nodeIndex[index], value: new BN(curr) })
-            return acc
-          }, [])
-          // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
-          const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1)
-          let privateKey
-          for (let j = 0; j < allCombis.length; j += 1) {
-            const currentCombi = allCombis[j]
-            const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index))
-            const shares = currentCombiShares.map((x) => x.value)
-            const indices = currentCombiShares.map((x) => x.index)
-            const derivedPrivateKey = this.lagrangeInterpolation(shares, indices)
-            const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
-            const decryptedPubKeyX = decryptedPubKey.slice(2, 66)
-            const decryptedPubKeyY = decryptedPubKey.slice(66)
-            if (
-              new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
-              new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
-            ) {
-              privateKey = derivedPrivateKey
-              break
-            }
-          }
-          if (privateKey === undefined) {
-            throw new Error('could not derive private key')
-          }
-
-          const getOrSetNonce = await this.getOrSetNonceV2(thresholdPublicKey.X, thresholdPublicKey.Y, privateKey.toString('hex'))
-          // TODO: cater to deletions here
-          const metadataNonce = new BN(getOrSetNonce.nonce, 16)
-          if (sharedState.resolved) return undefined
-          privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n)
-
-          const ethAddress = this.generateAddressFromPrivKey(privateKey)
-          // return reconstructed private key and ethereum address
-          return {
-            ethAddress,
-            privKey: privateKey.toString('hex', 64),
-            metadataNonce,
-          }
-        }
-        throw new Error('invalid')
-      })
     })
   }
 
-  async getPublicAddressV2(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
+  async getOneKeyPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     let finalKeyResult
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
     if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
@@ -633,15 +443,14 @@ class Torus {
 
     if (finalKeyResult) {
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
-      const getSetResponse = await this.getOrSetNonceV2(X, Y)
-      const { nonce, pubNonce, typeOfUser, newUser } = getSetResponse
+      const { nonce, pubNonce, typeOfUser, newUser } = await this.getOrSetNonce(X, Y)
       let noncePubKey
       if (typeOfUser === 'v1') {
         noncePubKey = this.ec.keyFromPrivate(nonce.toString(16)).getPublic()
       } else if (typeOfUser === 'v2') {
         noncePubKey = this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y })
       } else {
-        throw new Error('getOrSetNonceV2 API should always return version')
+        throw new Error('getOrSetNonce API should always return version')
       }
       const modifiedPubKey = this.ec
         .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
