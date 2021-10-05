@@ -397,18 +397,21 @@ class Torus {
   // - ah for lookups to work we need to remove authentication, but thats also fine, for now.
   // - idea in the future is for torus nodes to just delete instead of this stupid thing
 
-  async getOrSetNonceV2(X, Y) {
+  async getOrSetNonceV2(X, Y, privKey) {
     try {
-      const nonce = generatePrivate()
-      const data = {
-        pub_key_X: X,
-        pub_key_Y: Y,
-        set_data: nonce.toString('hex'),
+      let data
+      if (privKey) {
+        data = this.generateMetadataParams('getOrSetNonce', privKey)
+      } else {
+        data = {
+          pub_key_X: X,
+          pub_key_Y: Y,
+        }
       }
       const metadataResponse = await post(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true })
       return metadataResponse
     } catch (error) {
-      log.error('set metadata error', error)
+      log.error('getOrSetNonceV2 error', error)
       return ''
     }
   }
@@ -630,11 +633,19 @@ class Torus {
     if (finalKeyResult) {
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
       const getSetResponse = await this.getOrSetNonceV2(X, Y)
-      const { nonce, typeOfUser, newUser } = getSetResponse
+      const { nonce, pubNonce, typeOfUser, newUser } = getSetResponse
+      let noncePubKey
+      if (typeOfUser === 'v1') {
+        noncePubKey = this.ec.keyFromPrivate(nonce.toString(16)).getPublic()
+      } else if (typeOfUser === 'v2') {
+        noncePubKey = this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y })
+      } else {
+        throw new Error('getOrSetNonceV2 API should always return version')
+      }
       const modifiedPubKey = this.ec
         .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
         .getPublic()
-        .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
+        .add(noncePubKey)
       X = modifiedPubKey.getX().toString(16)
       Y = modifiedPubKey.getY().toString(16)
       const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY())
@@ -644,6 +655,7 @@ class Torus {
         X,
         Y,
         metadataNonce: nonce,
+        pubNonce,
         typeOfUser,
         newUser,
       }
