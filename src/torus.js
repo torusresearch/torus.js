@@ -599,7 +599,8 @@ class Torus {
             throw new Error('could not derive private key')
           }
 
-          const getOrSetNonce = await this.getOrSetNonceV2(thresholdPublicKey.X, thresholdPublicKey.Y)
+          const getOrSetNonce = await this.getOrSetNonceV2(thresholdPublicKey.X, thresholdPublicKey.Y, privateKey.toString('hex'))
+          // TODO: cater to deletions here
           const metadataNonce = new BN(getOrSetNonce.nonce, 16)
           if (sharedState.resolved) return undefined
           privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n)
