@@ -26,6 +26,7 @@ declare class Torus {
   constructor(options?: TorusCtorOptions)
   static setAPIKey(apiKey: string): void
   static setEmbedHost(embedHost: string): void
+  static enableLogging(enabled?: boolean): void
   retrieveShares(
     endpoints: string[],
     indexes: Number[],
@@ -71,7 +72,6 @@ interface extraParams {
 }
 
 interface TorusCtorOptions {
-  enableLogging?: boolean
   metadataHost?: string
   allowHost?: string
   serverTimeOffset?: number

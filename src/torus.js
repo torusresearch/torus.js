@@ -14,23 +14,22 @@ import { kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } fro
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  constructor({
-    enableLogging = false,
-    metadataHost = 'https://metadata.tor.us',
-    allowHost = 'https://signer.tor.us/api/allow',
-    serverTimeOffset = 0,
-  } = {}) {
+  constructor({ metadataHost = 'https://metadata.tor.us', allowHost = 'https://signer.tor.us/api/allow', serverTimeOffset = 0 } = {}) {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     this.allowHost = allowHost
     this.metadataCache = memoryCache
-    if (!enableLogging) log.disableAll()
     this.metadataLock = {}
     this.serverTimeOffset = serverTimeOffset || 0 // ms
     this.oneKey = {
       getPublicAddress: this.getOneKeyPublicAddress.bind(this),
       retrieveShares: this.retrieveOneKeyShares.bind(this),
     }
+  }
+
+  static enableLogging(v = true) {
+    if (v) log.enableAll()
+    else log.disableAll()
   }
 
   static setAPIKey(apiKey) {
@@ -448,7 +447,7 @@ class Torus {
       if (typeOfUser === 'v1') {
         noncePubKey = this.ec.keyFromPrivate(nonce.toString(16)).getPublic()
       } else if (typeOfUser === 'v2') {
-        noncePubKey = this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y })
+        noncePubKey = this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y }).getPublic()
       } else {
         throw new Error('getOrSetNonce API should always return version')
       }
