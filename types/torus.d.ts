@@ -33,7 +33,9 @@ declare class Torus {
     pubKeyX: string,
     pubKeyY: string,
     privateKey?: BN
-  ): Promise<{ typeOfUser: 'v1'; nonce?: string } | { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string }>
+  ): Promise<
+    { typeOfUser: 'v1'; nonce?: string } | { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean }
+  >
   getPostboxKeyFrom1OutOf1(privKey: string, nonce: string): string
 }
 
