@@ -387,20 +387,26 @@ class Torus {
       let pubNonce
       let modifiedPubKey
       if (this.enableOneKey) {
-        ;({ typeOfUser, nonce, pubNonce } = await this.getOrSetNonce(X, Y))
-        let noncePubKey
+        let upgraded
+        ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y))
         if (typeOfUser === 'v1') {
-          noncePubKey = this.ec.keyFromPrivate(nonce).getPublic()
+          modifiedPubKey = this.ec
+            .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+            .getPublic()
+            .add(this.ec.keyFromPrivate(nonce).getPublic())
         } else if (typeOfUser === 'v2') {
-          noncePubKey = this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y }).getPublic()
+          if (upgraded) {
+            // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
+            modifiedPubKey = this.ec.keyFromPublic({ x: X.toString(16), y: Y.toString(16) }).getPublic()
+          } else {
+            modifiedPubKey = this.ec
+              .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+              .getPublic()
+              .add(this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y }).getPublic())
+          }
         } else {
           throw new Error('getOrSetNonce should always return typeOfUser.')
         }
-        nonce = new BN(nonce, 16)
-        modifiedPubKey = this.ec
-          .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
-          .getPublic()
-          .add(noncePubKey)
       } else {
         typeOfUser = 'v1'
         nonce = await this.getMetadata({ pub_key_X: X, pub_key_Y: Y })
