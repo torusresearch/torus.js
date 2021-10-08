@@ -246,10 +246,14 @@ class Torus {
           } else {
             metadataNonce = await this.getMetadata({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
           }
+          log.debug('> torus.js/retrieveShares', { privKey: privateKey.toString(16), metadataNonce: metadataNonce.toString(16) })
+
           if (sharedState.resolved) return undefined
           privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n)
 
           const ethAddress = this.generateAddressFromPrivKey(privateKey)
+          log.debug('> torus.js/retrieveShares', { ethAddress, privKey: privateKey.toString(16) })
+
           // return reconstructed private key and ethereum address
           return {
             ethAddress,
@@ -361,6 +365,8 @@ class Torus {
   }
 
   async getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
+    log.debug('> torus.js/getPublicAddress', { endpoints, torusNodePubs, verifier, verifierId, isExtended })
+
     let finalKeyResult
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
     if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
@@ -372,6 +378,7 @@ class Torus {
     } else {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
     }
+    log.debug('> torus.js/getPublicAddress', { finalKeyResult })
 
     if (finalKeyResult) {
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
@@ -405,7 +412,10 @@ class Torus {
 
       X = modifiedPubKey.getX().toString(16)
       Y = modifiedPubKey.getY().toString(16)
+
       const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY())
+      log.debug('> torus.js/getPublicAddress', { X, Y, address, typeOfUser, nonce: nonce?.toString(16), pubNonce })
+
       if (!isExtended) return address
       return {
         typeOfUser,
