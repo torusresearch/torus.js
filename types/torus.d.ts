@@ -29,15 +29,17 @@ declare class Torus {
   ): Promise<string | TorusPublicKey>
 
   // Internal functions for OneKey (OpenLogin v2), only call these functions if you know what you're doing
+  static isGetOrSetNonceError(err: unknown): boolean
   getOrSetNonce(
     pubKeyX: string,
     pubKeyY: string,
-    privateKey?: BN
+    privateKey?: BN,
+    getOnly?: boolean
   ): Promise<
     { typeOfUser: 'v1'; nonce?: string } | { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean }
   >
+  getNonce(pubKeyX: string, pubKeyY: string, privateKey?: BN, getOnly?: boolean): ReturnType<Torus['getOrSetNonce']>
   getPostboxKeyFrom1OutOf1(privKey: string, nonce: string): string
-  isGetOrSetNonceError(err: unknown): boolean
 }
 
 export as namespace TorusUtils
@@ -45,7 +47,6 @@ export as namespace TorusUtils
 export = Torus
 
 interface ExtraParams {
-  typeOfUser?: TorusPublicKey['typeOfUser']
   [key: string]: unknown
 }
 

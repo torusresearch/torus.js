@@ -42,10 +42,6 @@ class Torus {
     setEmbedHost(embedHost)
   }
 
-  static isGetOrSetNonceError(err) {
-    return err instanceof GetOrSetNonceError
-  }
-
   async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }) {
     let torusKey
     if (torusKeyHex) {
@@ -60,7 +56,7 @@ class Torus {
     await this.setMetadata(data)
   }
 
-  async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken, { typeOfUser, ...extraParams } = {}) {
+  async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams = {}) {
     const promiseArr = []
     await get(
       this.allowHost,
@@ -244,9 +240,9 @@ class Torus {
           }
 
           let metadataNonce
-          if (this.enableOneKey && typeOfUser === 'v2') {
-            const { nonce } = await this.getOrSetNonce(thresholdPublicKey.X, thresholdPublicKey.Y, privateKey)
-            metadataNonce = new BN(nonce, 16)
+          if (this.enableOneKey) {
+            const { nonce } = await this.getNonce(thresholdPublicKey.X, thresholdPublicKey.Y, privateKey)
+            metadataNonce = new BN(nonce || '0', 16)
           } else {
             metadataNonce = await this.getMetadata({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
           }
@@ -393,10 +389,11 @@ class Torus {
       let nonce
       let pubNonce
       let modifiedPubKey
-      if (this.enableOneKey && isNewKey) {
+      if (this.enableOneKey) {
         let upgraded
         try {
-          ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y))
+          ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y, undefined, !isNewKey))
+          nonce = new BN(nonce || '0', 16)
         } catch {
           throw new GetOrSetNonceError()
         }
@@ -404,7 +401,7 @@ class Torus {
           modifiedPubKey = this.ec
             .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
             .getPublic()
-            .add(this.ec.keyFromPrivate(nonce).getPublic())
+            .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
         } else if (typeOfUser === 'v2') {
           if (upgraded) {
             // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
@@ -450,17 +447,27 @@ class Torus {
    * Internal functions for OneKey (OpenLogin v2), only call these functions if you know what you're doing
    */
 
-  async getOrSetNonce(X, Y, privKey) {
+  static isGetOrSetNonceError(err) {
+    return err instanceof GetOrSetNonceError
+  }
+
+  async getOrSetNonce(X, Y, privKey, getOnly = false) {
     let data
+    const msg = getOnly ? 'getNonce' : 'getOrSetNonce'
     if (privKey) {
-      data = this.generateMetadataParams('getOrSetNonce', privKey)
+      data = this.generateMetadataParams(msg, privKey)
     } else {
       data = {
         pub_key_X: X,
         pub_key_Y: Y,
+        set_data: { data: msg },
       }
     }
     return post(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true })
+  }
+
+  async getNonce(X, Y, privKey) {
+    return this.getOrSetNonce(X, Y, privKey, true)
   }
 
   getPostboxKeyFrom1OutOf1(privKey, nonce) {
