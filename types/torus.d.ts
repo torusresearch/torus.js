@@ -37,6 +37,7 @@ declare class Torus {
     { typeOfUser: 'v1'; nonce?: string } | { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean }
   >
   getPostboxKeyFrom1OutOf1(privKey: string, nonce: string): string
+  isGetOrSetNonceError(err: unknown): boolean
 }
 
 export as namespace TorusUtils
@@ -44,6 +45,7 @@ export as namespace TorusUtils
 export = Torus
 
 interface ExtraParams {
+  typeOfUser?: TorusPublicKey['typeOfUser']
   [key: string]: unknown
 }
 

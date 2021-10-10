@@ -9,7 +9,7 @@ import { keccak256, toChecksumAddress } from 'web3-utils'
 import { generateJsonRPCObject, post } from './httpHelpers'
 import log from './loglevel'
 import { Some } from './some'
-import { kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from './utils'
+import { GetOrSetNonceError, kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from './utils'
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -42,6 +42,10 @@ class Torus {
     setEmbedHost(embedHost)
   }
 
+  static isGetOrSetNonceError(err) {
+    return err instanceof GetOrSetNonceError
+  }
+
   async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }) {
     let torusKey
     if (torusKeyHex) {
@@ -56,7 +60,7 @@ class Torus {
     await this.setMetadata(data)
   }
 
-  async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams = {}) {
+  async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken, { typeOfUser, ...extraParams } = {}) {
     const promiseArr = []
     await get(
       this.allowHost,
@@ -240,7 +244,7 @@ class Torus {
           }
 
           let metadataNonce
-          if (this.enableOneKey) {
+          if (this.enableOneKey && typeOfUser === 'v2') {
             const { nonce } = await this.getOrSetNonce(thresholdPublicKey.X, thresholdPublicKey.Y, privateKey)
             metadataNonce = new BN(nonce, 16)
           } else {
@@ -368,17 +372,20 @@ class Torus {
     log.debug('> torus.js/getPublicAddress', { endpoints, torusNodePubs, verifier, verifierId, isExtended })
 
     let finalKeyResult
+    let isNewKey = false
+
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
     if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
       await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
       const assignResult = (await waitKeyLookup(endpoints, verifier, verifierId, 1000)) || {}
       finalKeyResult = assignResult.keyResult
+      isNewKey = true
     } else if (keyResult) {
       finalKeyResult = keyResult
     } else {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
     }
-    log.debug('> torus.js/getPublicAddress', { finalKeyResult })
+    log.debug('> torus.js/getPublicAddress', { finalKeyResult, isNewKey })
 
     if (finalKeyResult) {
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
@@ -386,9 +393,13 @@ class Torus {
       let nonce
       let pubNonce
       let modifiedPubKey
-      if (this.enableOneKey) {
+      if (this.enableOneKey && isNewKey) {
         let upgraded
-        ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y))
+        try {
+          ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y))
+        } catch {
+          throw new GetOrSetNonceError()
+        }
         if (typeOfUser === 'v1') {
           modifiedPubKey = this.ec
             .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
