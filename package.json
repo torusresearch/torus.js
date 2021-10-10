@@ -1,6 +1,6 @@
 {
   "name": "@toruslabs/torus.js",
-  "version": "2.6.0-alpha.2",
+  "version": "2.6.0-alpha.3",
   "description": "Handle communication with torus nodes",
   "main": "dist/torusUtils.cjs.js",
   "unpkg": "dist/torusUtils.umd.min.js",
