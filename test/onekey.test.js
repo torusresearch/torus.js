@@ -1,12 +1,20 @@
+import NodeManager from '@toruslabs/fetch-node-details'
 import { expect } from 'chai'
 import faker from 'faker'
 
 import TorusUtils from '../src/torus'
 
+const TORUS_NODE_MANAGER = new NodeManager({ network: 'ropsten', proxyAddress: '0x4023d2a0D330bF11426B12C6144Cfb96B7fa6183' })
+const TORUS_TEST_EMAIL = 'hello@tor.us'
+
 describe('torus onekey', function () {
   let torusNodeEndpoints
   let torusNodePub
-  const TORUS_TEST_EMAIL = 'hello@tor.us'
+  before('one time execution before all tests', async function () {
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails()
+    torusNodeEndpoints = nodeDetails.torusNodeEndpoints
+    torusNodePub = nodeDetails.torusNodePub
+  })
 
   it('should still fetch correct v1 public address', async function () {
     const torus = new TorusUtils({ enableOneKey: true, metadataHost: 'https://beta.metadata.tor.us' })
