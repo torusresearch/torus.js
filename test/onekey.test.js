@@ -12,6 +12,7 @@ describe('torus onekey', function () {
     const torus = new TorusUtils({ enableOneKey: true, metadataHost: 'https://beta.metadata.tor.us' })
     const verifier = 'google-lrc' // any verifier
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId: TORUS_TEST_EMAIL })
+    expect(publicAddress.typeOfUser).to.equal('v1')
     expect(publicAddress).to.equal('0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70')
   })
 
