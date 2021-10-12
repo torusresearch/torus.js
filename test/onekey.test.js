@@ -19,16 +19,16 @@ describe('torus onekey', function () {
   it('should still fetch correct v1 public address', async function () {
     const torus = new TorusUtils({ enableOneKey: true, metadataHost: 'https://beta.metadata.tor.us' })
     const verifier = 'google-lrc' // any verifier
-    const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId: TORUS_TEST_EMAIL })
+    const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId: TORUS_TEST_EMAIL }, true)
     expect(publicAddress.typeOfUser).to.equal('v1')
-    expect(publicAddress).to.equal('0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70')
+    expect(publicAddress.address).to.equal('0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70')
   })
 
   it('should be able to key assign', async function () {
     const verifier = 'google-lrc' // any verifier
     const torus = new TorusUtils({ enableOneKey: true, metadataHost: 'https://beta.metadata.tor.us' })
     const email = faker.internet.email()
-    const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId: email })
+    const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId: email }, true)
     expect(publicAddress.typeOfUser).to.equal('v2')
   })
 })
