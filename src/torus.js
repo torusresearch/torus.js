@@ -9,13 +9,13 @@ import { keccak256, toChecksumAddress } from 'web3-utils'
 import { generateJsonRPCObject, post } from './httpHelpers'
 import log from './loglevel'
 import { Some } from './some'
-import { kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from './utils'
+import { GetOrSetNonceError, kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from './utils'
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
   constructor({
-    enableLogging = false,
+    enableOneKey = false,
     metadataHost = 'https://metadata.tor.us',
     allowHost = 'https://signer.tor.us/api/allow',
     serverTimeOffset = 0,
@@ -24,9 +24,14 @@ class Torus {
     this.metadataHost = metadataHost
     this.allowHost = allowHost
     this.metadataCache = memoryCache
-    if (!enableLogging) log.disableAll()
     this.metadataLock = {}
+    this.enableOneKey = enableOneKey
     this.serverTimeOffset = serverTimeOffset || 0 // ms
+  }
+
+  static enableLogging(v = true) {
+    if (v) log.enableAll()
+    else log.disableAll()
   }
 
   static setAPIKey(apiKey) {
@@ -234,11 +239,21 @@ class Torus {
             throw new Error('could not derive private key')
           }
 
-          const metadataNonce = await this.getMetadata({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
+          let metadataNonce
+          if (this.enableOneKey) {
+            const { nonce } = await this.getNonce(thresholdPublicKey.X, thresholdPublicKey.Y, privateKey)
+            metadataNonce = new BN(nonce || '0', 16)
+          } else {
+            metadataNonce = await this.getMetadata({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
+          }
+          log.debug('> torus.js/retrieveShares', { privKey: privateKey.toString(16), metadataNonce: metadataNonce.toString(16) })
+
           if (sharedState.resolved) return undefined
           privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n)
 
           const ethAddress = this.generateAddressFromPrivKey(privateKey)
+          log.debug('> torus.js/retrieveShares', { ethAddress, privKey: privateKey.toString(16) })
+
           // return reconstructed private key and ethereum address
           return {
             ethAddress,
@@ -350,37 +365,115 @@ class Torus {
   }
 
   async getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
+    log.debug('> torus.js/getPublicAddress', { endpoints, torusNodePubs, verifier, verifierId, isExtended })
+
     let finalKeyResult
+    let isNewKey = false
+
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
     if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
       await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
       const assignResult = (await waitKeyLookup(endpoints, verifier, verifierId, 1000)) || {}
       finalKeyResult = assignResult.keyResult
+      isNewKey = true
     } else if (keyResult) {
       finalKeyResult = keyResult
     } else {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
     }
+    log.debug('> torus.js/getPublicAddress', { finalKeyResult, isNewKey })
 
     if (finalKeyResult) {
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
-      const nonce = await this.getMetadata({ pub_key_X: X, pub_key_Y: Y })
-      const modifiedPubKey = this.ec
-        .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
-        .getPublic()
-        .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
+      let typeOfUser
+      let nonce
+      let pubNonce
+      let modifiedPubKey
+      if (this.enableOneKey) {
+        let upgraded
+        try {
+          ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y, undefined, !isNewKey))
+          nonce = new BN(nonce || '0', 16)
+        } catch {
+          throw new GetOrSetNonceError()
+        }
+        if (typeOfUser === 'v1') {
+          modifiedPubKey = this.ec
+            .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+            .getPublic()
+            .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
+        } else if (typeOfUser === 'v2') {
+          if (upgraded) {
+            // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
+            modifiedPubKey = this.ec.keyFromPublic({ x: X.toString(16), y: Y.toString(16) }).getPublic()
+          } else {
+            modifiedPubKey = this.ec
+              .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+              .getPublic()
+              .add(this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y }).getPublic())
+          }
+        } else {
+          throw new Error('getOrSetNonce should always return typeOfUser.')
+        }
+      } else {
+        typeOfUser = 'v1'
+        nonce = await this.getMetadata({ pub_key_X: X, pub_key_Y: Y })
+        modifiedPubKey = this.ec
+          .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+          .getPublic()
+          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
+      }
+
       X = modifiedPubKey.getX().toString(16)
       Y = modifiedPubKey.getY().toString(16)
+
       const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY())
+      log.debug('> torus.js/getPublicAddress', { X, Y, address, typeOfUser, nonce: nonce?.toString(16), pubNonce })
+
       if (!isExtended) return address
       return {
+        typeOfUser,
         address,
         X,
         Y,
         metadataNonce: nonce,
+        pubNonce,
       }
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
+  }
+
+  /**
+   * Internal functions for OneKey (OpenLogin v2), only call these functions if you know what you're doing
+   */
+
+  static isGetOrSetNonceError(err) {
+    return err instanceof GetOrSetNonceError
+  }
+
+  async getOrSetNonce(X, Y, privKey, getOnly = false) {
+    let data
+    const msg = getOnly ? 'getNonce' : 'getOrSetNonce'
+    if (privKey) {
+      data = this.generateMetadataParams(msg, privKey)
+    } else {
+      data = {
+        pub_key_X: X,
+        pub_key_Y: Y,
+        set_data: { data: msg },
+      }
+    }
+    return post(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true })
+  }
+
+  async getNonce(X, Y, privKey) {
+    return this.getOrSetNonce(X, Y, privKey, true)
+  }
+
+  getPostboxKeyFrom1OutOf1(privKey, nonce) {
+    const privKeyBN = new BN(privKey, 16)
+    const nonceBN = new BN(nonce, 16)
+    return privKeyBN.sub(nonceBN).umod(this.ec.curve.n).toString('hex')
   }
 }
 

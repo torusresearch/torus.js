@@ -4,6 +4,8 @@ import { generateJsonRPCObject, post } from './httpHelpers'
 import log from './loglevel'
 import { Some } from './some'
 
+export class GetOrSetNonceError extends Error {}
+
 export const kCombinations = (s, k) => {
   let set = s
   if (typeof set === 'number') {

@@ -1,3 +1,6 @@
 import loglevel from 'loglevel'
 
-export default loglevel.getLogger('torus.js')
+const log = loglevel.getLogger('torus.js')
+log.disableAll()
+
+export default log
