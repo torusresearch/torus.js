@@ -24,7 +24,7 @@ describe('torus onekey', function () {
   })
 
   it('should still fetch v1 public address correctly', async function () {
-    const torus = new TorusUtils({ enableOneKey: true, metadataHost: 'https://beta.metadata.tor.us' })
+    const torus = new TorusUtils({ enableOneKey: true })
     const verifier = 'google-lrc' // any verifier
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId: TORUS_TEST_EMAIL }, true)
     expect(publicAddress.typeOfUser).to.equal('v1')
@@ -32,7 +32,7 @@ describe('torus onekey', function () {
   })
 
   it('should still login v1 account correctly', async function () {
-    const torus = new TorusUtils({ enableOneKey: true, metadataHost: 'https://beta.metadata.tor.us' })
+    const torus = new TorusUtils({ enableOneKey: true })
     const token = generateIdToken(TORUS_TEST_EMAIL, 'ES256')
     const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
@@ -45,7 +45,7 @@ describe('torus onekey', function () {
   })
 
   it('should still aggregate account v1 user correctly', async function () {
-    const torus = new TorusUtils({ enableOneKey: true, metadataHost: 'https://beta.metadata.tor.us' })
+    const torus = new TorusUtils({ enableOneKey: true })
     const idToken = generateIdToken(TORUS_TEST_EMAIL, 'ES256')
     const hashedIdToken = keccak256(idToken)
     const retrieveSharesResponse = await torus.retrieveShares(
@@ -64,7 +64,7 @@ describe('torus onekey', function () {
 
   it('should be able to key assign', async function () {
     const verifier = 'google-lrc' // any verifier
-    const torus = new TorusUtils({ enableOneKey: true, metadataHost: 'https://beta.metadata.tor.us' })
+    const torus = new TorusUtils({ enableOneKey: true })
     const email = faker.internet.email()
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId: email }, true)
     expect(publicAddress.typeOfUser).to.equal('v2')
