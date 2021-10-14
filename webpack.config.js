@@ -13,8 +13,8 @@ const { NODE_ENV = 'production' } = process.env
 
 const baseConfig = {
   mode: NODE_ENV,
-  devtool: NODE_ENV === 'production' ? false : 'source-map',
-  entry: './index.js',
+  devtool: 'source-map',
+  entry: './src/index.js',
   target: 'web',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -42,25 +42,11 @@ const optimization = {
   },
 }
 
-const babelLoaderWithPolyfills = {
+const babelLoader = {
   test: /\.m?js$/,
   exclude: /(node_modules|bower_components)/,
   use: {
     loader: 'babel-loader',
-  },
-}
-
-const babelLoader = { ...babelLoaderWithPolyfills, use: { loader: 'babel-loader', options: { plugins: ['@babel/transform-runtime'] } } }
-
-const umdPolyfilledConfig = {
-  ...baseConfig,
-  output: {
-    ...baseConfig.output,
-    filename: `${pkgName}.polyfill.umd.min.js`,
-    libraryTarget: 'umd',
-  },
-  module: {
-    rules: [babelLoaderWithPolyfills],
   },
 }
 
@@ -132,7 +118,7 @@ const nodeConfig = {
   ],
 }
 
-module.exports = [umdPolyfilledConfig, umdConfig, cjsConfig, cjsBundledConfig, nodeConfig]
+module.exports = [umdConfig, cjsConfig, cjsBundledConfig, nodeConfig]
 // module.exports = [cjsConfig]
 
 // V5
