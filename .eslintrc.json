@@ -20,6 +20,7 @@
       "configFile": "./babel.config.json"
     }
   },
+  "ignorePatterns": "*.config.js",
   "rules": {
     "promise/catch-or-return": [2, { "allowFinally": true }],
     "no-bitwise": 0,
