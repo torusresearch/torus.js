@@ -4,6 +4,7 @@ declare class Torus {
   public metadataHost: string
   public allowHost: string
   public serverTimeOffset: number
+  public enableOneKey: boolean
 
   constructor(options?: TorusCtorOptions)
   static setAPIKey(apiKey: string): void
