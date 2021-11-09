@@ -43,7 +43,7 @@ class Torus {
   }
 
   /**
-   * Note: use this function for address lookups instead of getPublicAddress.
+   * Note: use this function for address lookups for openlogin.
    */
   async getUserTypeAndAddress(endpoints, torusNodePubs, { verifier, verifierId }, doesKeyAssign = false) {
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
@@ -420,7 +420,7 @@ class Torus {
   }
 
   /**
-   * Note: use this function only when you know what you are doing.
+   * Note: use this function only with custom auth, don't use to lookup openlogin accounts.
    */
   async getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     log.debug('> torus.js/getPublicAddress', { endpoints, torusNodePubs, verifier, verifierId, isExtended })

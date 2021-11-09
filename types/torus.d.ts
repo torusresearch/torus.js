@@ -22,6 +22,11 @@ declare class Torus {
   lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN
   generateAddressFromPrivKey(privateKey: BN): string
   setCustomKey(options?: SetCustomKeyOptions): Promise<void>
+
+  /**
+   * 
+   * @note: Use this function to lookup customauth accounts.
+   */
   getPublicAddress(
     endpoints: string[],
     torusNodePubs: TorusNodePub[],
@@ -39,6 +44,10 @@ declare class Torus {
   ): Promise<
     { typeOfUser: 'v1'; nonce?: string } | { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean }
   >
+  /**
+   * 
+   * @note: Use this function to lookup openlogin accounts.
+   */
   getUserTypeAndAddress(
     endpoints: string[],
     torusNodePubs: TorusNodePub[],
