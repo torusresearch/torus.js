@@ -43,7 +43,7 @@ class Torus {
   }
 
   /**
-   * Note: use this function for address lookups for openlogin.
+   * Note: use this function only for openlogin tkey account lookups.
    */
   async getUserTypeAndAddress(endpoints, torusNodePubs, { verifier, verifierId }, doesKeyAssign = false) {
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}

@@ -46,7 +46,7 @@ declare class Torus {
   >
   /**
    * 
-   * @note: Use this function to lookup openlogin accounts.
+   * @note: Use this function only to lookup openlogin tkey accounts.
    */
   getUserTypeAndAddress(
     endpoints: string[],
