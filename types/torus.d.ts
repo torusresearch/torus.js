@@ -39,6 +39,13 @@ declare class Torus {
   ): Promise<
     { typeOfUser: 'v1'; nonce?: string } | { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean }
   >
+  getUserTypeAndAddress(
+    endpoints: string[],
+    verifierArgs: VerifierArgs,
+  ): Promise<
+    { typeOfUser: 'v1'; nonce?: string; X: string; Y: string; address: string } | 
+    { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean; X: string; Y: string; address: string }
+  >
   getNonce(pubKeyX: string, pubKeyY: string, privateKey?: BN, getOnly?: boolean): ReturnType<Torus['getOrSetNonce']>
   getPostboxKeyFrom1OutOf1(privKey: string, nonce: string): string
 }

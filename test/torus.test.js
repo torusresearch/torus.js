@@ -28,6 +28,23 @@ describe('torus utils', function () {
     expect(publicAddress).to.equal('0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70')
   })
 
+  it('should fetch user type and public address', async function () {
+    const torus = new TorusUtils()
+    const verifier = 'google-lrc' // any verifier
+    const { address, typeOfUser } = await torus.getUserTypeAndAddress(torusNodeEndpoints, { verifier, verifierId: TORUS_TEST_EMAIL })
+    expect(address).to.equal('0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70')
+    expect(typeOfUser).to.equal('v1')
+
+    const v2Verifier = 'tkey-google-lrc'
+    const v2TestEmail = 'somev2user@gmail.com'
+    const { address: v2Address, typeOfUser: v2UserType } = await torus.getUserTypeAndAddress(torusNodeEndpoints, {
+      verifier: v2Verifier,
+      verifierId: v2TestEmail,
+    })
+    expect(v2Address).to.equal('0xE91200d82029603d73d6E307DbCbd9A7D0129d8D')
+    expect(v2UserType).to.equal('v2')
+  })
+
   it('should be able to key assign', async function () {
     const verifier = 'google-lrc' // any verifier
     const torusUtils = new TorusUtils()

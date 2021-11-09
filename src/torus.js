@@ -42,6 +42,51 @@ class Torus {
     setEmbedHost(embedHost)
   }
 
+  async getUserTypeAndAddress(endpoints, { verifier, verifierId }) {
+    const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
+    if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
+      throw new Error('Verifier + VerifierID has not yet been assigned')
+    } else if (keyResult) {
+      const { pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0]
+      let typeOfUser
+      let nonce
+      let pubNonce
+      let modifiedPubKey
+      let upgraded
+
+      try {
+        ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y, undefined, true))
+        nonce = new BN(nonce || '0', 16)
+      } catch {
+        throw new GetOrSetNonceError()
+      }
+      if (typeOfUser === 'v1') {
+        modifiedPubKey = this.ec
+          .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+          .getPublic()
+          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
+      } else if (typeOfUser === 'v2') {
+        if (upgraded) {
+          // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
+          modifiedPubKey = this.ec.keyFromPublic({ x: X.toString(16), y: Y.toString(16) }).getPublic()
+        } else {
+          modifiedPubKey = this.ec
+            .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+            .getPublic()
+            .add(this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y }).getPublic())
+        }
+      } else {
+        throw new Error('getOrSetNonce should always return typeOfUser.')
+      }
+      const finalX = modifiedPubKey.getX().toString(16)
+      const finalY = modifiedPubKey.getY().toString(16)
+      const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY())
+      return { typeOfUser, nonce, pubNonce, upgraded, X: finalX, Y: finalY, address }
+    } else {
+      throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
+    }
+  }
+
   async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }) {
     let torusKey
     if (torusKeyHex) {
