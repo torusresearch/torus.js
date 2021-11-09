@@ -41,7 +41,9 @@ declare class Torus {
   >
   getUserTypeAndAddress(
     endpoints: string[],
+    torusNodePubs: TorusNodePub[],
     verifierArgs: VerifierArgs,
+    doesKeyAssign?: boolean
   ): Promise<
     { typeOfUser: 'v1'; nonce?: string; X: string; Y: string; address: string } | 
     { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean; X: string; Y: string; address: string }

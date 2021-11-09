@@ -42,12 +42,28 @@ class Torus {
     setEmbedHost(embedHost)
   }
 
-  async getUserTypeAndAddress(endpoints, { verifier, verifierId }) {
+  /**
+   * Note: use this function for address lookups instead of getPublicAddress.
+   */
+  async getUserTypeAndAddress(endpoints, torusNodePubs, { verifier, verifierId }, doesKeyAssign = false) {
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
+    let isNewKey = false
+    let finalKeyResult
     if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
-      throw new Error('Verifier + VerifierID has not yet been assigned')
+      if (!doesKeyAssign) {
+        throw new Error('Verifier + VerifierID has not yet been assigned')
+      }
+      await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
+      const assignResult = (await waitKeyLookup(endpoints, verifier, verifierId, 1000)) || {}
+      finalKeyResult = assignResult.keyResult
+      isNewKey = true
     } else if (keyResult) {
-      const { pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0]
+      finalKeyResult = keyResult
+    } else {
+      throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
+    }
+    if (finalKeyResult) {
+      const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
       let typeOfUser
       let nonce
       let pubNonce
@@ -55,7 +71,7 @@ class Torus {
       let upgraded
 
       try {
-        ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y, undefined, true))
+        ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y, undefined, !isNewKey))
         nonce = new BN(nonce || '0', 16)
       } catch {
         throw new GetOrSetNonceError()
@@ -66,15 +82,10 @@ class Torus {
           .getPublic()
           .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
       } else if (typeOfUser === 'v2') {
-        if (upgraded) {
-          // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
-          modifiedPubKey = this.ec.keyFromPublic({ x: X.toString(16), y: Y.toString(16) }).getPublic()
-        } else {
-          modifiedPubKey = this.ec
-            .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
-            .getPublic()
-            .add(this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y }).getPublic())
-        }
+        modifiedPubKey = this.ec
+          .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+          .getPublic()
+          .add(this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y }).getPublic())
       } else {
         throw new Error('getOrSetNonce should always return typeOfUser.')
       }
@@ -82,9 +93,8 @@ class Torus {
       const finalY = modifiedPubKey.getY().toString(16)
       const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY())
       return { typeOfUser, nonce, pubNonce, upgraded, X: finalX, Y: finalY, address }
-    } else {
-      throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
     }
+    throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
   }
 
   async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }) {
@@ -409,6 +419,9 @@ class Torus {
     return toChecksumAddress(ethAddressLower)
   }
 
+  /**
+   * Note: use this function only when you know what you are doing.
+   */
   async getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     log.debug('> torus.js/getPublicAddress', { endpoints, torusNodePubs, verifier, verifierId, isExtended })
 
