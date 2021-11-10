@@ -1,4 +1,5 @@
 import BN from 'bn.js'
+import { INodePub } from '@toruslabs/fetch-node-details'
 
 declare class Torus {
   public metadataHost: string
@@ -24,7 +25,7 @@ declare class Torus {
   setCustomKey(options?: SetCustomKeyOptions): Promise<void>
 
   /**
-   * 
+   *
    * @note: Use this function to lookup customauth accounts.
    */
   getPublicAddress(
@@ -45,7 +46,7 @@ declare class Torus {
     { typeOfUser: 'v1'; nonce?: string } | { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean }
   >
   /**
-   * 
+   *
    * @note: Use this function only to lookup openlogin tkey accounts.
    */
   getUserTypeAndAddress(
@@ -54,8 +55,17 @@ declare class Torus {
     verifierArgs: VerifierArgs,
     doesKeyAssign?: boolean
   ): Promise<
-    { typeOfUser: 'v1'; nonce?: string; X: string; Y: string; address: string } | 
-    { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean; X: string; Y: string; address: string }
+    | { typeOfUser: 'v1'; nonce?: string; X: string; Y: string; address: string }
+    | {
+        typeOfUser: 'v2'
+        nonce?: string
+        pubNonce: { x: string; y: string }
+        ipfs?: string
+        upgraded?: boolean
+        X: string
+        Y: string
+        address: string
+      }
   >
   getNonce(pubKeyX: string, pubKeyY: string, privateKey?: BN, getOnly?: boolean): ReturnType<Torus['getOrSetNonce']>
   getPostboxKeyFrom1OutOf1(privKey: string, nonce: string): string
@@ -64,6 +74,24 @@ declare class Torus {
 export as namespace TorusUtils
 
 export = Torus
+
+export function waitKeyLookup(endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<KeyLookupResult>
+export function keyLookup(endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult>
+export function keyAssign(
+  endpoints: string[],
+  torusNodePubs: INodePub[],
+  lastPoint: number,
+  firstPoint: number,
+  verifier: string,
+  verifierId: string
+): Promise<void>
+
+interface KeyLookupResult {
+  keyResult: {
+    keys: { pub_key_X: string; pub_key_Y: string }[]
+  }
+  errorResult: Record<string, string>
+}
 
 interface ExtraParams {
   [key: string]: unknown

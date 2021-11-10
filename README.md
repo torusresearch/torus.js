@@ -28,12 +28,12 @@ This library handles these checks and allows you to query the Torus network easi
 
 ### Bundling
 
-This module is distributed in 4 formats
+This module is distributed in 5 formats
 
+- `esm` build `dist/torusUtils.esm.js` in es6 format
 - `commonjs` build `dist/torusUtils.cjs.js` in es5 format
 - `commonjs` build `dist/torusUtils-bundled.cjs.js` in es5 format with problematic packages bundled (benfits non-webpack users)
 - `umd` build `dist/torusUtils.umd.min.js` in es5 format without polyfilling corejs minified
-- `umd` build `dist/torusUtils.polyfill.umd.min.js` in es5 format with polyfilling corejs minified
 - `nodejs` build `dist/torusUtils-node.js` in es5 format
 
 By default, the appropriate format is used for your specified usecase
@@ -84,8 +84,8 @@ const keyData = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, ver
 ```
 
 ```js
-const FetchNodeDetails = require('@toruslabs/fetch-node-details')
-const TorusUtils = require('@toruslabs/torus.js')
+const FetchNodeDetails = require('@toruslabs/fetch-node-details').default
+const TorusUtils = require('@toruslabs/torus.js').default
 
 const fetchNodeDetails = new FetchNodeDetails()
 const torus = new TorusUtils()
@@ -107,8 +107,8 @@ fetchNodeDetails
 
 ```js
 // For Node.js
-const FetchNodeDetails = require("@toruslabs/fetch-node-details/dist/fetchNodeDetails-node.js");
-const TorusUtils = require('@toruslabs/torus.js/dist/torusUtils-node.js')
+const FetchNodeDetails = require('@toruslabs/fetch-node-details/dist/fetchNodeDetails-node.js').default
+const TorusUtils = require('@toruslabs/torus.js/dist/torusUtils-node.js').default
 
 const fetchNodeDetails = new FetchNodeDetails()
 const torus = new TorusUtils()
@@ -118,11 +118,9 @@ fetchNodeDetails
   .getNodeDetails()
   .then(({ torusNodeEndpoints, torusNodePub }) => torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId }))
   .then((publicAddress) => console.log(publicAddress))
-
 ```
-
 
 ## Requirements
 
 - This package requires a peer dependency of `@babel/runtime`
-- Node 10+
+- Node 12+

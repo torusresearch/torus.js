@@ -43,7 +43,7 @@
     "@babel/register": "^7.16.0",
     "@babel/runtime-corejs3": "^7.16.3",
     "@rollup/plugin-babel": "^5.3.0",
-    "@toruslabs/fetch-node-details": "^3.1.0",
+    "@toruslabs/fetch-node-details": "^4.0.0",
     "@types/json-stable-stringify": "^1.0.33",
     "atob": "^2.1.2",
     "babel-loader": "^8.2.3",
