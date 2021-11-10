@@ -1,12 +1,11 @@
 import { decrypt, generatePrivate, getPublic } from '@toruslabs/eccrypto'
-import { get, setAPIKey, setEmbedHost } from '@toruslabs/http-helpers'
+import { generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from '@toruslabs/http-helpers'
 import BN from 'bn.js'
 import { ec as EC } from 'elliptic'
 import stringify from 'json-stable-stringify'
 import memoryCache from 'memory-cache'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
-import { generateJsonRPCObject, post } from './httpHelpers'
 import log from './loglevel'
 import { Some } from './some'
 import { GetOrSetNonceError, kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from './utils'

@@ -1,6 +1,6 @@
+import { generateJsonRPCObject, post } from '@toruslabs/http-helpers'
 import JsonStringify from 'json-stable-stringify'
 
-import { generateJsonRPCObject, post } from './httpHelpers'
 import log from './loglevel'
 import { Some } from './some'
 
