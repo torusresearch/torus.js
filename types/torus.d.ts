@@ -73,7 +73,7 @@ declare class Torus {
 
 export as namespace TorusUtils
 
-export = Torus
+export default Torus
 
 export function waitKeyLookup(endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<KeyLookupResult>
 export function keyLookup(endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult>
