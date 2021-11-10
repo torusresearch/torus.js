@@ -41,6 +41,61 @@ class Torus {
     setEmbedHost(embedHost)
   }
 
+  /**
+   * Note: use this function only for openlogin tkey account lookups.
+   */
+  async getUserTypeAndAddress(endpoints, torusNodePubs, { verifier, verifierId }, doesKeyAssign = false) {
+    const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
+    let isNewKey = false
+    let finalKeyResult
+    if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
+      if (!doesKeyAssign) {
+        throw new Error('Verifier + VerifierID has not yet been assigned')
+      }
+      await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
+      const assignResult = (await waitKeyLookup(endpoints, verifier, verifierId, 1000)) || {}
+      finalKeyResult = assignResult.keyResult
+      isNewKey = true
+    } else if (keyResult) {
+      finalKeyResult = keyResult
+    } else {
+      throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
+    }
+    if (finalKeyResult) {
+      const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
+      let typeOfUser
+      let nonce
+      let pubNonce
+      let modifiedPubKey
+      let upgraded
+
+      try {
+        ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y, undefined, !isNewKey))
+        nonce = new BN(nonce || '0', 16)
+      } catch {
+        throw new GetOrSetNonceError()
+      }
+      if (typeOfUser === 'v1') {
+        modifiedPubKey = this.ec
+          .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+          .getPublic()
+          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic())
+      } else if (typeOfUser === 'v2') {
+        modifiedPubKey = this.ec
+          .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+          .getPublic()
+          .add(this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y }).getPublic())
+      } else {
+        throw new Error('getOrSetNonce should always return typeOfUser.')
+      }
+      const finalX = modifiedPubKey.getX().toString(16)
+      const finalY = modifiedPubKey.getY().toString(16)
+      const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY())
+      return { typeOfUser, nonce, pubNonce, upgraded, X: finalX, Y: finalY, address }
+    }
+    throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
+  }
+
   async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }) {
     let torusKey
     if (torusKeyHex) {
@@ -363,6 +418,9 @@ class Torus {
     return toChecksumAddress(ethAddressLower)
   }
 
+  /**
+   * Note: use this function only with custom auth, don't use to lookup openlogin accounts.
+   */
   async getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
     log.debug('> torus.js/getPublicAddress', { endpoints, torusNodePubs, verifier, verifierId, isExtended })
 
