@@ -324,7 +324,7 @@ class Torus {
     let unlock
     try {
       const dataKey = stringify(data)
-      if (this.metadataLock[dataKey] !== null) {
+      if (this.metadataLock[dataKey]) {
         await this.metadataLock[dataKey]
       } else {
         this.metadataLock[dataKey] = new Promise((resolve) => {
@@ -346,6 +346,7 @@ class Torus {
         return new BN(0)
       }
       this.metadataCache.put(dataKey, new BN(metadataResponse.message, 16), 60000)
+      if (unlock) unlock()
       return new BN(metadataResponse.message, 16) // nonce
     } catch (error) {
       log.error('get metadata error', error)
@@ -524,7 +525,34 @@ class Torus {
   }
 
   async getNonce(X, Y, privKey) {
-    return this.getOrSetNonce(X, Y, privKey, true)
+    // Adding a mutex here
+    let unlock
+    try {
+      const dataKey = privKey.toString(16) || `${X}-${Y}`
+      if (this.metadataLock[dataKey]) {
+        await this.metadataLock[dataKey]
+      } else {
+        this.metadataLock[dataKey] = new Promise((resolve) => {
+          unlock = () => {
+            this.metadataLock[dataKey] = null
+            resolve()
+          }
+        })
+      }
+      const cachedResult = this.metadataCache.get(dataKey)
+      if (cachedResult !== null) {
+        if (unlock) unlock()
+        return cachedResult
+      }
+      const metadataResponse = await this.getOrSetNonce(X, Y, privKey, true)
+      this.metadataCache.put(dataKey, metadataResponse, 60000)
+      if (unlock) unlock()
+      return metadataResponse // { nonce }
+    } catch (error) {
+      log.error('get metadata error', error)
+      if (unlock) unlock()
+      return { nonce: new BN(0) }
+    }
   }
 
   getPostboxKeyFrom1OutOf1(privKey, nonce) {
