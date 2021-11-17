@@ -3,7 +3,6 @@ import { generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from '@toru
 import BN from 'bn.js'
 import { ec as EC } from 'elliptic'
 import stringify from 'json-stable-stringify'
-import memoryCache from 'memory-cache'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
 import log from './loglevel'
@@ -22,8 +21,6 @@ class Torus {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     this.allowHost = allowHost
-    this.metadataCache = memoryCache
-    this.metadataLock = {}
     this.enableOneKey = enableOneKey
     this.serverTimeOffset = serverTimeOffset || 0 // ms
   }
@@ -190,25 +187,26 @@ class Torus {
         return Promise.resolve(resultArr)
       }
       return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`))
-    }).then((responses) => {
-      const promiseArrRequest = []
-      const nodeSigs = []
-      for (let i = 0; i < responses.length; i += 1) {
-        if (responses[i]) nodeSigs.push(responses[i].result)
-      }
-      for (let i = 0; i < endpoints.length; i += 1) {
-        // eslint-disable-next-line promise/no-nesting
-        const p = post(
-          endpoints[i],
-          generateJsonRPCObject('ShareRequest', {
-            encrypted: 'yes',
-            item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
-          })
-        ).catch((err) => log.error('share req', err))
-        promiseArrRequest.push(p)
-      }
-      return Some(promiseArrRequest, async (shareResponses, sharedState) => {
-        /*
+    })
+      .then((responses) => {
+        const promiseArrRequest = []
+        const nodeSigs = []
+        for (let i = 0; i < responses.length; i += 1) {
+          if (responses[i]) nodeSigs.push(responses[i].result)
+        }
+        for (let i = 0; i < endpoints.length; i += 1) {
+          // eslint-disable-next-line promise/no-nesting
+          const p = post(
+            endpoints[i],
+            generateJsonRPCObject('ShareRequest', {
+              encrypted: 'yes',
+              item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
+            })
+          ).catch((err) => log.error('share req', err))
+          promiseArrRequest.push(p)
+        }
+        return Some(promiseArrRequest, async (shareResponses, sharedState) => {
+          /*
               ShareRequestResult struct {
                 Keys []KeyAssignment
               }
@@ -226,130 +224,114 @@ class Torus {
                 Share big.Int // Or Si
               }
             */
-        // check if threshold number of nodes have returned the same user public key
-        const completedRequests = shareResponses.filter((x) => x)
-        const thresholdPublicKey = thresholdSame(
-          shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
-          ~~(endpoints.length / 2) + 1
-        )
-        // optimistically run lagrange interpolation once threshold number of shares have been received
-        // this is matched against the user public key to ensure that shares are consistent
-        if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
-          const sharePromises = []
-          const nodeIndex = []
-          for (let i = 0; i < shareResponses.length; i += 1) {
-            if (shareResponses[i] && shareResponses[i].result && shareResponses[i].result.keys && shareResponses[i].result.keys.length > 0) {
-              shareResponses[i].result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)))
-              if (shareResponses[i].result.keys[0].Metadata) {
-                const metadata = {
-                  ephemPublicKey: Buffer.from(shareResponses[i].result.keys[0].Metadata.ephemPublicKey, 'hex'),
-                  iv: Buffer.from(shareResponses[i].result.keys[0].Metadata.iv, 'hex'),
-                  mac: Buffer.from(shareResponses[i].result.keys[0].Metadata.mac, 'hex'),
-                  mode: Buffer.from(shareResponses[i].result.keys[0].Metadata.mode, 'hex'),
+          // check if threshold number of nodes have returned the same user public key
+          const completedRequests = shareResponses.filter((x) => x)
+          const thresholdPublicKey = thresholdSame(
+            shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
+            ~~(endpoints.length / 2) + 1
+          )
+          // optimistically run lagrange interpolation once threshold number of shares have been received
+          // this is matched against the user public key to ensure that shares are consistent
+          if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
+            const sharePromises = []
+            const nodeIndex = []
+            for (let i = 0; i < shareResponses.length; i += 1) {
+              if (shareResponses[i] && shareResponses[i].result && shareResponses[i].result.keys && shareResponses[i].result.keys.length > 0) {
+                shareResponses[i].result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)))
+                if (shareResponses[i].result.keys[0].Metadata) {
+                  const metadata = {
+                    ephemPublicKey: Buffer.from(shareResponses[i].result.keys[0].Metadata.ephemPublicKey, 'hex'),
+                    iv: Buffer.from(shareResponses[i].result.keys[0].Metadata.iv, 'hex'),
+                    mac: Buffer.from(shareResponses[i].result.keys[0].Metadata.mac, 'hex'),
+                    mode: Buffer.from(shareResponses[i].result.keys[0].Metadata.mode, 'hex'),
+                  }
+                  sharePromises.push(
+                    // eslint-disable-next-line promise/no-nesting
+                    decrypt(tmpKey, {
+                      ...metadata,
+                      ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex'),
+                    }).catch((err) => log.debug('share decryption', err))
+                  )
+                } else {
+                  sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
                 }
-                sharePromises.push(
-                  // eslint-disable-next-line promise/no-nesting
-                  decrypt(tmpKey, {
-                    ...metadata,
-                    ciphertext: Buffer.from(atob(shareResponses[i].result.keys[0].Share).padStart(64, '0'), 'hex'),
-                  }).catch((err) => log.debug('share decryption', err))
-                )
               } else {
-                sharePromises.push(Promise.resolve(Buffer.from(shareResponses[i].result.keys[0].Share.padStart(64, '0'), 'hex')))
+                sharePromises.push(Promise.resolve(undefined))
               }
-            } else {
-              sharePromises.push(Promise.resolve(undefined))
+              nodeIndex.push(new BN(indexes[i], 16))
             }
-            nodeIndex.push(new BN(indexes[i], 16))
-          }
-          const sharesResolved = await Promise.all(sharePromises)
-          if (sharedState.resolved) return undefined
+            const sharesResolved = await Promise.all(sharePromises)
+            if (sharedState.resolved) return undefined
 
-          const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
-            if (curr) acc.push({ index: nodeIndex[index], value: new BN(curr) })
-            return acc
-          }, [])
-          // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
-          const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1)
-          let privateKey
-          for (let j = 0; j < allCombis.length; j += 1) {
-            const currentCombi = allCombis[j]
-            const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index))
-            const shares = currentCombiShares.map((x) => x.value)
-            const indices = currentCombiShares.map((x) => x.index)
-            const derivedPrivateKey = this.lagrangeInterpolation(shares, indices)
-            const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
-            const decryptedPubKeyX = decryptedPubKey.slice(2, 66)
-            const decryptedPubKeyY = decryptedPubKey.slice(66)
-            if (
-              new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
-              new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
-            ) {
-              privateKey = derivedPrivateKey
-              break
+            const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
+              if (curr) acc.push({ index: nodeIndex[index], value: new BN(curr) })
+              return acc
+            }, [])
+            // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
+            const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1)
+            let privateKey
+            for (let j = 0; j < allCombis.length; j += 1) {
+              const currentCombi = allCombis[j]
+              const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index))
+              const shares = currentCombiShares.map((x) => x.value)
+              const indices = currentCombiShares.map((x) => x.index)
+              const derivedPrivateKey = this.lagrangeInterpolation(shares, indices)
+              const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), 'hex')).toString('hex')
+              const decryptedPubKeyX = decryptedPubKey.slice(2, 66)
+              const decryptedPubKeyY = decryptedPubKey.slice(66)
+              if (
+                new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
+                new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
+              ) {
+                privateKey = derivedPrivateKey
+                break
+              }
             }
+            if (privateKey === undefined) {
+              throw new Error('could not derive private key')
+            }
+            return privateKey
           }
-          if (privateKey === undefined) {
-            throw new Error('could not derive private key')
-          }
-
-          let metadataNonce
-          if (this.enableOneKey) {
-            const { nonce } = await this.getNonce(thresholdPublicKey.X, thresholdPublicKey.Y, privateKey)
-            metadataNonce = new BN(nonce || '0', 16)
-          } else {
-            metadataNonce = await this.getMetadata({ pub_key_X: thresholdPublicKey.X, pub_key_Y: thresholdPublicKey.Y })
-          }
-          log.debug('> torus.js/retrieveShares', { privKey: privateKey.toString(16), metadataNonce: metadataNonce.toString(16) })
-
-          if (sharedState.resolved) return undefined
-          privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n)
-
-          const ethAddress = this.generateAddressFromPrivKey(privateKey)
-          log.debug('> torus.js/retrieveShares', { ethAddress, privKey: privateKey.toString(16) })
-
-          // return reconstructed private key and ethereum address
-          return {
-            ethAddress,
-            privKey: privateKey.toString('hex', 64),
-            metadataNonce,
-          }
-        }
-        throw new Error('invalid')
+          throw new Error('invalid')
+        })
       })
-    })
+      .then(async (returnedKey) => {
+        let privateKey = returnedKey
+        const decryptedPubKey = getPublic(Buffer.from(privateKey.toString(16, 64), 'hex')).toString('hex')
+        const decryptedPubKeyX = decryptedPubKey.slice(2, 66)
+        const decryptedPubKeyY = decryptedPubKey.slice(66)
+        let metadataNonce
+        if (this.enableOneKey) {
+          const { nonce } = await this.getNonce(decryptedPubKeyX, decryptedPubKeyY, privateKey)
+          metadataNonce = new BN(nonce || '0', 16)
+        } else {
+          metadataNonce = await this.getMetadata({ pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY })
+        }
+        log.debug('> torus.js/retrieveShares', { privKey: privateKey.toString(16), metadataNonce: metadataNonce.toString(16) })
+
+        privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n)
+
+        const ethAddress = this.generateAddressFromPrivKey(privateKey)
+        log.debug('> torus.js/retrieveShares', { ethAddress, privKey: privateKey.toString(16) })
+
+        // return reconstructed private key and ethereum address
+        return {
+          ethAddress,
+          privKey: privateKey.toString('hex', 64),
+          metadataNonce,
+        }
+      })
   }
 
   async getMetadata(data, options) {
-    let unlock
     try {
-      const dataKey = stringify(data)
-      if (this.metadataLock[dataKey] !== null) {
-        await this.metadataLock[dataKey]
-      } else {
-        this.metadataLock[dataKey] = new Promise((resolve) => {
-          unlock = () => {
-            this.metadataLock[dataKey] = null
-            resolve()
-          }
-        })
-      }
-      const cachedResult = this.metadataCache.get(dataKey)
-      if (cachedResult !== null) {
-        if (unlock) unlock()
-        return cachedResult
-      }
       const metadataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true })
       if (!metadataResponse || !metadataResponse.message) {
-        this.metadataCache.put(dataKey, new BN(0), 60000)
-        if (unlock) unlock()
         return new BN(0)
       }
-      this.metadataCache.put(dataKey, new BN(metadataResponse.message, 16), 60000)
       return new BN(metadataResponse.message, 16) // nonce
     } catch (error) {
       log.error('get metadata error', error)
-      if (unlock) unlock()
       return new BN(0)
     }
   }
@@ -371,7 +353,6 @@ class Torus {
 
   async setMetadata(data, options) {
     try {
-      this.metadataCache.del(stringify({ pub_key_X: data.pub_key_X, pub_key_Y: data.pub_key_Y }))
       const metadataResponse = await post(`${this.metadataHost}/set`, data, options, { useAPIKey: true })
       return metadataResponse.message // IPFS hash
     } catch (error) {
