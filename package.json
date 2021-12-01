@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@toruslabs/eccrypto": "^1.1.8",
-    "@toruslabs/http-helpers": "^2.0.0",
+    "@toruslabs/http-helpers": "^2.1.0",
     "bn.js": "^5.2.0",
     "elliptic": "^6.5.4",
     "json-stable-stringify": "^1.0.1",
