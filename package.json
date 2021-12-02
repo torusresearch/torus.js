@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@toruslabs/eccrypto": "^1.1.8",
-    "@toruslabs/http-helpers": "^2.1.0",
+    "@toruslabs/http-helpers": "^2.1.1",
     "bn.js": "^5.2.0",
     "elliptic": "^6.5.4",
     "json-stable-stringify": "^1.0.1",
@@ -42,7 +42,7 @@
     "@babel/register": "^7.16.0",
     "@babel/runtime-corejs3": "^7.16.3",
     "@rollup/plugin-babel": "^5.3.0",
-    "@toruslabs/fetch-node-details": "^4.0.1",
+    "@toruslabs/fetch-node-details": "^4.0.2",
     "@types/json-stable-stringify": "^1.0.33",
     "atob": "^2.1.2",
     "babel-loader": "^8.2.3",
