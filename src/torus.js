@@ -481,6 +481,76 @@ class Torus {
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
   }
 
+  async dangerouslyResetAccount(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
+    if (!this.enableOneKey) throw new Error('enabledOneKey=true is required to dangerouslyResetAccount')
+
+    console.warn(
+      'Dangerously resetting account, this will cause you to lose access to your previous key/wallet forever ' +
+        "(unless you backed up your key/wallet outside of Torus). This action can't be undone."
+    )
+
+    let finalKeyResult
+
+    const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
+    if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
+      await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
+      const assignResult = (await waitKeyLookup(endpoints, verifier, verifierId, 1000)) || {}
+      finalKeyResult = assignResult.keyResult
+      console.warn('There is no account associated with this identifier, a new account is created, no account is reset')
+    } else if (keyResult) {
+      finalKeyResult = keyResult
+    } else {
+      throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
+    }
+
+    if (finalKeyResult) {
+      let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
+      let typeOfUser
+      let nonce
+      let pubNonce
+      let modifiedPubKey
+      let upgraded
+      try {
+        // This will create a new v2 account and reset the nonce if there isn't an existing v2 account or v1 custom key
+        ;({ typeOfUser, nonce, pubNonce, upgraded } = await this.getOrSetNonce(X, Y))
+        nonce = new BN(nonce || '0', 16)
+      } catch {
+        throw new GetOrSetNonceError()
+      }
+      if (typeOfUser === 'v1') {
+        throw new Error("There is already a v1 account with custom key, can't reset account. Please contact hello@tor.us if you still want to reset.")
+      } else if (typeOfUser === 'v2') {
+        if (upgraded) {
+          throw new Error(
+            "There is already a v2 account with 2/n security, can't reset account. Please contact hello@tor.us if you still want to reset."
+          )
+        } else {
+          modifiedPubKey = this.ec
+            .keyFromPublic({ x: X.toString(16), y: Y.toString(16) })
+            .getPublic()
+            .add(this.ec.keyFromPublic({ x: pubNonce.x, y: pubNonce.y }).getPublic())
+        }
+      } else {
+        throw new Error('getOrSetNonce should always return typeOfUser.')
+      }
+
+      X = modifiedPubKey.getX().toString(16)
+      Y = modifiedPubKey.getY().toString(16)
+
+      const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY())
+      if (!isExtended) return address
+      return {
+        typeOfUser,
+        address,
+        X,
+        Y,
+        metadataNonce: nonce,
+        pubNonce,
+      }
+    }
+    throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
+  }
+
   /**
    * Internal functions for OneKey (OpenLogin v2), only call these functions if you know what you're doing
    */
