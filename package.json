@@ -61,7 +61,7 @@
     "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-simple-import-sort": "^7.0.0",
     "eslint-webpack-plugin": "^2.5.4",
-    "faker": "^6.6.6",
+    "faker": "^5.5.3",
     "husky": "^7.0.4",
     "jsonwebtoken": "^8.5.1",
     "lint-staged": "^12.1.7",
