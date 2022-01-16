@@ -121,6 +121,19 @@ export const keyAssign = async (endpoints, torusNodePubs, lastPoint, firstPoint,
     )
   } catch (error) {
     log.error(error)
-    return keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId)
+    const acceptedErrorMsgs = [
+      // Slow node
+      'Timed out',
+      // Happens when the node is not reachable (dns issue etc)
+      'TypeError: Failed to fetch', // All except iOS and Firefox
+      'TypeError: cancelled', // iOS
+      'TypeError: NetworkError when attempting to fetch resource.', // Firefox
+    ]
+    if (acceptedErrorMsgs.includes(error.message)) return keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId)
+    throw new Error(
+      `Sorry, torus network that powers web3auth is currently very busy.
+    We will generate your key in time. Pls try again later. \n
+    ${error.message || ''}`
+    )
   }
 }
