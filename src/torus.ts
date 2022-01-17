@@ -9,20 +9,33 @@ import log from './loglevel'
 import { Some } from './some'
 import { GetOrSetNonceError, kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from './utils'
 
+interface TorusConstructor {
+  enableOneKey?: boolean;
+  metadataHost?: string;
+  allowHost?: string;
+  serverTimeOffset?: number;
+}
+
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
+  ec: EC;
+  enableOneKey: boolean;
+  metadataHost: string;
+  allowHost: string;
+  serverTimeOffset: number;
+
   constructor({
     enableOneKey = false,
     metadataHost = 'https://metadata.tor.us',
     allowHost = 'https://signer.tor.us/api/allow',
     serverTimeOffset = 0,
-  } = {}) {
+  }: TorusConstructor = {}) {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     this.allowHost = allowHost
     this.enableOneKey = enableOneKey
-    this.serverTimeOffset = serverTimeOffset || 0 // ms
+    this.serverTimeOffset = serverTimeOffset // ms
   }
 
   static enableLogging(v = true) {
@@ -126,7 +139,7 @@ class Torus {
         TempPubX           string `json:"temppubx"`
         TempPubY           string `json:"temppuby"`
         VerifierIdentifier string `json:"verifieridentifier"`
-      } 
+      }
       */
 
     // generate temporary private and public key that is used to secure receive shares
