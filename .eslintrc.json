@@ -9,15 +9,16 @@
     "airbnb-base",
     "plugin:mocha/recommended",
     "plugin:chai-expect/recommended",
-    "prettier"
+    "prettier",
+    "@toruslabs/eslint-config-typescript"
   ],
   "plugins": ["prettier", "@babel", "promise", "import", "mocha", "chai-expect", "simple-import-sort"],
-  "parser": "@babel/eslint-parser",
+  "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "sourceType": "module",
     "ecmaVersion": 11,
     "babelOptions": {
-      "configFile": "./babel.config.json"
+      "configFile": "./tsconfig.json"
     }
   },
   "ignorePatterns": "*.config.js",
