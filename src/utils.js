@@ -131,7 +131,7 @@ export const keyAssign = async (endpoints, torusNodePubs, lastPoint, firstPoint,
     ]
     if (acceptedErrorMsgs.includes(error.message)) return keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId)
     throw new Error(
-      `Sorry, torus network that powers web3auth is currently very busy.
+      `Sorry, the Torus Network that powers Web3Auth is currently very busy.
     We will generate your key in time. Pls try again later. \n
     ${error.message || ''}`
     )
