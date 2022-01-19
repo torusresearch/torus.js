@@ -36,7 +36,7 @@ export const kCombinations = (s, k) => {
   return combs
 }
 
-export const thresholdSame = (arr, t) => {
+export const thresholdSame = (arr: any[], t: number) => {
   const hashMap = {}
   for (let i = 0; i < arr.length; i += 1) {
     const str = JsonStringify(arr[i])
@@ -48,7 +48,7 @@ export const thresholdSame = (arr, t) => {
   return undefined
 }
 
-export const keyLookup = async (endpoints, verifier, verifierId) => {
+export const keyLookup = async (endpoints: string[], verifier, verifierId) => {
   const lookupPromises = endpoints.map((x) =>
     post(
       x,
@@ -75,16 +75,16 @@ export const keyLookup = async (endpoints, verifier, verifierId) => {
   })
 }
 
-export const waitKeyLookup = (endpoints, verifier, verifierId, timeout) =>
+export const waitKeyLookup = (endpoints: string[], verifier, verifierId, timeout: number) =>
   new Promise((resolve, reject) => {
     setTimeout(() => {
       keyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject)
     }, timeout)
   })
 
-export const keyAssign = async (endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId) => {
-  let nodeNum
-  let initialPoint
+export const keyAssign = async (endpoints: string[], torusNodePubs: any[], lastPoint, firstPoint, verifier, verifierId) => {
+  let nodeNum: number
+  let initialPoint: number
   if (lastPoint === undefined) {
     nodeNum = Math.floor(Math.random() * endpoints.length)
     initialPoint = nodeNum

@@ -16,6 +16,8 @@ interface TorusConstructor {
   serverTimeOffset?: number;
 }
 
+type PublicKey = Uint8Array | Buffer | string | number[] | { x: string; y: string } | EC.KeyPair
+
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
@@ -43,18 +45,18 @@ class Torus {
     else log.disableAll()
   }
 
-  static setAPIKey(apiKey) {
+  static setAPIKey(apiKey: string) {
     setAPIKey(apiKey)
   }
 
-  static setEmbedHost(embedHost) {
+  static setEmbedHost(embedHost: string) {
     setEmbedHost(embedHost)
   }
 
   /**
    * Note: use this function only for openlogin tkey account lookups.
    */
-  async getUserTypeAndAddress(endpoints, torusNodePubs, { verifier, verifierId }, doesKeyAssign = false) {
+  async getUserTypeAndAddress(endpoints: string[], torusNodePubs: any[], { verifier, verifierId }, doesKeyAssign = false) {
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
     let isNewKey = false
     let finalKeyResult
@@ -120,7 +122,7 @@ class Torus {
     await this.setMetadata(data)
   }
 
-  async retrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams = {}) {
+  async retrieveShares(endpoints: string[], indexes, verifier, verifierParams, idToken: string|BN, extraParams = {}) {
     const promiseArr = []
     await get(
       this.allowHost,
@@ -313,7 +315,8 @@ class Torus {
         const decryptedPubKey = getPublic(Buffer.from(privateKey.toString(16, 64), 'hex')).toString('hex')
         const decryptedPubKeyX = decryptedPubKey.slice(2, 66)
         const decryptedPubKeyY = decryptedPubKey.slice(66)
-        let metadataNonce
+        let metadataNonce: BN
+
         if (this.enableOneKey) {
           const { nonce } = await this.getNonce(decryptedPubKeyX, decryptedPubKeyY, privateKey)
           metadataNonce = new BN(nonce || '0', 16)
@@ -374,7 +377,7 @@ class Torus {
     }
   }
 
-  lagrangeInterpolation(shares, nodeIndex) {
+  lagrangeInterpolation(shares: any[], nodeIndex) {
     if (shares.length !== nodeIndex.length) {
       return null
     }
@@ -405,7 +408,7 @@ class Torus {
     return toChecksumAddress(ethAddressLower)
   }
 
-  generateAddressFromPubKey(publicKeyX, publicKeyY) {
+  generateAddressFromPubKey(publicKeyX: PublicKey, publicKeyY: PublicKey) {
     const key = this.ec.keyFromPublic({ x: publicKeyX.toString('hex', 64), y: publicKeyY.toString('hex', 64) })
     const publicKey = key.getPublic().encode('hex').slice(2)
     const ethAddressLower = `0x${keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)}`
@@ -415,7 +418,7 @@ class Torus {
   /**
    * Note: use this function only with custom auth, don't use to lookup openlogin accounts.
    */
-  async getPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended = false) {
+  async getPublicAddress(endpoints: string[], torusNodePubs, { verifier, verifierId }, isExtended = false) {
     log.debug('> torus.js/getPublicAddress', { endpoints, torusNodePubs, verifier, verifierId, isExtended })
 
     let finalKeyResult
@@ -498,7 +501,7 @@ class Torus {
    * Internal functions for OneKey (OpenLogin v2), only call these functions if you know what you're doing
    */
 
-  static isGetOrSetNonceError(err) {
+  static isGetOrSetNonceError(err: unknown) {
     return err instanceof GetOrSetNonceError
   }
 
