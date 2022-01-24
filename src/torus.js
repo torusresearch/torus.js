@@ -409,7 +409,12 @@ class Torus {
     let isNewKey = false
 
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
-    if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
+    if (errorResult && JSON.stringify(errorResult).includes('Verifier not supported')) {
+      // change error msg
+      throw new Error(`Verifier not supported. Check if you: \n
+      1. Are on the right network (Torus testnet/mainnet) \n
+      2. Have setup a verifier on dashboard.web3auth.io?`)
+    } else if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
       await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
       const assignResult = (await waitKeyLookup(endpoints, verifier, verifierId, 1000)) || {}
       finalKeyResult = assignResult.keyResult
