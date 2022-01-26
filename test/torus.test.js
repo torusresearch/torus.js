@@ -15,7 +15,10 @@ describe('torus utils', function () {
   const TORUS_TEST_VERIFIER = 'torus-test-health'
   const TORUS_TEST_AGGREGATE_VERIFIER = 'torus-test-health-aggregate'
   before('one time execution before all tests', async function () {
-    nodeManager = new NodeManager({ network: 'ropsten', proxyAddress: '0x4023d2a0D330bF11426B12C6144Cfb96B7fa6183' })
+    nodeManager = new NodeManager({
+      network: 'https://polygon-mumbai.infura.io/v3/f82e5c0474074608b22476858e84dddf',
+      proxyAddress: '0xC4c6463988bD5B9B4B633Ff8A295403e4EE166CA',
+    })
     const nodeDetails = await nodeManager.getNodeDetails()
     torusNodeEndpoints = nodeDetails.torusNodeEndpoints
     torusNodePub = nodeDetails.torusNodePub
