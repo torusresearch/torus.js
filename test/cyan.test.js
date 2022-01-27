@@ -6,41 +6,41 @@ import { keccak256 } from 'web3-utils'
 import TorusUtils from '../src/torus'
 import { generateIdToken } from './helpers'
 
-const TORUS_NODE_MANAGER = new NodeManager({ network: 'ropsten', proxyAddress: '0x6258c9d6c12ed3edda59a1a6527e469517744aa7' })
+const TORUS_NODE_MANAGER = new NodeManager({ network: 'polygon-mainnet', proxyAddress: '0x9f072ba19b3370e512aa1b4bfcdaf97283168005' })
 const TORUS_TEST_EMAIL = 'hello@tor.us'
 const TORUS_TEST_VERIFIER = 'torus-test-health'
 const TORUS_TEST_AGGREGATE_VERIFIER = 'torus-test-health-aggregate'
 
-describe('torus utils', function () {
+describe.only('torus utils', function () {
   let torus
 
   beforeEach('one time execution before all tests', async function () {
-    torus = new TorusUtils()
+    torus = new TorusUtils({ signerHost: 'https://signer-polygon.tor.us/api/sign', allowHost: 'https://signer-polygon.tor.us/api/allow' })
   })
   it('should fetch public address', async function () {
-    const verifier = 'google-lrc' // any verifier
+    const verifier = 'tkey-google-cyan' // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL }
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails)
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)
-    expect(publicAddress).to.equal('0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70')
+    expect(publicAddress).to.equal('0xA438d4c57Ce4f13B072d5227b2E6179D117242E0')
   })
 
   it('should fetch user type and public address', async function () {
-    const verifier = 'google-lrc' // any verifier
+    const verifier = 'tkey-google-cyan' // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL }
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails)
     const { address, typeOfUser } = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails)
-    expect(address).to.equal('0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70')
+    expect(address).to.equal('0xA438d4c57Ce4f13B072d5227b2E6179D117242E0')
     expect(typeOfUser).to.equal('v1')
 
-    const v2Verifier = 'tkey-google-lrc'
+    const v2Verifier = 'tkey-google-cyan'
     // 1/1 user
     const v2TestEmail = 'somev2user@gmail.com'
     const { address: v2Address, typeOfUser: v2UserType } = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     })
-    expect(v2Address).to.equal('0xE91200d82029603d73d6E307DbCbd9A7D0129d8D')
+    expect(v2Address).to.equal('0x414394f9fE2EBC0d26148C73442cD17E27Fc6443')
     expect(v2UserType).to.equal('v2')
 
     // 2/n user
@@ -49,12 +49,12 @@ describe('torus utils', function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     })
-    expect(v2nAddress).to.equal('0x1016DA7c47A04C76036637Ea02AcF1d29c64a456')
+    expect(v2nAddress).to.equal('0x3198CC467Af3434a6a0Ea614b6B8b49E514bF6B2')
     expect(v2nUserType).to.equal('v2')
   })
 
   it('should be able to key assign', async function () {
-    const verifier = 'google-lrc' // any verifier
+    const verifier = 'tkey-google-cyan' // any verifier
     const email = faker.internet.email()
     const verifierDetails = { verifier, verifierId: email }
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails)
@@ -74,7 +74,7 @@ describe('torus utils', function () {
       { verifier_id: TORUS_TEST_EMAIL },
       token
     )
-    expect(retrieveSharesResponse.privKey).to.be.equal('068ee4f97468ef1ae95d18554458d372e31968190ae38e377be59d8b3c9f7a25')
+    expect(retrieveSharesResponse.privKey).to.be.equal('1d71b423832659fbd1bedbef3f73fcbd6118f4175d664f71f082ef9643ba05bb')
   })
 
   it('should be able to aggregate login', async function () {
