@@ -6,16 +6,17 @@ import { keccak256 } from 'web3-utils'
 import TorusUtils from '../src/torus'
 import { generateIdToken } from './helpers'
 
-const TORUS_NODE_MANAGER = new NodeManager({ network: 'polygon-mainnet', proxyAddress: '0x9f072ba19b3370e512aa1b4bfcdaf97283168005' })
 const TORUS_TEST_EMAIL = 'hello@tor.us'
 const TORUS_TEST_VERIFIER = 'torus-test-health'
 const TORUS_TEST_AGGREGATE_VERIFIER = 'torus-test-health-aggregate'
 
-describe.only('torus utils', function () {
+describe('torus utils cyan', function () {
   let torus
+  let TORUS_NODE_MANAGER
 
   beforeEach('one time execution before all tests', async function () {
     torus = new TorusUtils({ signerHost: 'https://signer-polygon.tor.us/api/sign', allowHost: 'https://signer-polygon.tor.us/api/allow' })
+    TORUS_NODE_MANAGER = new NodeManager({ network: 'polygon-mainnet', proxyAddress: '0x9f072ba19b3370e512aa1b4bfcdaf97283168005' })
   })
   it('should fetch public address', async function () {
     const verifier = 'tkey-google-cyan' // any verifier
@@ -93,6 +94,6 @@ describe.only('torus utils', function () {
       },
       hashedIdToken.substring(2)
     )
-    expect(retrieveSharesResponse.ethAddress).to.be.equal('0x5a165d2Ed4976BD104caDE1b2948a93B72FA91D2')
+    expect(retrieveSharesResponse.ethAddress).to.be.equal('0x4290298e9451f43058655193DC734298C7B04262')
   })
 })

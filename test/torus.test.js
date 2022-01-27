@@ -6,16 +6,17 @@ import { keccak256 } from 'web3-utils'
 import TorusUtils from '../src/torus'
 import { generateIdToken } from './helpers'
 
-const TORUS_NODE_MANAGER = new NodeManager({ network: 'ropsten', proxyAddress: '0x6258c9d6c12ed3edda59a1a6527e469517744aa7' })
 const TORUS_TEST_EMAIL = 'hello@tor.us'
 const TORUS_TEST_VERIFIER = 'torus-test-health'
 const TORUS_TEST_AGGREGATE_VERIFIER = 'torus-test-health-aggregate'
 
-describe('torus utils', function () {
+describe('torus utils ropsten', function () {
   let torus
+  let TORUS_NODE_MANAGER
 
   beforeEach('one time execution before all tests', async function () {
     torus = new TorusUtils()
+    TORUS_NODE_MANAGER = new NodeManager({ network: 'ropsten', proxyAddress: '0x6258c9d6c12ed3edda59a1a6527e469517744aa7' })
   })
   it('should fetch public address', async function () {
     const verifier = 'google-lrc' // any verifier
