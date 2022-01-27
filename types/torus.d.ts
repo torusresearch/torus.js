@@ -6,6 +6,7 @@ declare class Torus {
   public allowHost: string
   public serverTimeOffset: number
   public enableOneKey: boolean
+  public signerHost: string
 
   constructor(options?: TorusCtorOptions)
   static setAPIKey(apiKey: string): void
@@ -103,6 +104,7 @@ interface TorusCtorOptions {
   metadataHost?: string
   allowHost?: string
   serverTimeOffset?: number
+  signerHost?: string
 }
 
 interface TorusPublicKey extends TorusNodePub {
