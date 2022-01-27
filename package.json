@@ -1,6 +1,6 @@
 {
   "name": "@toruslabs/torus.js",
-  "version": "4.2.6",
+  "version": "5.0.0",
   "description": "Handle communication with torus nodes",
   "main": "dist/torusUtils.cjs.js",
   "module": "dist/torusUtils.esm.js",
