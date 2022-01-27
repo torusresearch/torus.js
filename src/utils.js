@@ -82,7 +82,7 @@ export const waitKeyLookup = (endpoints, verifier, verifierId, timeout) =>
     }, timeout)
   })
 
-export const keyAssign = async (endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId) => {
+export const keyAssign = async ({ endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId, signerHost }) => {
   let nodeNum
   let initialPoint
   if (lastPoint === undefined) {
@@ -100,7 +100,7 @@ export const keyAssign = async (endpoints, torusNodePubs, lastPoint, firstPoint,
   })
   try {
     const signedData = await post(
-      'https://signer.tor.us/api/sign',
+      signerHost,
       data,
       {
         headers: {
@@ -129,7 +129,8 @@ export const keyAssign = async (endpoints, torusNodePubs, lastPoint, firstPoint,
       'TypeError: cancelled', // iOS
       'TypeError: NetworkError when attempting to fetch resource.', // Firefox
     ]
-    if (acceptedErrorMsgs.includes(error.message)) return keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId)
+    if (acceptedErrorMsgs.includes(error.message))
+      return keyAssign({ endpoints, torusNodePubs, lastPoint: nodeNum + 1, firstPoint: initialPoint, verifier, verifierId, signerHost })
     throw new Error(
       `Sorry, the Torus Network that powers Web3Auth is currently very busy.
     We will generate your key in time. Pls try again later. \n
