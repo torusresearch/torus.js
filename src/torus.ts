@@ -9,11 +9,11 @@ import log from './loglevel'
 import { Some } from './some'
 import { GetOrSetNonceError, kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from './utils'
 
-interface TorusConstructor {
-  enableOneKey?: boolean;
-  metadataHost?: string;
-  allowHost?: string;
-  serverTimeOffset?: number;
+interface TorusCtorOptions {
+  enableOneKey?: boolean
+  metadataHost?: string
+  allowHost?: string
+  serverTimeOffset?: number
 }
 
 type PublicKey = Uint8Array | Buffer | string | number[] | { x: string; y: string } | EC.KeyPair
@@ -21,18 +21,18 @@ type PublicKey = Uint8Array | Buffer | string | number[] | { x: string; y: strin
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  ec: EC;
-  enableOneKey: boolean;
-  metadataHost: string;
-  allowHost: string;
-  serverTimeOffset: number;
+  public metadataHost: string
+  public allowHost: string
+  public enableOneKey: boolean
+  public serverTimeOffset: number
+  ec: EC
 
   constructor({
     enableOneKey = false,
     metadataHost = 'https://metadata.tor.us',
     allowHost = 'https://signer.tor.us/api/allow',
     serverTimeOffset = 0,
-  }: TorusConstructor = {}) {
+  }: TorusCtorOptions = {}) {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     this.allowHost = allowHost
