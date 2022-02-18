@@ -3,10 +3,11 @@ import JsonStringify from 'json-stable-stringify'
 
 import log from './loglevel'
 import { Some } from './some'
+import { Verifier, KeyLookupResult, TorusNodePub } from '../types/types'
 
 export class GetOrSetNonceError extends Error {}
 
-export const kCombinations = (s, k) => {
+export const kCombinations = (s, k: number) => {
   let set = s
   if (typeof set === 'number') {
     set = Array.from({ length: set }, (_, i) => i)
@@ -48,7 +49,7 @@ export const thresholdSame = (arr: any[], t: number) => {
   return undefined
 }
 
-export const keyLookup = async (endpoints: string[], verifier, verifierId) => {
+export const keyLookup = async (endpoints: string[], verifier: Verifier, verifierId: string): Promise<KeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post(
       x,
@@ -75,14 +76,22 @@ export const keyLookup = async (endpoints: string[], verifier, verifierId) => {
   })
 }
 
-export const waitKeyLookup = (endpoints: string[], verifier, verifierId, timeout: number) =>
-  new Promise((resolve, reject) => {
+export const waitKeyLookup = (endpoints: string[], verifier: Verifier, verifierId: string, timeout: number): Promise<KeyLookupResult> => {
+  return new Promise((resolve, reject) => {
     setTimeout(() => {
       keyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject)
     }, timeout)
   })
+}
 
-export const keyAssign = async (endpoints: string[], torusNodePubs: any[], lastPoint, firstPoint, verifier, verifierId) => {
+export const keyAssign = async (
+  endpoints: string[],
+  torusNodePubs: TorusNodePub[],
+  lastPoint: number,
+  firstPoint: number,
+  verifier: Verifier,
+  verifierId: string
+): Promise<void> => {
   let nodeNum: number
   let initialPoint: number
   if (lastPoint === undefined) {

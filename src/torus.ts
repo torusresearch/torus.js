@@ -1,30 +1,33 @@
 import { decrypt, generatePrivate, getPublic } from '@toruslabs/eccrypto'
 import { generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from '@toruslabs/http-helpers'
 import BN from 'bn.js'
-import { ec as EC } from 'elliptic'
+import { curve, ec as EC } from 'elliptic'
 import stringify from 'json-stable-stringify'
+import {
+  ExtraParams,
+  KeyLookupResult,
+  PublicKey,
+  SetCustomKeyOptions,
+  ShareResponse,
+  TorusCtorOptions,
+  TorusNodePub,
+  TorusPublicKey,
+  Verifier,
+} from 'types/types'
 import { keccak256, toChecksumAddress } from 'web3-utils'
 
 import log from './loglevel'
 import { Some } from './some'
 import { GetOrSetNonceError, kCombinations, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from './utils'
-
-interface TorusCtorOptions {
-  enableOneKey?: boolean
-  metadataHost?: string
-  allowHost?: string
-  serverTimeOffset?: number
-}
-
-type PublicKey = Uint8Array | Buffer | string | number[] | { x: string; y: string } | EC.KeyPair
+import { MetaDataResponse, MetaDataParams } from '../types/api.types'
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
   public metadataHost: string
   public allowHost: string
-  public enableOneKey: boolean
   public serverTimeOffset: number
+  public enableOneKey: boolean
   ec: EC
 
   constructor({
@@ -40,23 +43,40 @@ class Torus {
     this.serverTimeOffset = serverTimeOffset // ms
   }
 
-  static enableLogging(v = true) {
+  static enableLogging(v = true): void {
     if (v) log.enableAll()
     else log.disableAll()
   }
 
-  static setAPIKey(apiKey: string) {
+  static setAPIKey(apiKey: string): void {
     setAPIKey(apiKey)
   }
 
-  static setEmbedHost(embedHost: string) {
+  static setEmbedHost(embedHost: string): void {
     setEmbedHost(embedHost)
   }
 
   /**
    * Note: use this function only for openlogin tkey account lookups.
    */
-  async getUserTypeAndAddress(endpoints: string[], torusNodePubs: any[], { verifier, verifierId }, doesKeyAssign = false) {
+  async getUserTypeAndAddress(
+    endpoints: string[],
+    torusNodePubs: TorusNodePub[],
+    { verifier, verifierId }: { verifier: Verifier; verifierId: string },
+    doesKeyAssign = false
+  ): Promise<
+    | { typeOfUser: 'v1'; nonce?: string; X: string; Y: string; address: string }
+    | {
+        typeOfUser: 'v2'
+        nonce?: string
+        pubNonce: { x: string; y: string }
+        ipfs?: string
+        upgraded?: boolean
+        X: string
+        Y: string
+        address: string
+      }
+  > {
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
     let isNewKey = false
     let finalKeyResult
@@ -108,8 +128,8 @@ class Torus {
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`)
   }
 
-  async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }) {
-    let torusKey
+  async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }: SetCustomKeyOptions): Promise<void> {
+    let torusKey: BN | undefined
     if (torusKeyHex) {
       torusKey = new BN(torusKeyHex, 16)
     } else {
@@ -122,7 +142,14 @@ class Torus {
     await this.setMetadata(data)
   }
 
-  async retrieveShares(endpoints: string[], indexes, verifier, verifierParams, idToken: string|BN, extraParams = {}) {
+  async retrieveShares(
+    endpoints: string[],
+    indexes: Number[],
+    verifier: Verifier,
+    verifierParams: { verifier_id: string },
+    idToken: string,
+    extraParams: ExtraParams = {}
+  ): Promise<ShareResponse> {
     const promiseArr = []
     await get(
       this.allowHost,
@@ -339,9 +366,9 @@ class Torus {
       })
   }
 
-  async getMetadata(data, options) {
+  async getMetadata(data: MetaDataParams, options = {}): Promise<BN> {
     try {
-      const metadataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true })
+      const metadataResponse: MetaDataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true })
       if (!metadataResponse || !metadataResponse.message) {
         return new BN(0)
       }
@@ -352,7 +379,7 @@ class Torus {
     }
   }
 
-  generateMetadataParams(message, privateKey) {
+  generateMetadataParams(message: string, privateKey: BN): MetaDataParams {
     const key = this.ec.keyFromPrivate(privateKey.toString('hex', 64))
     const setData = {
       data: message,
@@ -367,9 +394,9 @@ class Torus {
     }
   }
 
-  async setMetadata(data, options) {
+  async setMetadata(data, options = {}): Promise<string> {
     try {
-      const metadataResponse = await post(`${this.metadataHost}/set`, data, options, { useAPIKey: true })
+      const metadataResponse: MetaDataResponse = await post(`${this.metadataHost}/set`, data, options, { useAPIKey: true })
       return metadataResponse.message // IPFS hash
     } catch (error) {
       log.error('set metadata error', error)
@@ -377,7 +404,7 @@ class Torus {
     }
   }
 
-  lagrangeInterpolation(shares: any[], nodeIndex) {
+  lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN {
     if (shares.length !== nodeIndex.length) {
       return null
     }
@@ -401,14 +428,14 @@ class Torus {
     return secret.umod(this.ec.curve.n)
   }
 
-  generateAddressFromPrivKey(privateKey) {
+  generateAddressFromPrivKey(privateKey: BN): string {
     const key = this.ec.keyFromPrivate(privateKey.toString('hex', 64), 'hex')
     const publicKey = key.getPublic().encode('hex').slice(2)
     const ethAddressLower = `0x${keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)}`
     return toChecksumAddress(ethAddressLower)
   }
 
-  generateAddressFromPubKey(publicKeyX: PublicKey, publicKeyY: PublicKey) {
+  generateAddressFromPubKey(publicKeyX: PublicKey, publicKeyY: PublicKey): string {
     const key = this.ec.keyFromPublic({ x: publicKeyX.toString('hex', 64), y: publicKeyY.toString('hex', 64) })
     const publicKey = key.getPublic().encode('hex').slice(2)
     const ethAddressLower = `0x${keccak256(Buffer.from(publicKey, 'hex')).slice(64 - 38)}`
@@ -418,10 +445,15 @@ class Torus {
   /**
    * Note: use this function only with custom auth, don't use to lookup openlogin accounts.
    */
-  async getPublicAddress(endpoints: string[], torusNodePubs, { verifier, verifierId }, isExtended = false) {
+  async getPublicAddress(
+    endpoints: string[],
+    torusNodePubs: TorusNodePub[],
+    { verifier, verifierId }: { verifier: Verifier; verifierId: string },
+    isExtended = false
+  ): Promise<string | TorusPublicKey> {
     log.debug('> torus.js/getPublicAddress', { endpoints, torusNodePubs, verifier, verifierId, isExtended })
 
-    let finalKeyResult
+    let finalKeyResult: KeyLookupResult['keyResult'] | undefined
     let isNewKey = false
 
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
@@ -439,10 +471,10 @@ class Torus {
 
     if (finalKeyResult) {
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0]
-      let typeOfUser
-      let nonce
-      let pubNonce
-      let modifiedPubKey
+      let typeOfUser: 'v1' | 'v2'
+      let nonce: string
+      let pubNonce: { x: string; y: string }
+      let modifiedPubKey: curve.base.BasePoint
       if (this.enableOneKey) {
         let upgraded
         try {
@@ -501,11 +533,18 @@ class Torus {
    * Internal functions for OneKey (OpenLogin v2), only call these functions if you know what you're doing
    */
 
-  static isGetOrSetNonceError(err: unknown) {
+  static isGetOrSetNonceError(err: unknown): boolean {
     return err instanceof GetOrSetNonceError
   }
 
-  async getOrSetNonce(X, Y, privKey, getOnly = false) {
+  async getOrSetNonce(
+    X: string,
+    Y: string,
+    privKey?: BN,
+    getOnly = false
+  ): Promise<
+    { typeOfUser: 'v1'; nonce?: string } | { typeOfUser: 'v2'; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean }
+  > {
     let data
     const msg = getOnly ? 'getNonce' : 'getOrSetNonce'
     if (privKey) {
@@ -520,11 +559,11 @@ class Torus {
     return post(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true })
   }
 
-  async getNonce(X, Y, privKey) {
+  async getNonce(X: string, Y: string, privKey?: BN): Promise<ReturnType<Torus['getOrSetNonce']>> {
     return this.getOrSetNonce(X, Y, privKey, true)
   }
 
-  getPostboxKeyFrom1OutOf1(privKey, nonce) {
+  getPostboxKeyFrom1OutOf1(privKey: string, nonce: string): string {
     const privKeyBN = new BN(privKey, 16)
     const nonceBN = new BN(nonce, 16)
     return privKeyBN.sub(nonceBN).umod(this.ec.curve.n).toString('hex')
