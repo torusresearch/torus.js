@@ -6,6 +6,7 @@ declare class Torus {
   public allowHost: string
   public serverTimeOffset: number
   public enableOneKey: boolean
+  public signerHost: string
 
   constructor(options?: TorusCtorOptions)
   static setAPIKey(apiKey: string): void
@@ -77,14 +78,15 @@ export default Torus
 
 export function waitKeyLookup(endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<KeyLookupResult>
 export function keyLookup(endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult>
-export function keyAssign(
-  endpoints: string[],
-  torusNodePubs: INodePub[],
-  lastPoint: number,
-  firstPoint: number,
-  verifier: string,
+export function keyAssign(options: {
+  endpoints: string[]
+  torusNodePubs: INodePub[]
+  lastPoint: number
+  firstPoint: number
+  verifier: string
   verifierId: string
-): Promise<void>
+  signerHost: string
+}): Promise<void>
 
 interface KeyLookupResult {
   keyResult: {
@@ -102,6 +104,7 @@ interface TorusCtorOptions {
   metadataHost?: string
   allowHost?: string
   serverTimeOffset?: number
+  signerHost?: string
 }
 
 interface TorusPublicKey extends TorusNodePub {

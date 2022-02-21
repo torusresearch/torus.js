@@ -28,19 +28,22 @@ class Torus {
   public allowHost: string
   public serverTimeOffset: number
   public enableOneKey: boolean
+  public signerHost: string
   ec: EC
 
   constructor({
     enableOneKey = false,
     metadataHost = 'https://metadata.tor.us',
     allowHost = 'https://signer.tor.us/api/allow',
+    signerHost = 'https://signer.tor.us/api/sign',
     serverTimeOffset = 0,
   }: TorusCtorOptions = {}) {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
     this.allowHost = allowHost
     this.enableOneKey = enableOneKey
-    this.serverTimeOffset = serverTimeOffset // ms
+    this.serverTimeOffset = serverTimeOffset || 0 // ms
+    this.signerHost = signerHost
   }
 
   static enableLogging(v = true): void {
@@ -84,7 +87,7 @@ class Torus {
       if (!doesKeyAssign) {
         throw new Error('Verifier + VerifierID has not yet been assigned')
       }
-      await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
+      await keyAssign({ endpoints, torusNodePubs, lastPoint: undefined, firstPoint: undefined, verifier, verifierId, signerHost: this.signerHost })
       const assignResult = (await waitKeyLookup(endpoints, verifier, verifierId, 1000)) || {}
       finalKeyResult = assignResult.keyResult
       isNewKey = true
@@ -457,8 +460,13 @@ class Torus {
     let isNewKey = false
 
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {}
-    if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
-      await keyAssign(endpoints, torusNodePubs, undefined, undefined, verifier, verifierId)
+    if (errorResult && JSON.stringify(errorResult).includes('Verifier not supported')) {
+      // change error msg
+      throw new Error(`Verifier not supported. Check if you: \n
+      1. Are on the right network (Torus testnet/mainnet) \n
+      2. Have setup a verifier on dashboard.web3auth.io?`)
+    } else if (errorResult && JSON.stringify(errorResult).includes('Verifier + VerifierID has not yet been assigned')) {
+      await keyAssign({ endpoints, torusNodePubs, lastPoint: undefined, firstPoint: undefined, verifier, verifierId, signerHost: this.signerHost })
       const assignResult = (await waitKeyLookup(endpoints, verifier, verifierId, 1000)) || {}
       finalKeyResult = assignResult.keyResult
       isNewKey = true

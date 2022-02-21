@@ -84,16 +84,9 @@ export const waitKeyLookup = (endpoints: string[], verifier: Verifier, verifierI
   })
 }
 
-export const keyAssign = async (
-  endpoints: string[],
-  torusNodePubs: TorusNodePub[],
-  lastPoint: number,
-  firstPoint: number,
-  verifier: Verifier,
-  verifierId: string
-): Promise<void> => {
-  let nodeNum: number
-  let initialPoint: number
+export const keyAssign = async ({ endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId, signerHost }) => {
+  let nodeNum
+  let initialPoint
   if (lastPoint === undefined) {
     nodeNum = Math.floor(Math.random() * endpoints.length)
     initialPoint = nodeNum
@@ -109,7 +102,7 @@ export const keyAssign = async (
   })
   try {
     const signedData = await post(
-      'https://signer.tor.us/api/sign',
+      signerHost,
       data,
       {
         headers: {
@@ -130,6 +123,20 @@ export const keyAssign = async (
     )
   } catch (error) {
     log.error(error)
-    return keyAssign(endpoints, torusNodePubs, nodeNum + 1, initialPoint, verifier, verifierId)
+    const acceptedErrorMsgs = [
+      // Slow node
+      'Timed out',
+      // Happens when the node is not reachable (dns issue etc)
+      'TypeError: Failed to fetch', // All except iOS and Firefox
+      'TypeError: cancelled', // iOS
+      'TypeError: NetworkError when attempting to fetch resource.', // Firefox
+    ]
+    if (acceptedErrorMsgs.includes(error.message))
+      return keyAssign({ endpoints, torusNodePubs, lastPoint: nodeNum + 1, firstPoint: initialPoint, verifier, verifierId, signerHost })
+    throw new Error(
+      `Sorry, the Torus Network that powers Web3Auth is currently very busy.
+    We will generate your key in time. Pls try again later. \n
+    ${error.message || ''}`
+    )
   }
 }
