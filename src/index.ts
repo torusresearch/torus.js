@@ -1,5 +1,5 @@
-import Torus from './torus'
+import Torus from "./torus";
 
-export { keyAssign, keyLookup, waitKeyLookup } from './utils'
+export { keyAssign, keyLookup, waitKeyLookup } from "./utils";
 
-export default Torus
+export default Torus;

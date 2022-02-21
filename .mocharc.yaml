@@ -1,6 +1,6 @@
-require:
-  - "./test/setup.js"
-  - "@babel/register"
-exit: true
-timeout: 0
-spec: "test/**/*.test.js"
+{
+  "require": ["./test/setup.js"],
+  "timeout": 0,
+  "exit": true,
+  "extension": "ts",
+}
