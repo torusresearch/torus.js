@@ -1,7 +1,8 @@
+import type { INodePub as TorusNodePub } from "@toruslabs/fetch-node-details";
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import JsonStringify from "json-stable-stringify";
 
-import { KeyLookupResult, TorusNodePub, Verifier } from "../types/types";
+import { KeyLookupResult } from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
 
@@ -49,7 +50,7 @@ export const thresholdSame = (arr: any[], t: number) => {
   return undefined;
 };
 
-export const keyLookup = async (endpoints: string[], verifier: Verifier, verifierId: string): Promise<KeyLookupResult> => {
+export const keyLookup = async (endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post(
       x,
@@ -76,7 +77,7 @@ export const keyLookup = async (endpoints: string[], verifier: Verifier, verifie
   });
 };
 
-export const waitKeyLookup = (endpoints: string[], verifier: Verifier, verifierId: string, timeout: number): Promise<KeyLookupResult> => {
+export const waitKeyLookup = (endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<KeyLookupResult> => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       keyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject);
@@ -84,9 +85,25 @@ export const waitKeyLookup = (endpoints: string[], verifier: Verifier, verifierI
   });
 };
 
-export const keyAssign = async ({ endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId, signerHost }) => {
-  let nodeNum;
-  let initialPoint;
+export const keyAssign = async ({
+  endpoints,
+  torusNodePubs,
+  lastPoint,
+  firstPoint,
+  verifier,
+  verifierId,
+  signerHost,
+}: {
+  endpoints: string[];
+  torusNodePubs: TorusNodePub[];
+  lastPoint: number;
+  firstPoint: number;
+  verifier: string;
+  verifierId: string;
+  signerHost: string;
+}) => {
+  let nodeNum: number;
+  let initialPoint: number;
   if (lastPoint === undefined) {
     nodeNum = Math.floor(Math.random() * endpoints.length);
     initialPoint = nodeNum;
