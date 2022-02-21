@@ -537,8 +537,8 @@ class Torus {
   }
 
   async getOrSetNonce(
-    X: string,
-    Y: string,
+    X?: string,
+    Y?: string,
     privKey?: BN,
     getOnly = false
   ): Promise<
@@ -555,7 +555,7 @@ class Torus {
         set_data: { data: msg },
       };
     }
-    return post(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
+    return post(`${this.metadataHost}/get_or_set_nonce`, data, {}, { useAPIKey: true });
   }
 
   async getNonce(X: string, Y: string, privKey?: BN): Promise<ReturnType<Torus["getOrSetNonce"]>> {
