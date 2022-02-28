@@ -73,7 +73,7 @@ import FetchNodeDetails from '@toruslabs/fetch-node-details'
 import TorusUtils from '@toruslabs/torus.js'
 
 const fetchNodeDetails = new FetchNodeDetails()
-const torus = new TorusUtils()
+const torus = new TorusUtils({ network: 'testnet' })
 const verifier = 'google'
 const verifierId = 'hello@tor.us'
 const { torusNodeEndpoints, torusNodePub, torusIndexes } = await fetchNodeDetails.getNodeDetails()
@@ -88,7 +88,7 @@ const FetchNodeDetails = require('@toruslabs/fetch-node-details').default
 const TorusUtils = require('@toruslabs/torus.js').default
 
 const fetchNodeDetails = new FetchNodeDetails()
-const torus = new TorusUtils()
+const torus = new TorusUtils({ network: 'testnet' })
 const verifier = 'google' // any verifier
 const verifierId = 'hello@tor.us' // any verifier id
 fetchNodeDetails
@@ -111,7 +111,7 @@ const FetchNodeDetails = require('@toruslabs/fetch-node-details/dist/fetchNodeDe
 const TorusUtils = require('@toruslabs/torus.js/dist/torusUtils-node.js').default
 
 const fetchNodeDetails = new FetchNodeDetails()
-const torus = new TorusUtils()
+const torus = new TorusUtils({ network: 'testnet' })
 const verifier = 'google' // any verifier
 const verifierId = 'hello@tor.us' // any verifier id
 fetchNodeDetails
