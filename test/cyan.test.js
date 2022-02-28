@@ -15,7 +15,11 @@ describe('torus utils cyan', function () {
   let TORUS_NODE_MANAGER
 
   beforeEach('one time execution before all tests', async function () {
-    torus = new TorusUtils({ signerHost: 'https://signer-polygon.tor.us/api/sign', allowHost: 'https://signer-polygon.tor.us/api/allow' })
+    torus = new TorusUtils({
+      signerHost: 'https://signer-polygon.tor.us/api/sign',
+      allowHost: 'https://signer-polygon.tor.us/api/allow',
+      network: 'cyan',
+    })
     TORUS_NODE_MANAGER = new NodeManager({ network: 'polygon-mainnet', proxyAddress: '0x9f072ba19b3370e512aa1b4bfcdaf97283168005' })
   })
   it('should fetch public address', async function () {
