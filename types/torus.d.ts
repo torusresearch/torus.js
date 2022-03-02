@@ -7,7 +7,7 @@ declare class Torus {
   public serverTimeOffset: number
   public enableOneKey: boolean
   public signerHost: string
-  public network: 'mainnet' | 'testnet' | 'cyan'
+  public network: TorusNetwork
 
   constructor(options?: TorusCtorOptions)
   static setAPIKey(apiKey: string): void
@@ -90,6 +90,12 @@ export function keyAssign(options: {
   network: string
 }): Promise<void>
 
+export enum TorusNetwork {
+  TESTNET = "testnet",
+  MAINNET = "mainnet",
+  CYAN = "cyan",
+}
+
 interface KeyLookupResult {
   keyResult: {
     keys: { pub_key_X: string; pub_key_Y: string }[]
@@ -107,7 +113,7 @@ interface TorusCtorOptions {
   allowHost?: string
   serverTimeOffset?: number
   signerHost?: string
-  network: string
+  network?: TorusNetwork
 }
 
 interface TorusPublicKey extends TorusNodePub {

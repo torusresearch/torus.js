@@ -18,7 +18,7 @@ class Torus {
     allowHost = 'https://signer.tor.us/api/allow',
     signerHost = 'https://signer.tor.us/api/sign',
     serverTimeOffset = 0,
-    network,
+    network = 'mainnet',
   } = {}) {
     this.ec = new EC('secp256k1')
     this.metadataHost = metadataHost
