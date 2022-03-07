@@ -15,7 +15,7 @@ describe('torus utils ropsten', function () {
   let TORUS_NODE_MANAGER
 
   beforeEach('one time execution before all tests', async function () {
-    torus = new TorusUtils()
+    torus = new TorusUtils({ network: 'testnet' })
     TORUS_NODE_MANAGER = new NodeManager({ network: 'ropsten', proxyAddress: '0x6258c9d6c12ed3edda59a1a6527e469517744aa7' })
   })
   it('should fetch public address', async function () {

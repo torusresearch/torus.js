@@ -82,7 +82,7 @@ export const waitKeyLookup = (endpoints, verifier, verifierId, timeout) =>
     }, timeout)
   })
 
-export const keyAssign = async ({ endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId, signerHost }) => {
+export const keyAssign = async ({ endpoints, torusNodePubs, lastPoint, firstPoint, verifier, verifierId, signerHost, network }) => {
   let nodeNum
   let initialPoint
   if (lastPoint === undefined) {
@@ -106,6 +106,7 @@ export const keyAssign = async ({ endpoints, torusNodePubs, lastPoint, firstPoin
         headers: {
           pubKeyX: torusNodePubs[nodeNum].X,
           pubKeyY: torusNodePubs[nodeNum].Y,
+          network,
         },
       },
       { useAPIKey: true }
@@ -130,7 +131,7 @@ export const keyAssign = async ({ endpoints, torusNodePubs, lastPoint, firstPoin
       'TypeError: NetworkError when attempting to fetch resource.', // Firefox
     ]
     if (acceptedErrorMsgs.includes(error.message))
-      return keyAssign({ endpoints, torusNodePubs, lastPoint: nodeNum + 1, firstPoint: initialPoint, verifier, verifierId, signerHost })
+      return keyAssign({ endpoints, torusNodePubs, lastPoint: nodeNum + 1, firstPoint: initialPoint, verifier, verifierId, signerHost, network })
     throw new Error(
       `Sorry, the Torus Network that powers Web3Auth is currently very busy.
     We will generate your key in time. Pls try again later. \n

@@ -17,6 +17,7 @@ describe('torus onekey', function () {
   beforeEach('one time execution before all tests', async function () {
     torus = new TorusUtils({
       enableOneKey: true,
+      network: 'testnet',
     })
   })
 

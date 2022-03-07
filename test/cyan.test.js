@@ -15,7 +15,11 @@ describe('torus utils cyan', function () {
   let TORUS_NODE_MANAGER
 
   beforeEach('one time execution before all tests', async function () {
-    torus = new TorusUtils({ signerHost: 'https://signer-polygon.tor.us/api/sign', allowHost: 'https://signer-polygon.tor.us/api/allow' })
+    torus = new TorusUtils({
+      signerHost: 'https://signer-polygon.tor.us/api/sign',
+      allowHost: 'https://signer-polygon.tor.us/api/allow',
+      network: 'cyan',
+    })
     TORUS_NODE_MANAGER = new NodeManager({ network: 'polygon-mainnet', proxyAddress: '0x9f072ba19b3370e512aa1b4bfcdaf97283168005' })
   })
   it('should fetch public address', async function () {
@@ -23,7 +27,7 @@ describe('torus utils cyan', function () {
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL }
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails)
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)
-    expect(publicAddress).to.equal('0xA438d4c57Ce4f13B072d5227b2E6179D117242E0')
+    expect(publicAddress).to.equal('0xA3767911A84bE6907f26C572bc89426dDdDB2825')
   })
 
   it('should fetch user type and public address', async function () {
@@ -31,7 +35,7 @@ describe('torus utils cyan', function () {
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL }
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails)
     const { address, typeOfUser } = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails)
-    expect(address).to.equal('0xA438d4c57Ce4f13B072d5227b2E6179D117242E0')
+    expect(address).to.equal('0xA3767911A84bE6907f26C572bc89426dDdDB2825')
     expect(typeOfUser).to.equal('v1')
 
     const v2Verifier = 'tkey-google-cyan'
@@ -41,7 +45,7 @@ describe('torus utils cyan', function () {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     })
-    expect(v2Address).to.equal('0x414394f9fE2EBC0d26148C73442cD17E27Fc6443')
+    expect(v2Address).to.equal('0x8EA83Ace86EB414747F2b23f03C38A34E0217814')
     expect(v2UserType).to.equal('v2')
 
     // 2/n user
@@ -50,7 +54,7 @@ describe('torus utils cyan', function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     })
-    expect(v2nAddress).to.equal('0x3198CC467Af3434a6a0Ea614b6B8b49E514bF6B2')
+    expect(v2nAddress).to.equal('0xCC1f953f6972a9e3d685d260399D6B85E2117561')
     expect(v2nUserType).to.equal('v2')
   })
 
@@ -75,7 +79,7 @@ describe('torus utils cyan', function () {
       { verifier_id: TORUS_TEST_EMAIL },
       token
     )
-    expect(retrieveSharesResponse.privKey).to.be.equal('1d71b423832659fbd1bedbef3f73fcbd6118f4175d664f71f082ef9643ba05bb')
+    expect(retrieveSharesResponse.privKey).to.be.equal('1e0c955d73e73558f46521da55cc66de7b8fcb56c5b24e851616849b6a1278c8')
   })
 
   it('should be able to aggregate login', async function () {
@@ -94,6 +98,6 @@ describe('torus utils cyan', function () {
       },
       hashedIdToken.substring(2)
     )
-    expect(retrieveSharesResponse.ethAddress).to.be.equal('0x4290298e9451f43058655193DC734298C7B04262')
+    expect(retrieveSharesResponse.ethAddress).to.be.equal('0x34117FDFEFBf1ad2DFA6d4c43804E6C710a6fB04')
   })
 })
