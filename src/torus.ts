@@ -7,6 +7,7 @@ import stringify from "json-stable-stringify";
 import { keccak256, toChecksumAddress } from "web3-utils";
 
 import {
+  GetOrSetNonceResult,
   KeyLookupResult,
   MetadataParams,
   MetadataResponse,
@@ -538,14 +539,7 @@ class Torus {
     return err instanceof GetOrSetNonceError;
   }
 
-  async getOrSetNonce(
-    X?: string,
-    Y?: string,
-    privKey?: BN,
-    getOnly = false
-  ): Promise<
-    { typeOfUser: "v1"; nonce?: string } | { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean }
-  > {
+  async getOrSetNonce(X?: string, Y?: string, privKey?: BN, getOnly = false): Promise<GetOrSetNonceResult> {
     let data;
     const msg = getOnly ? "getNonce" : "getOrSetNonce";
     if (privKey) {
@@ -560,7 +554,7 @@ class Torus {
     return post(`${this.metadataHost}/get_or_set_nonce`, data, {}, { useAPIKey: true });
   }
 
-  async getNonce(X: string, Y: string, privKey?: BN): Promise<ReturnType<Torus["getOrSetNonce"]>> {
+  async getNonce(X: string, Y: string, privKey?: BN): Promise<GetOrSetNonceResult> {
     return this.getOrSetNonce(X, Y, privKey, true);
   }
 
