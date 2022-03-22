@@ -1,5 +1,4 @@
 import BN from "bn.js";
-import { ec } from "elliptic";
 
 export type GetOrSetNonceResult =
   | { typeOfUser: "v1"; nonce?: string }
@@ -39,11 +38,6 @@ export interface ShareResponse {
   privKey: string;
   metadataNonce: BN;
 }
-
-type PrivateKey = Uint8Array | Buffer | string | number[] | ec.KeyPair;
-// type PrivateKey = number | string | number[] | Uint8Array | Buffer | BN
-export type PublicKey = Uint8Array | Buffer | string | number[] | { x: string; y: string } | ec.KeyPair;
-// Uint8Array | Buffer | string | number[] | { x: string; y: string } | ec.KeyPair
 
 export interface KeyLookupResult {
   keyResult: {

@@ -103,7 +103,7 @@ export const keyAssign = async ({
   signerHost: string;
 }) => {
   let nodeNum: number;
-  let initialPoint: number;
+  let initialPoint: number | undefined;
   if (lastPoint === undefined) {
     nodeNum = Math.floor(Math.random() * endpoints.length);
     initialPoint = nodeNum;
