@@ -8,7 +8,7 @@ import { Some } from "./some";
 
 export class GetOrSetNonceError extends Error {}
 
-export const kCombinations = (s, k: number) => {
+export const kCombinations = (s: number | any[], k: number) => {
   let set = s;
   if (typeof set === "number") {
     set = Array.from({ length: set }, (_, i) => i);
@@ -96,8 +96,8 @@ export const keyAssign = async ({
 }: {
   endpoints: string[];
   torusNodePubs: TorusNodePub[];
-  lastPoint: number;
-  firstPoint: number;
+  lastPoint?: number;
+  firstPoint?: number;
   verifier: string;
   verifierId: string;
   signerHost: string;

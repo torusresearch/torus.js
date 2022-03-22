@@ -7,11 +7,13 @@ import stringify from "json-stable-stringify";
 import { keccak256, toChecksumAddress } from "web3-utils";
 
 import {
+  KeyLookupResult,
   MetadataParams,
   MetadataResponse,
   SetCustomKeyOptions,
   ShareResponse,
   TorusCtorOptions,
+  TorusPublicKey,
   V1UserTypeAndAddress,
   V2UserTypeAndAddress,
 } from "./interfaces";
@@ -270,7 +272,7 @@ class Torus {
           // this is matched against the user public key to ensure that shares are consistent
           if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
             const sharePromises = [];
-            const nodeIndex = [];
+            const nodeIndex: BN[] = [];
             for (let i = 0; i < shareResponses.length; i += 1) {
               if (shareResponses[i] && shareResponses[i].result && shareResponses[i].result.keys && shareResponses[i].result.keys.length > 0) {
                 shareResponses[i].result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)));
@@ -362,7 +364,7 @@ class Torus {
 
   async getMetadata(data: MetadataParams, options = {}): Promise<BN> {
     try {
-      const metadataResponse: MetaDataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true });
+      const metadataResponse: MetadataResponse = await post(`${this.metadataHost}/get`, data, options, { useAPIKey: true });
       if (!metadataResponse || !metadataResponse.message) {
         return new BN(0);
       }
@@ -388,7 +390,7 @@ class Torus {
     };
   }
 
-  async setMetadata(data, options = {}): Promise<string> {
+  async setMetadata(data: MetadataParams, options = {}): Promise<string> {
     try {
       const metadataResponse: MetadataResponse = await post(`${this.metadataHost}/set`, data, options, { useAPIKey: true });
       return metadataResponse.message; // IPFS hash
@@ -398,7 +400,7 @@ class Torus {
     }
   }
 
-  lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN {
+  lagrangeInterpolation(shares: BN[], nodeIndex: BN[]): BN | null {
     if (shares.length !== nodeIndex.length) {
       return null;
     }
