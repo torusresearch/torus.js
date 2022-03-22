@@ -1,15 +1,9 @@
 import BN from "bn.js";
 import { ec } from "elliptic";
 
-export interface GetOrSetNonceParams {
-  pub_key_X: string;
-  pub_key_Y: string;
-  set_data: {
-    data: "getNonce" | "getOrSetNonce" | string;
-    timestamp: string;
-  };
-  signature: string;
-}
+export type GetOrSetNonceResult =
+  | { typeOfUser: "v1"; nonce?: string }
+  | { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded?: boolean };
 
 export interface MetadataResponse {
   message: string;
