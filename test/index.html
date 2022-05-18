@@ -6,13 +6,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@toruslabs/fetch-node-details"></script>
   <script src="../dist/torusUtils.umd.min.js"></script>
   <script>
-    const fetchNodeDetails = new FetchNodeDetails()
-    const torus = new TorusUtils({ network: 'mainnet' })
-    const verifier = 'google' // any verifier
-    const verifierId = 'hello@tor.us' // any verifier id
+    const fetchNodeDetails = new FetchNodeDetails.default();
+    const torus = new TorusUtils.default({ network: "mainnet" });
+    const verifier = "google"; // any verifier
+    const verifierId = "hello@tor.us"; // any verifier id
     fetchNodeDetails
       .getNodeDetails({ verifier, verifierId })
       .then(({ torusNodeEndpoints, torusNodePub }) => torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId }))
-      .then((publicAddress) => console.log(publicAddress))
+      .then((publicAddress) => console.log(publicAddress));
   </script>
 </body>
