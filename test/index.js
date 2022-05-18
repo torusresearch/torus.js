@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import NodeManager from "@toruslabs/fetch-node-details";
 
-import TorusUtils from "../src/torus";
+import TorusUtils from "../dist/torusUtils-node";
 
 const fetchNodeDetails = new NodeManager();
 const torus = new TorusUtils({ network: "mainnet" });
@@ -12,3 +12,5 @@ fetchNodeDetails
   .then(({ torusNodeEndpoints, torusNodePub }) => torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId }))
   .then((publicAddress) => console.log(publicAddress))
   .catch(console.error);
+
+// To run: node -r @babel/register test/index.js
