@@ -1,9 +1,9 @@
 import dotenv from "dotenv";
-import jwt from "jsonwebtoken";
+import jwt, { Algorithm } from "jsonwebtoken";
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 const jwtPrivateKey = `-----BEGIN PRIVATE KEY-----\n${process.env.JWT_PRIVATE_KEY}\n-----END PRIVATE KEY-----`;
-export const generateIdToken = (email, alg) => {
+export const generateIdToken = (email: string, alg: Algorithm) => {
   const iat = Math.floor(Date.now() / 1000);
   const payload = {
     iss: "torus-key-test",
