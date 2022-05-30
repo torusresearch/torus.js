@@ -2,5 +2,5 @@ require:
   - "./test/setup.js"
 exit: true
 timeout: 0
-spec: "test/**/*.test.ts"
+spec: "test/substrate.ts"
 extension: "ts"

@@ -13,7 +13,7 @@
     "release": "torus-scripts release",
     "prepack": "npm run build",
     "lint:ts": "eslint --fix 'src/**/*.ts'",
-    "test": "cross-env NODE_ENV=test mocha",
+    "test": "cross-env NODE_ENV=test mocha ./test/substrate.ts",
     "prepare": "husky install"
   },
   "files": [

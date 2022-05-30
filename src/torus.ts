@@ -169,7 +169,7 @@ class Torus {
 
   async retrieveShares(
     endpoints: string[],
-    indexes: number[],
+    // indexes: number[],
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
@@ -206,20 +206,21 @@ class Torus {
 
     // make commitment requests to endpoints
     for (let i = 0; i < endpoints.length; i += 1) {
-      const p = post<JRPCResponse<CommitmentRequestResult>>(
-        endpoints[i],
-        generateJsonRPCObject("CommitmentRequest", {
+      const p = post<CommitmentRequestResult>(
+        `${endpoints[i]}/commitment_request`,
+        {
           messageprefix: "mug00",
           tokencommitment: tokenCommitment.slice(2),
           temppubx: pubKeyX,
           temppuby: pubKeyY,
           verifieridentifier: verifier,
-        })
+        }
       ).catch((err) => {
         log.error("commitment", err);
       });
       promiseArr.push(p);
     }
+
     /*
       ShareRequestParams struct {
         Item []bijson.RawMessage `json:"item"`
@@ -243,39 +244,42 @@ class Torus {
       }
       */
     // send share request once k + t number of commitment requests have completed
-    return Some<void | JRPCResponse<CommitmentRequestResult>, (void | JRPCResponse<CommitmentRequestResult>)[]>(promiseArr, (resultArr) => {
+    return Some<void | CommitmentRequestResult, (void | CommitmentRequestResult)[]>(promiseArr, (resultArr) => {
       const completedRequests = resultArr.filter((x) => {
         if (!x || typeof x !== "object") {
           return false;
         }
-        if (x.error) {
-          return false;
-        }
+        // TODO: Error handle
+        // if (x.error) {
+        //   return false;
+        // }
         return true;
       });
+      console.log(completedRequests.length)
       if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
         return Promise.resolve(resultArr);
       }
       return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
     })
       .then((responses) => {
-        const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult>>[] = [];
+        console.log("Got here,", responses)
+        const promiseArrRequest: Promise<void | ShareRequestResult>[] = [];
         const nodeSigs = [];
         for (let i = 0; i < responses.length; i += 1) {
-          if (responses[i]) nodeSigs.push((responses[i] as JRPCResponse<CommitmentRequestResult>).result);
+          if (responses[i]) nodeSigs.push(responses[i] as CommitmentRequestResult);
         }
         for (let i = 0; i < endpoints.length; i += 1) {
           // eslint-disable-next-line promise/no-nesting
-          const p = post<JRPCResponse<ShareRequestResult>>(
-            endpoints[i],
-            generateJsonRPCObject("ShareRequest", {
+          const p = post<ShareRequestResult>(
+            `${endpoints[i]}/share_request`,
+            {
               encrypted: "yes",
               item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
-            })
+            }
           ).catch((err) => log.error("share req", err));
           promiseArrRequest.push(p);
         }
-        return Some<void | JRPCResponse<ShareRequestResult>, BN | undefined>(promiseArrRequest, async (shareResponses, sharedState) => {
+        return Some<void | ShareRequestResult, BN | undefined>(promiseArrRequest, async (shareResponses, sharedState) => {
           /*
               ShareRequestResult struct {
                 Keys []KeyAssignment
@@ -295,77 +299,80 @@ class Torus {
               }
             */
           // check if threshold number of nodes have returned the same user public key
-          const completedRequests = shareResponses.filter((x) => x);
-          const thresholdPublicKey = thresholdSame(
-            shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
-            ~~(endpoints.length / 2) + 1
-          );
-          // optimistically run lagrange interpolation once threshold number of shares have been received
-          // this is matched against the user public key to ensure that shares are consistent
-          if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
-            const sharePromises: Promise<void | Buffer>[] = [];
-            const nodeIndexes: BN[] = [];
-            for (let i = 0; i < shareResponses.length; i += 1) {
-              const currentShareResponse = shareResponses[i] as JRPCResponse<ShareRequestResult>;
-              if (currentShareResponse?.result?.keys?.length > 0) {
-                currentShareResponse.result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)));
-                const firstKey = currentShareResponse.result.keys[0];
-                if (firstKey.Metadata) {
-                  const metadata = {
-                    ephemPublicKey: Buffer.from(firstKey.Metadata.ephemPublicKey, "hex"),
-                    iv: Buffer.from(firstKey.Metadata.iv, "hex"),
-                    mac: Buffer.from(firstKey.Metadata.mac, "hex"),
-                    // mode: Buffer.from(firstKey.Metadata.mode, "hex"),
-                  };
-                  sharePromises.push(
-                    // eslint-disable-next-line promise/no-nesting
-                    decrypt(tmpKey, {
-                      ...metadata,
-                      ciphertext: Buffer.from(Buffer.from(firstKey.Share, "base64").toString("binary").padStart(64, "0"), "hex"),
-                    }).catch((err) => log.debug("share decryption", err))
-                  );
-                } else {
-                  sharePromises.push(Promise.resolve(Buffer.from(firstKey.Share.padStart(64, "0"), "hex")));
-                }
-              } else {
-                sharePromises.push(Promise.resolve(undefined));
-              }
-              nodeIndexes.push(new BN(indexes[i], 16));
-            }
-            const sharesResolved = await Promise.all(sharePromises);
-            if (sharedState.resolved) return undefined;
 
-            const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
-              if (curr) acc.push({ index: nodeIndexes[index], value: new BN(curr) });
-              return acc;
-            }, [] as { index: BN; value: BN }[]);
-            // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
-            const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1);
-            let privateKey: BN | null = null;
-            for (let j = 0; j < allCombis.length; j += 1) {
-              const currentCombi = allCombis[j];
-              const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index));
-              const shares = currentCombiShares.map((x) => x.value);
-              const indices = currentCombiShares.map((x) => x.index);
-              const derivedPrivateKey = this.lagrangeInterpolation(shares, indices);
-              if (!derivedPrivateKey) continue;
-              const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), "hex")).toString("hex");
-              const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-              const decryptedPubKeyY = decryptedPubKey.slice(66);
-              if (
-                new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
-                new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
-              ) {
-                privateKey = derivedPrivateKey;
-                break;
-              }
-            }
-            if (privateKey === undefined || privateKey === null) {
-              throw new Error("could not derive private key");
-            }
-            return privateKey;
-          }
-          throw new Error("invalid");
+          const completedRequests = shareResponses.filter((x) => x);
+          console.log(completedRequests);
+          
+          // const thresholdPublicKey = thresholdSame(
+          //   shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
+          //   ~~(endpoints.length / 2) + 1
+          // );
+          // // optimistically run lagrange interpolation once threshold number of shares have been received
+          // // this is matched against the user public key to ensure that shares are consistent
+          // if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
+          //   const sharePromises: Promise<void | Buffer>[] = [];
+          //   const nodeIndexes: BN[] = [];
+          //   for (let i = 0; i < shareResponses.length; i += 1) {
+          //     const currentShareResponse = shareResponses[i] as ShareRequestResult;
+          //     if (currentShareResponse?.result?.keys?.length > 0) {
+          //       currentShareResponse.result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)));
+          //       const firstKey = currentShareResponse.result.keys[0];
+          //       if (firstKey.Metadata) {
+          //         const metadata = {
+          //           ephemPublicKey: Buffer.from(firstKey.Metadata.ephemPublicKey, "hex"),
+          //           iv: Buffer.from(firstKey.Metadata.iv, "hex"),
+          //           mac: Buffer.from(firstKey.Metadata.mac, "hex"),
+          //           // mode: Buffer.from(firstKey.Metadata.mode, "hex"),
+          //         };
+          //         sharePromises.push(
+          //           // eslint-disable-next-line promise/no-nesting
+          //           decrypt(tmpKey, {
+          //             ...metadata,
+          //             ciphertext: Buffer.from(Buffer.from(firstKey.Share, "base64").toString("binary").padStart(64, "0"), "hex"),
+          //           }).catch((err) => log.debug("share decryption", err))
+          //         );
+          //       } else {
+          //         sharePromises.push(Promise.resolve(Buffer.from(firstKey.Share.padStart(64, "0"), "hex")));
+          //       }
+          //     } else {
+          //       sharePromises.push(Promise.resolve(undefined));
+          //     }
+          //     nodeIndexes.push(new BN(indexes[i], 16));
+          //   }
+          //   const sharesResolved = await Promise.all(sharePromises);
+          //   if (sharedState.resolved) return undefined;
+
+          //   const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
+          //     if (curr) acc.push({ index: nodeIndexes[index], value: new BN(curr) });
+          //     return acc;
+          //   }, [] as { index: BN; value: BN }[]);
+          //   // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
+          //   const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1);
+          //   let privateKey: BN | null = null;
+          //   for (let j = 0; j < allCombis.length; j += 1) {
+          //     const currentCombi = allCombis[j];
+          //     const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index));
+          //     const shares = currentCombiShares.map((x) => x.value);
+          //     const indices = currentCombiShares.map((x) => x.index);
+          //     const derivedPrivateKey = this.lagrangeInterpolation(shares, indices);
+          //     if (!derivedPrivateKey) continue;
+          //     const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), "hex")).toString("hex");
+          //     const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
+          //     const decryptedPubKeyY = decryptedPubKey.slice(66);
+          //     if (
+          //       new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
+          //       new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
+          //     ) {
+          //       privateKey = derivedPrivateKey;
+          //       break;
+          //     }
+          //   }
+          //   if (privateKey === undefined || privateKey === null) {
+          //     throw new Error("could not derive private key");
+          //   }
+          //   return privateKey;
+          // }
+          // throw new Error("invalid");
         });
       })
       .then(async (returnedKey) => {
