@@ -276,7 +276,7 @@ class Torus {
               encrypted: "yes",
               item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
             }
-          ).catch((err) => log.error("share req", err));
+          ).catch(async (err) => { console.log("share req", await err.text())});
           promiseArrRequest.push(p);
         }
         return Some<void | ShareRequestResult, BN | undefined>(promiseArrRequest, async (shareResponses, sharedState) => {
@@ -301,7 +301,7 @@ class Torus {
           // check if threshold number of nodes have returned the same user public key
 
           const completedRequests = shareResponses.filter((x) => x);
-          console.log(completedRequests);
+          console.log("THIS IS PRINTED", completedRequests);
           
           // const thresholdPublicKey = thresholdSame(
           //   shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
