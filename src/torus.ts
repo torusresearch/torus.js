@@ -206,16 +206,13 @@ class Torus {
 
     // make commitment requests to endpoints
     for (let i = 0; i < endpoints.length; i += 1) {
-      const p = post<CommitmentRequestResult>(
-        `${endpoints[i]}/commitment_request`,
-        {
-          messageprefix: "mug00",
-          tokencommitment: tokenCommitment.slice(2),
-          temppubx: pubKeyX,
-          temppuby: pubKeyY,
-          verifieridentifier: verifier,
-        }
-      ).catch((err) => {
+      const p = post<CommitmentRequestResult>(`${endpoints[i]}/commitment_request`, {
+        messageprefix: "mug00",
+        tokencommitment: tokenCommitment.slice(2),
+        temppubx: pubKeyX,
+        temppuby: pubKeyY,
+        verifieridentifier: verifier,
+      }).catch((err) => {
         log.error("commitment", err);
       });
       promiseArr.push(p);
@@ -255,14 +252,14 @@ class Torus {
         // }
         return true;
       });
-      console.log(completedRequests.length)
+      console.log(completedRequests.length);
       if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
         return Promise.resolve(resultArr);
       }
       return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
     })
       .then((responses) => {
-        console.log("Got here,", responses)
+        console.log("Got here,", responses);
         const promiseArrRequest: Promise<void | ShareRequestResult>[] = [];
         const nodeSigs = [];
         for (let i = 0; i < responses.length; i += 1) {
@@ -270,13 +267,12 @@ class Torus {
         }
         for (let i = 0; i < endpoints.length; i += 1) {
           // eslint-disable-next-line promise/no-nesting
-          const p = post<ShareRequestResult>(
-            `${endpoints[i]}/share_request`,
-            {
-              encrypted: "yes",
-              item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
-            }
-          ).catch(async (err) => { console.log("share req", await err.text())});
+          const p = post<ShareRequestResult>(`${endpoints[i]}/share_request`, {
+            encrypted: "yes",
+            item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
+          }).catch(async (err) => {
+            console.log("share req", await err.text());
+          });
           promiseArrRequest.push(p);
         }
         return Some<void | ShareRequestResult, BN | undefined>(promiseArrRequest, async (shareResponses, sharedState) => {
@@ -302,7 +298,7 @@ class Torus {
 
           const completedRequests = shareResponses.filter((x) => x);
           console.log("THIS IS PRINTED", completedRequests);
-          
+
           // const thresholdPublicKey = thresholdSame(
           //   shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
           //   ~~(endpoints.length / 2) + 1

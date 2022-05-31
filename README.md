@@ -69,55 +69,55 @@ Add [`@toruslabs/torus.js`](https://www.npmjs.com/package/@toruslabs/torus.js) t
 Needs to be used in conjuction with [`@toruslabs/fetch-node-details`](https://www.npmjs.com/package/@toruslabs/fetch-node-details)
 
 ```ts
-import FetchNodeDetails from '@toruslabs/fetch-node-details'
-import TorusUtils from '@toruslabs/torus.js'
+import FetchNodeDetails from "@toruslabs/fetch-node-details";
+import TorusUtils from "@toruslabs/torus.js";
 
-const fetchNodeDetails = new FetchNodeDetails()
-const torus = new TorusUtils({ network: 'mainnet' })
-const verifier = 'google'
-const verifierId = 'hello@tor.us'
-const { torusNodeEndpoints, torusNodePub, torusIndexes } = await fetchNodeDetails.getNodeDetails()
-const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId })
+const fetchNodeDetails = new FetchNodeDetails();
+const torus = new TorusUtils({ network: "mainnet" });
+const verifier = "google";
+const verifierId = "hello@tor.us";
+const { torusNodeEndpoints, torusNodePub, torusIndexes } = await fetchNodeDetails.getNodeDetails();
+const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId });
 
-const idToken = 'YOUR_ID_TOKEN'
-const keyData = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, verifier, { verifier_id: verifierId }, idToken)
+const idToken = "YOUR_ID_TOKEN";
+const keyData = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, verifier, { verifier_id: verifierId }, idToken);
 ```
 
 ```js
-const FetchNodeDetails = require('@toruslabs/fetch-node-details').default
-const TorusUtils = require('@toruslabs/torus.js').default
+const FetchNodeDetails = require("@toruslabs/fetch-node-details").default;
+const TorusUtils = require("@toruslabs/torus.js").default;
 
-const fetchNodeDetails = new FetchNodeDetails()
-const torus = new TorusUtils({ network: 'mainnet' })
-const verifier = 'google' // any verifier
-const verifierId = 'hello@tor.us' // any verifier id
+const fetchNodeDetails = new FetchNodeDetails();
+const torus = new TorusUtils({ network: "mainnet" });
+const verifier = "google"; // any verifier
+const verifierId = "hello@tor.us"; // any verifier id
 fetchNodeDetails
   .getNodeDetails()
   .then(({ torusNodeEndpoints, torusNodePub }) => torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId }))
-  .then((publicAddress) => console.log(publicAddress))
+  .then((publicAddress) => console.log(publicAddress));
 
-const idToken = 'YOUR_ID_TOKEN'
+const idToken = "YOUR_ID_TOKEN";
 fetchNodeDetails
   .getNodeDetails()
   .then(({ torusNodeEndpoints, torusIndexes }) =>
     torus.retrieveShares(torusNodeEndpoints, torusIndexes, verifier, { verifier_id: verifierId }, idToken)
   )
-  .then((keyData) => console.log(keyData))
+  .then((keyData) => console.log(keyData));
 ```
 
 ```js
 // For Node.js
-const FetchNodeDetails = require('@toruslabs/fetch-node-details/dist/fetchNodeDetails-node.js').default
-const TorusUtils = require('@toruslabs/torus.js/dist/torusUtils-node.js').default
+const FetchNodeDetails = require("@toruslabs/fetch-node-details/dist/fetchNodeDetails-node.js").default;
+const TorusUtils = require("@toruslabs/torus.js/dist/torusUtils-node.js").default;
 
-const fetchNodeDetails = new FetchNodeDetails()
-const torus = new TorusUtils({ network: 'mainnet' })
-const verifier = 'google' // any verifier
-const verifierId = 'hello@tor.us' // any verifier id
+const fetchNodeDetails = new FetchNodeDetails();
+const torus = new TorusUtils({ network: "mainnet" });
+const verifier = "google"; // any verifier
+const verifierId = "hello@tor.us"; // any verifier id
 fetchNodeDetails
   .getNodeDetails()
   .then(({ torusNodeEndpoints, torusNodePub }) => torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId }))
-  .then((publicAddress) => console.log(publicAddress))
+  .then((publicAddress) => console.log(publicAddress));
 ```
 
 ## Requirements
