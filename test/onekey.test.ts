@@ -67,11 +67,26 @@ describe("torus onekey", function () {
   });
 
   it("should be able to key assign", async function () {
-    const verifier = "google-lrc"; // any verifier
+    const verifier = TORUS_TEST_VERIFIER; // any verifier
     const email = faker.internet.email();
     const verifierDetails = { verifier, verifierId: email };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails, true);
     expect(publicAddress.typeOfUser).to.equal("v2");
+  });
+
+  it("should still login v2 account correctly", async function () {
+    const token = generateIdToken("Jonathan.Nolan@hotmail.com", "ES256");
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "Jonathan.Nolan@hotmail.com" };
+    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const retrieveSharesResponse = await torus.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: "Jonathan.Nolan@hotmail.com" },
+      token
+    );
+    expect(retrieveSharesResponse.privKey).to.be.equal("9ec5b0504e252e35218c7ce1e4660eac190a1505abfbec7102946f92ed750075");
+    expect(retrieveSharesResponse.ethAddress).to.be.equal("0x2876820fd9536BD5dd874189A85d71eE8bDf64c2");
   });
 });
