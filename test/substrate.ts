@@ -1,5 +1,5 @@
 import FetchNodeDetails from "@toruslabs/fetch-node-details";
-import { expect } from "chai";
+import { expect, should } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
 import { generatePrivate, getPublicCompressed } from "@toruslabs/eccrypto";
@@ -7,6 +7,11 @@ import { generatePrivate, getPublicCompressed } from "@toruslabs/eccrypto";
 
 import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
+
+import dotenv from "dotenv";
+
+dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
+const jwtPrivateKey = `-----BEGIN PRIVATE KEY-----\n${process.env.JWT_PRIVATE_KEY}\n-----END PRIVATE KEY-----`;
 
 // const TORUS_NODE_MANAGER = new FetchNodeDetails({
 //   network: "ropsten",
@@ -16,6 +21,12 @@ import { generateIdToken } from "./helpers";
 // const TORUS_TEST_VERIFIER = "torus-test-health";
 // const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
+const curves = [ "P256", "P384", "P521" ]
+const twisted_curves = [ "Ed25519" ]
+const rsa_algorithms = [ "RS256", "RS384", "RS512", "ES256", "ES384", "ES512"]
+const hmac_algorithms = ["HS256", "HS384", "HS512"]
+const ecdsa_algorithms = [ "ES256", "ES384", "ES512"]
+const eddsa_algorithms = [ "EdDSA" ]
 
 describe("torus YOIUIOUWROIEU", function () {
   let torus;
@@ -32,7 +43,6 @@ describe("torus YOIUIOUWROIEU", function () {
       const tmpKey = generatePrivate()
       console.log(tmpKey.toString("hex"))
       console.log("PUBKEY \n",getPublicCompressed(tmpKey).toString("hex"))
-
     }
   })
 
