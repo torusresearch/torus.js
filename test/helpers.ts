@@ -5,8 +5,7 @@ import { keccak256 } from "web3-utils";
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
 const jwtPrivateKey =   `-----BEGIN PRIVATE KEY-----
-MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCDfRoQkC62DPWgqUocA
-ZdtVkrhpoFEwTCD3f94hZPc/LA==
+MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCAUkXYLzqygitCTW0o5T8l4S/PFOjYx4wGGoBn62E2r6Q==
 -----END PRIVATE KEY-----`;
 
 export function randomEmail() {
@@ -16,13 +15,14 @@ export function randomEmail() {
 export const generateIdToken = (email: string, alg: Algorithm) => {
   const iat = Math.floor(Date.now() / 1000);
   const payload = {
-    iss: "torus-key-test",
-    aud: "torus-key-test",
+    iss: "https://lentan.auth0.com/",
+    aud: "LPDUGgSqNP5mSxllGP0TEgJwRrNU0lVH",
     name: email,
     email,
     scope: "email",
     iat,
     eat: iat + 120,
+    sub: "email|5ea6a520580a1d9af4183048"
   };
 
   const algo = {
