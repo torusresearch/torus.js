@@ -262,7 +262,6 @@ class Torus {
       return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
     })
       .then((responses) => {
-        log.info("Got here,", responses);
         const promiseArrRequest: Promise<void | ShareRequestResultData>[] = [];
         const nodeSigs = [];
         for (let i = 0; i < responses.length; i += 1) {
