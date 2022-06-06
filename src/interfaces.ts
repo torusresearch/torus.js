@@ -104,13 +104,13 @@ export interface SignerResponse {
 
 export interface KeyAssignInput {
   endpoints: string[];
-  torusNodePubs: INodePub[];
-  lastPoint?: number;
-  firstPoint?: number;
+  // torusNodePubs: INodePub[];
+  // lastPoint?: number;
+  // firstPoint?: number;
   verifier: string;
   verifierId: string;
-  signerHost: string;
-  network: string;
+  // signerHost: string;
+  // network: string;
 }
 
 export interface KeyAssignment {
@@ -127,14 +127,52 @@ export interface KeyAssignment {
   };
 }
 
-export interface ShareRequestResult {
-  keys: KeyAssignment[];
+export interface Point {
+  x: BN;
+  y: BN;
+}
+
+export interface PointString {
+  x: string;
+  y: string;
+}
+
+export interface KeyAssignResult {
+  keys: PointString[];
+}
+
+export interface ShareRequestResultData {
+  signature: string;
+  data: string;
+  node_pub_keyx: BN;
+  node_pub_keyy: BN;
+  pub_keys: PointString[];
+}
+
+// export interface ShareRequestResult {
+//   keys: ShareRequestResultData[];
+// }
+
+export interface NodeTokenArr {
+  tokens: ShareRequestResultData[];
+}
+
+export interface NodeToken {
+  exp: string;
+  temp_key_x: BN;
+  temp_key_y: BN;
+  verifier_name: string;
+  verifier_id: string;
+  scope: string;
 }
 
 export interface RetrieveSharesResponse {
-  ethAddress: string;
-  privKey: string;
-  metadataNonce: BN;
+  // ethAddress: string;
+  // privKey: string;
+  // metadataNonce: BN;
+  tokens: ShareRequestResultData[];
+  pubkey_x: string;
+  pubkey_y: string;
 }
 
 export interface VerifierParams {

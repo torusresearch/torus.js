@@ -1,6 +1,6 @@
-import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
+import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import type { INodePub } from "@toruslabs/fetch-node-details";
-import { Data, generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
+import { Data, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
@@ -9,20 +9,23 @@ import { toChecksumAddress } from "web3-utils";
 import {
   CommitmentRequestResult,
   GetOrSetNonceResult,
-  JRPCResponse,
+  // JRPCResponse,
   MetadataParams,
+  // NodeToken,
+  NodeTokenArr,
   RetrieveSharesResponse,
   SetCustomKeyOptions,
-  ShareRequestResult,
+  ShareRequestResultData,
+  // ShareRequestResult,
   TorusCtorOptions,
-  V1UserTypeAndAddress,
-  V2UserTypeAndAddress,
+  // V1UserTypeAndAddress,
+  // V2UserTypeAndAddress,
   VerifierLookupResponse,
   VerifierParams,
 } from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
-import { GetOrSetNonceError, kCombinations, keccak256, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from "./utils";
+import { GetOrSetNonceError, keccak256, keyAssign, keyLookup, waitKeyLookup } from "./utils";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -78,80 +81,80 @@ class Torus {
   /**
    * Note: use this function only for openlogin tkey account lookups.
    */
-  async getUserTypeAndAddress(
-    endpoints: string[],
-    torusNodePubs: INodePub[],
-    { verifier, verifierId }: { verifier: string; verifierId: string },
-    doesKeyAssign = false
-  ): Promise<V1UserTypeAndAddress | V2UserTypeAndAddress> {
-    const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
-    let isNewKey = false;
-    let finalKeyResult: VerifierLookupResponse;
-    if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
-      if (!doesKeyAssign) {
-        throw new Error("Verifier + VerifierID has not yet been assigned");
-      }
-      await keyAssign({
-        endpoints,
-        torusNodePubs,
-        lastPoint: undefined,
-        firstPoint: undefined,
-        verifier,
-        verifierId,
-        signerHost: this.signerHost,
-        network: this.network,
-      });
-      const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
-      finalKeyResult = assignResult?.keyResult;
-      isNewKey = true;
-    } else if (keyResult) {
-      finalKeyResult = keyResult;
-    } else {
-      throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
-    }
-    if (finalKeyResult) {
-      const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
-      let nonceResult: GetOrSetNonceResult;
-      let nonce: BN;
-      let modifiedPubKey: curve.base.BasePoint;
+  // async getUserTypeAndAddress(
+  //   endpoints: string[],
+  //   torusNodePubs: INodePub[],
+  //   { verifier, verifierId }: { verifier: string; verifierId: string },
+  //   doesKeyAssign = false
+  // ): Promise<V1UserTypeAndAddress | V2UserTypeAndAddress> {
+  //   const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
+  //   let isNewKey = false;
+  //   let finalKeyResult: VerifierLookupResponse;
+  //   if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
+  //     if (!doesKeyAssign) {
+  //       throw new Error("Verifier + VerifierID has not yet been assigned");
+  //     }
+  //     await keyAssign({
+  //       endpoints,
+  //       torusNodePubs,
+  //       lastPoint: undefined,
+  //       firstPoint: undefined,
+  //       verifier,
+  //       verifierId,
+  //       signerHost: this.signerHost,
+  //       network: this.network,
+  //     });
+  //     const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
+  //     finalKeyResult = assignResult?.keyResult;
+  //     isNewKey = true;
+  //   } else if (keyResult) {
+  //     finalKeyResult = keyResult;
+  //   } else {
+  //     throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
+  //   }
+  //   if (finalKeyResult) {
+  //     const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
+  //     let nonceResult: GetOrSetNonceResult;
+  //     let nonce: BN;
+  //     let modifiedPubKey: curve.base.BasePoint;
 
-      try {
-        nonceResult = await this.getOrSetNonce(X, Y, undefined, !isNewKey);
-        nonce = new BN(nonceResult.nonce || "0", 16);
-      } catch {
-        throw new GetOrSetNonceError();
-      }
-      if (nonceResult.typeOfUser === "v1") {
-        modifiedPubKey = this.ec
-          .keyFromPublic({ x: X, y: Y })
-          .getPublic()
-          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
-      } else if (nonceResult.typeOfUser === "v2") {
-        modifiedPubKey = this.ec
-          .keyFromPublic({ x: X, y: Y })
-          .getPublic()
-          .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
-      } else {
-        throw new Error("getOrSetNonce should always return typeOfUser.");
-      }
-      const finalX = modifiedPubKey.getX().toString(16);
-      const finalY = modifiedPubKey.getY().toString(16);
-      const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY());
-      if (nonceResult.typeOfUser === "v1") return { typeOfUser: nonceResult.typeOfUser, nonce, X: finalX, Y: finalY, address };
-      else if (nonceResult.typeOfUser === "v2") {
-        return {
-          typeOfUser: nonceResult.typeOfUser,
-          nonce,
-          pubNonce: nonceResult.pubNonce,
-          upgraded: nonceResult.upgraded,
-          X: finalX,
-          Y: finalY,
-          address,
-        };
-      }
-    }
-    throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
-  }
+  //     try {
+  //       nonceResult = await this.getOrSetNonce(X, Y, undefined, !isNewKey);
+  //       nonce = new BN(nonceResult.nonce || "0", 16);
+  //     } catch {
+  //       throw new GetOrSetNonceError();
+  //     }
+  //     if (nonceResult.typeOfUser === "v1") {
+  //       modifiedPubKey = this.ec
+  //         .keyFromPublic({ x: X, y: Y })
+  //         .getPublic()
+  //         .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
+  //     } else if (nonceResult.typeOfUser === "v2") {
+  //       modifiedPubKey = this.ec
+  //         .keyFromPublic({ x: X, y: Y })
+  //         .getPublic()
+  //         .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
+  //     } else {
+  //       throw new Error("getOrSetNonce should always return typeOfUser.");
+  //     }
+  //     const finalX = modifiedPubKey.getX().toString(16);
+  //     const finalY = modifiedPubKey.getY().toString(16);
+  //     const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY());
+  //     if (nonceResult.typeOfUser === "v1") return { typeOfUser: nonceResult.typeOfUser, nonce, X: finalX, Y: finalY, address };
+  //     else if (nonceResult.typeOfUser === "v2") {
+  //       return {
+  //         typeOfUser: nonceResult.typeOfUser,
+  //         nonce,
+  //         pubNonce: nonceResult.pubNonce,
+  //         upgraded: nonceResult.upgraded,
+  //         X: finalX,
+  //         Y: finalY,
+  //         address,
+  //       };
+  //     }
+  //   }
+  //   throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
+  // }
 
   async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }: SetCustomKeyOptions): Promise<void> {
     let torusKey: BN;
@@ -206,16 +209,13 @@ class Torus {
 
     // make commitment requests to endpoints
     for (let i = 0; i < endpoints.length; i += 1) {
-      const p = post<CommitmentRequestResult>(
-        `${endpoints[i]}/commitment_request`,
-        {
-          messageprefix: "mug00",
-          tokencommitment: tokenCommitment.slice(2),
-          temppubx: pubKeyX,
-          temppuby: pubKeyY,
-          verifieridentifier: verifier,
-        }
-      ).catch((err) => {
+      const p = post<CommitmentRequestResult>(`${endpoints[i]}/commitment_request`, {
+        messageprefix: "mug00",
+        tokencommitment: tokenCommitment.slice(2),
+        temppubx: pubKeyX,
+        temppuby: pubKeyY,
+        verifieridentifier: verifier,
+      }).catch((err) => {
         log.error("commitment", err);
       });
       promiseArr.push(p);
@@ -255,31 +255,30 @@ class Torus {
         // }
         return true;
       });
-      console.log(completedRequests.length)
+      log.info(completedRequests.length);
       if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
         return Promise.resolve(resultArr);
       }
       return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
     })
       .then((responses) => {
-        console.log("Got here,", responses)
-        const promiseArrRequest: Promise<void | ShareRequestResult>[] = [];
+        log.info("Got here,", responses);
+        const promiseArrRequest: Promise<void | ShareRequestResultData>[] = [];
         const nodeSigs = [];
         for (let i = 0; i < responses.length; i += 1) {
           if (responses[i]) nodeSigs.push(responses[i] as CommitmentRequestResult);
         }
         for (let i = 0; i < endpoints.length; i += 1) {
           // eslint-disable-next-line promise/no-nesting
-          const p = post<ShareRequestResult>(
-            `${endpoints[i]}/share_request`,
-            {
-              encrypted: "yes",
-              item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
-            }
-          ).catch(async (err) => { console.log("share req", await err.text())});
+          const p = post<ShareRequestResultData>(`${endpoints[i]}/share_request`, {
+            encrypted: "yes",
+            item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
+          }).catch(async (err) => {
+            log.info("share req", await err.text());
+          });
           promiseArrRequest.push(p);
         }
-        return Some<void | ShareRequestResult, BN | undefined>(promiseArrRequest, async (shareResponses, sharedState) => {
+        return Some<void | ShareRequestResultData, undefined | NodeTokenArr>(promiseArrRequest, async (shareResponses, sharedState) => {
           /*
               ShareRequestResult struct {
                 Keys []KeyAssignment
@@ -301,14 +300,20 @@ class Torus {
           // check if threshold number of nodes have returned the same user public key
 
           const completedRequests = shareResponses.filter((x) => x);
-          console.log("THIS IS PRINTED", completedRequests);
-          
+          // console.log("THIS IS PRINTED", completedRequests);
+          if (endpoints.length === completedRequests.length) {
+            const res: NodeTokenArr = { tokens: completedRequests as ShareRequestResultData[] };
+            sharedState.resolved = true;
+            return res;
+          }
+          throw new Error("invalid");
+          // console.log(promiseArrRequest)
           // const thresholdPublicKey = thresholdSame(
-          //   shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
+          //   shareResponses.map((x) => x && x && x.keys[0].data),
           //   ~~(endpoints.length / 2) + 1
           // );
-          // // optimistically run lagrange interpolation once threshold number of shares have been received
-          // // this is matched against the user public key to ensure that shares are consistent
+          // optimistically run lagrange interpolation once threshold number of shares have been received
+          // this is matched against the user public key to ensure that shares are consistent
           // if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
           //   const sharePromises: Promise<void | Buffer>[] = [];
           //   const nodeIndexes: BN[] = [];
@@ -375,31 +380,51 @@ class Torus {
           // throw new Error("invalid");
         });
       })
-      .then(async (returnedKey) => {
-        let privateKey = returnedKey;
-        if (!privateKey) throw new Error("Invalid private key returned");
-        const decryptedPubKey = getPublic(Buffer.from(privateKey.toString(16, 64), "hex")).toString("hex");
-        const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-        const decryptedPubKeyY = decryptedPubKey.slice(66);
-        let metadataNonce: BN;
-        if (this.enableOneKey) {
-          const { nonce } = await this.getNonce(decryptedPubKeyX, decryptedPubKeyY, privateKey);
-          metadataNonce = new BN(nonce || "0", 16);
-        } else {
-          metadataNonce = await this.getMetadata({ pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY });
+      .then(async (nodeTokenArr) => {
+        if (!nodeTokenArr) throw new Error("Invalid tokens returned");
+        // log.info("nodetokenarr", nodeTokenArr);
+
+        let finalPubKeyFromNodes;
+        for (let i = 0; i < nodeTokenArr.tokens.length; i++) {
+          const token = nodeTokenArr.tokens[i];
+
+          // Assuming 1 node pub key for now
+          const pubkey = this.ec.keyFromPublic({ x: token.pub_keys[0].x, y: token.pub_keys[0].y }).getPublic();
+          if (finalPubKeyFromNodes) {
+            finalPubKeyFromNodes.add(pubkey);
+          } else {
+            finalPubKeyFromNodes = pubkey;
+          }
+          // .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
         }
-        log.debug("> torus.js/retrieveShares", { privKey: privateKey.toString(16), metadataNonce: metadataNonce.toString(16) });
+        // const decryptedPubKey = getPublic(Buffer.from(privateKey.toString(16, 64), "hex")).toString("hex");
+        // const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
+        // const decryptedPubKeyY = decryptedPubKey.slice(66);
+        // let metadataNonce: BN;
+        // if (this.enableOneKey) {
+        //   const { nonce } = await this.getNonce(decryptedPubKeyX, decryptedPubKeyY, privateKey);
+        //   metadataNonce = new BN(nonce || "0", 16);
+        // } else {
+        //   metadataNonce = await this.getMetadata({ pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY });
+        // }
+        // log.debug("> torus.js/retrieveShares", { privKey: privateKey.toString(16), metadataNonce: metadataNonce.toString(16) });
 
-        privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n);
+        // privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n);
 
-        const ethAddress = this.generateAddressFromPrivKey(privateKey);
-        log.debug("> torus.js/retrieveShares", { ethAddress, privKey: privateKey.toString(16) });
+        // const ethAddress = this.generateAddressFromPrivKey(privateKey);
+        // log.debug("> torus.js/retrieveShares", { ethAddress, privKey: privateKey.toString(16) });
 
-        // return reconstructed private key and ethereum address
+        // // return reconstructed private key and ethereum address
+        // return {
+        //   ethAddress,
+        //   privKey: privateKey.toString("hex", 64),
+        //   metadataNonce,
+        // };
+
         return {
-          ethAddress,
-          privKey: privateKey.toString("hex", 64),
-          metadataNonce,
+          pubkey_x: finalPubKeyFromNodes.getX().toString("hex"),
+          pubkey_y: finalPubKeyFromNodes.getY().toString("hex"),
+          tokens: nodeTokenArr.tokens,
         };
       });
   }
@@ -505,13 +530,13 @@ class Torus {
     } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
       await keyAssign({
         endpoints,
-        torusNodePubs,
-        lastPoint: undefined,
-        firstPoint: undefined,
+        // torusNodePubs,
+        // lastPoint: undefined,
+        // firstPoint: undefined,
         verifier,
         verifierId,
-        signerHost: this.signerHost,
-        network: this.network,
+        // signerHost: this.signerHost,
+        // network: this.network,
       });
       const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
       finalKeyResult = assignResult?.keyResult;

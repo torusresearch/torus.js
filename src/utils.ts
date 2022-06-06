@@ -2,7 +2,7 @@ import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import JsonStringify from "json-stable-stringify";
 import createKeccakHash from "keccak";
 
-import { JRPCResponse, KeyAssignInput, KeyLookupResult, SignerResponse, VerifierLookupResponse } from "./interfaces";
+import { JRPCResponse, KeyAssignInput, KeyAssignResult, KeyLookupResult, VerifierLookupResponse } from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
 
@@ -86,69 +86,75 @@ export const waitKeyLookup = (endpoints: string[], verifier: string, verifierId:
 
 export const keyAssign = async ({
   endpoints,
-  torusNodePubs,
-  lastPoint,
-  firstPoint,
+  // torusNodePubs,
+  // lastPoint,
+  // firstPoint,
   verifier,
   verifierId,
-  signerHost,
-  network,
-}: KeyAssignInput): Promise<void> => {
-  let nodeNum: number;
-  let initialPoint: number | undefined;
-  if (lastPoint === undefined) {
-    nodeNum = Math.floor(Math.random() * endpoints.length);
-    initialPoint = nodeNum;
-  } else {
-    nodeNum = lastPoint % endpoints.length;
-  }
-  if (nodeNum === firstPoint) throw new Error("Looped through all");
-  if (firstPoint !== undefined) initialPoint = firstPoint;
+}: // signerHost,
+// network,
+KeyAssignInput): Promise<KeyAssignResult[]> => {
+  // let nodeNum: number;
+  // let initialPoint: number | undefined;
+  // if (lastPoint === undefined) {
+  //   nodeNum = Math.floor(Math.random() * endpoints.length);
+  //   initialPoint = nodeNum;
+  // } else {
+  //   nodeNum = lastPoint % endpoints.length;
+  // }
+  // if (nodeNum === firstPoint) throw new Error("Looped through all");
+  // if (firstPoint !== undefined) initialPoint = firstPoint;
 
-  const data = generateJsonRPCObject("KeyAssign", {
+  const data = {
     verifier,
-    verifier_id: verifierId.toString(),
-  });
-  try {
-    const signedData = await post<SignerResponse>(
-      signerHost,
-      data,
-      {
-        headers: {
-          pubKeyX: torusNodePubs[nodeNum].X,
-          pubKeyY: torusNodePubs[nodeNum].Y,
-          network,
-        },
+    verifier_id: verifierId,
+  };
+
+  const promiseArr: Promise<KeyAssignResult>[] = [];
+  for (let i = 0; i < endpoints.length; i++) {
+    const res = post<KeyAssignResult>(`${endpoints[i]}/key_assign`, data, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
       },
-      { useAPIKey: true }
-    );
-    return await post<void>(
-      endpoints[nodeNum],
-      { ...data, ...signedData },
-      {
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-      }
-    );
-  } catch (error) {
-    log.error(error);
-    const acceptedErrorMsgs = [
-      // Slow node
-      "Timed out",
-      // Happens when the node is not reachable (dns issue etc)
-      "TypeError: Failed to fetch", // All except iOS and Firefox
-      "TypeError: cancelled", // iOS
-      "TypeError: NetworkError when attempting to fetch resource.", // Firefox
-    ];
-    if (acceptedErrorMsgs.includes(error.message))
-      return keyAssign({ endpoints, torusNodePubs, lastPoint: nodeNum + 1, firstPoint: initialPoint, verifier, verifierId, signerHost, network });
-    throw new Error(
-      `Sorry, the Torus Network that powers Web3Auth is currently very busy.
-    We will generate your key in time. Pls try again later. \n
-    ${error.message || ""}`
-    );
+    });
+    promiseArr.push(res);
   }
+
+  return Promise.all(promiseArr);
+  // .then((resultArr) => {
+  //   // log.info(resultArr);
+  //   if (!resultArr) throw new Error("result array is void");
+  //   const vetted_res = resultArr as KeyAssignResult[]
+  //   return vetted_res;
+  //   // let finalPubKeyFromNodes;
+  //   // for (let i = 0; i < resultArr.length; i++) {
+  //   //   const raw_key = resultArr[i].keys[0];
+
+  //   //   const pubkey = this.ec.keyFromPublic({ x: raw_key.x, y: raw_key.y }).getPublic();
+  //   //   if (finalPubKeyFromNodes) {
+  //   //     finalPubKeyFromNodes = pubkey;
+  //   //   } else {
+  //   //     finalPubKeyFromNodes.add(pubkey);
+  //   //   }
+  //   // }
+  //   // console.log()
+  // })
+  // .catch((error) => console.log(error));
+  // const acceptedErrorMsgs = [
+  //   // Slow node
+  //   "Timed out",
+  //   // Happens when the node is not reachable (dns issue etc)
+  //   "TypeError: Failed to fetch", // All except iOS and Firefox
+  //   "TypeError: cancelled", // iOS
+  //   "TypeError: NetworkError when attempting to fetch resource.", // Firefox
+  // ];
+  // if (acceptedErrorMsgs.includes(error.message))
+  //   return keyAssign({ endpoints, torusNodePubs, lastPoint: nodeNum + 1, firstPoint: initialPoint, verifier, verifierId, signerHost, network });
+  // throw new Error(
+  //   `Sorry, the Torus Network that powers Web3Auth is currently very busy.
+  // We will generate your key in time. Pls try again later. \n
+  // ${error.message || ""}`
+  // );
 };
 
 export function keccak256(a: string | Buffer): string {
