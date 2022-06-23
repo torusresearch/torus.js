@@ -28,6 +28,7 @@ export interface TorusCtorOptions {
   serverTimeOffset?: number;
   signerHost?: string;
   network?: string;
+  sapphireEndpoints?: string[];
 }
 
 export interface TorusPublicKey extends INodePub {
@@ -166,7 +167,7 @@ export interface NodeToken {
   scope: string;
 }
 
-export interface RetrieveSharesResponse {
+export interface RetrieveSessionTokensResponse {
   // ethAddress: string;
   // privKey: string;
   // metadataNonce: BN;

@@ -1,6 +1,6 @@
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import type { INodePub } from "@toruslabs/fetch-node-details";
-import { Data, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
+import { Data, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
@@ -13,7 +13,7 @@ import {
   MetadataParams,
   // NodeToken,
   NodeTokenArr,
-  RetrieveSharesResponse,
+  RetrieveSessionTokensResponse,
   SetCustomKeyOptions,
   ShareRequestResultData,
   // ShareRequestResult,
@@ -42,6 +42,8 @@ class Torus {
 
   public network: string;
 
+  public sapphireEndpoints: string[];
+
   protected ec: EC;
 
   constructor({
@@ -51,6 +53,7 @@ class Torus {
     signerHost = "https://signer.tor.us/api/sign",
     serverTimeOffset = 0,
     network = "mainnet",
+    sapphireEndpoints = ["http://[::1]:8800", "http://[::1]:8801", "http://[::1]:8802", "http://[::1]:8803"],
   }: TorusCtorOptions = {}) {
     this.ec = new EC("secp256k1");
     this.metadataHost = metadataHost;
@@ -59,6 +62,7 @@ class Torus {
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.signerHost = signerHost;
     this.network = network;
+    this.sapphireEndpoints = sapphireEndpoints;
   }
 
   static enableLogging(v = true): void {
@@ -177,19 +181,19 @@ class Torus {
     verifierParams: VerifierParams,
     idToken: string,
     extraParams: Record<string, unknown> = {}
-  ): Promise<RetrieveSharesResponse> {
+  ): Promise<RetrieveSessionTokensResponse> {
     const promiseArr = [];
-    await get<void>(
-      this.allowHost,
-      {
-        headers: {
-          verifier,
-          verifier_id: verifierParams.verifier_id,
-          network: this.network,
-        },
-      },
-      { useAPIKey: true }
-    );
+    // await get<void>(
+    //   this.allowHost,
+    //   {
+    //     headers: {
+    //       verifier,
+    //       verifier_id: verifierParams.verifier_id,
+    //       network: this.network,
+    //     },
+    //   },
+    //   { useAPIKey: true }
+    // );
     /*
       CommitmentRequestParams struct {
         MessagePrefix      string `json:"messageprefix"`
@@ -607,6 +611,47 @@ class Torus {
       };
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
+  }
+
+  /**
+   * Note: edited from get publicAddress, currently public key of sum of node secrets
+   */
+  async getPublicKey(
+    endpoints: string[],
+    verifierName: string, // contract in our case
+    verifierId: string
+  ) {
+    log.debug("> torus.js/getPublicKey", { endpoints, verifierName, verifierId });
+
+    const res = await keyAssign({
+      endpoints,
+      // torusNodePubs,
+      // lastPoint: undefined,
+      // firstPoint: undefined,
+      verifier: verifierName,
+      verifierId,
+      // signerHost: this.signerHost,
+      // network: this.network,
+    });
+
+    let finalPubKeyFromNodes;
+    for (let i = 0; i < res[i].keys.length; i++) {
+      const pkStr = res[i].keys[0];
+
+      // Assuming 1 node pub key for now
+      const pubkey = this.ec.keyFromPublic({ x: pkStr.x, y: pkStr.y }).getPublic();
+      if (finalPubKeyFromNodes) {
+        finalPubKeyFromNodes.add(pubkey);
+      } else {
+        finalPubKeyFromNodes = pubkey;
+      }
+      // .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
+    }
+
+    return {
+      x: finalPubKeyFromNodes.getX().toString("hex"),
+      y: finalPubKeyFromNodes.getY().toString("hex"),
+    };
   }
 
   /**
