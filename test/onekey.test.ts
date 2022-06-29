@@ -3,6 +3,7 @@ import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
 
+import { TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
 
@@ -15,7 +16,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
 describe("torus onekey", function () {
-  let torus;
+  let torus: TorusUtils;
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({
@@ -28,7 +29,7 @@ describe("torus onekey", function () {
     const verifier = "google-lrc"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails, true);
+    const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails, true)) as TorusPublicKey;
     expect(publicAddress.typeOfUser).to.equal("v1");
     expect(publicAddress.address).to.equal("0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70");
   });
@@ -44,7 +45,7 @@ describe("torus onekey", function () {
       { verifier_id: TORUS_TEST_EMAIL },
       token
     );
-    expect(retrieveSharesResponse.privKey).to.be.equal("068ee4f97468ef1ae95d18554458d372e31968190ae38e377be59d8b3c9f7a25");
+    expect(retrieveSharesResponse.privKey).to.be.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
   });
 
   it("should still aggregate account v1 user correctly", async function () {
@@ -63,7 +64,7 @@ describe("torus onekey", function () {
       },
       hashedIdToken.substring(2)
     );
-    expect(retrieveSharesResponse.ethAddress).to.be.equal("0x5a165d2Ed4976BD104caDE1b2948a93B72FA91D2");
+    expect(retrieveSharesResponse.ethAddress).to.be.equal("0xE1155dB406dAD89DdeE9FB9EfC29C8EedC2A0C8B");
   });
 
   it("should be able to key assign", async function () {
@@ -71,7 +72,7 @@ describe("torus onekey", function () {
     const email = faker.internet.email();
     const verifierDetails = { verifier, verifierId: email };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails, true);
+    const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails, true)) as TorusPublicKey;
     expect(publicAddress.typeOfUser).to.equal("v2");
   });
 

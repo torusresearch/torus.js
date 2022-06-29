@@ -15,6 +15,7 @@ import {
   SetCustomKeyOptions,
   ShareRequestResult,
   TorusCtorOptions,
+  TorusPublicKey,
   V1UserTypeAndAddress,
   V2UserTypeAndAddress,
   VerifierLookupResponse,
@@ -483,7 +484,7 @@ class Torus {
     torusNodePubs: INodePub[],
     { verifier, verifierId }: { verifier: string; verifierId: string },
     isExtended = false
-  ) {
+  ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, torusNodePubs, verifier, verifierId, isExtended });
 
     let finalKeyResult: VerifierLookupResponse | undefined;
