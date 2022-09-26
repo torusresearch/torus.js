@@ -1,5 +1,5 @@
 require:
-  - "./test/setup.js"
+  - "./test/setup.mjs"
 exit: true
 timeout: 0
 spec: "test/**/*.test.ts"
