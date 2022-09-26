@@ -1,4 +1,4 @@
-import NodeManager from "@toruslabs/fetch-node-details";
+import NodeManager, { TORUS_NETWORK } from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
@@ -20,7 +20,7 @@ describe("torus utils cyan", function () {
       allowHost: "https://signer-polygon.tor.us/api/allow",
       network: "cyan",
     });
-    TORUS_NODE_MANAGER = new NodeManager({ network: "polygon-mainnet", proxyAddress: "0x9f072ba19b3370e512aa1b4bfcdaf97283168005" });
+    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.CYAN, proxyAddress: NodeManager.PROXY_ADDRESS_CYAN });
   });
   it("should fetch public address", async function () {
     const verifier = "tkey-google-cyan"; // any verifier

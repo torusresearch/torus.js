@@ -1,4 +1,4 @@
-import NodeManager from "@toruslabs/fetch-node-details";
+import NodeManager, { TORUS_NETWORK } from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
@@ -16,7 +16,7 @@ describe("torus utils ropsten", function () {
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({ network: "testnet" });
-    TORUS_NODE_MANAGER = new NodeManager({ network: "ropsten", proxyAddress: "0x6258c9d6c12ed3edda59a1a6527e469517744aa7" });
+    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.TESTNET, proxyAddress: NodeManager.PROXY_ADDRESS_TESTNET });
   });
   it("should fetch public address", async function () {
     const verifier = "google-lrc"; // any verifier
