@@ -1,6 +1,6 @@
 import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
-import type { INodePub } from "@toruslabs/fetch-node-details";
-import { Data, generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
+// import type { INodePub } from "@toruslabs/fetch-node-details";
+import { Data, generateJsonRPCObject, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
@@ -23,7 +23,7 @@ import {
 } from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
-import { GetOrSetNonceError, kCombinations, keccak256, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from "./utils";
+import { GetOrSetNonceError, GetPubKeyOrKeyAssign, kCombinations, keccak256, keyLookup, thresholdSame } from "./utils";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -81,35 +81,35 @@ class Torus {
    */
   async getUserTypeAndAddress(
     endpoints: string[],
-    torusNodePubs: INodePub[],
     { verifier, verifierId }: { verifier: string; verifierId: string },
     doesKeyAssign = false
   ): Promise<V1UserTypeAndAddress | V2UserTypeAndAddress> {
-    const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
-    let isNewKey = false;
     let finalKeyResult: VerifierLookupResponse;
-    if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
-      if (!doesKeyAssign) {
-        throw new Error("Verifier + VerifierID has not yet been assigned");
+
+    if (doesKeyAssign) {
+      const { keyResult, errorResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId);
+      if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
+        // change error msg
+        throw new Error(`Verifier not supported. Check if you: \n
+        1. Are on the right network (Torus testnet/mainnet) \n
+        2. Have setup a verifier on dashboard.web3auth.io?`);
+      } else if (errorResult) {
+        throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
       }
-      await keyAssign({
-        endpoints,
-        torusNodePubs,
-        lastPoint: undefined,
-        firstPoint: undefined,
-        verifier,
-        verifierId,
-        signerHost: this.signerHost,
-        network: this.network,
-      });
-      const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
-      finalKeyResult = assignResult?.keyResult;
-      isNewKey = true;
-    } else if (keyResult) {
       finalKeyResult = keyResult;
     } else {
-      throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
+      const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
+      if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
+        // change error msg
+        throw new Error(`Verifier not supported. Check if you: \n
+        1. Are on the right network (Torus testnet/mainnet) \n
+        2. Have setup a verifier on dashboard.web3auth.io?`);
+      } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
+        throw new Error("Verifier + VerifierID has not yet been assigned");
+      }
+      finalKeyResult = keyResult;
     }
+
     if (finalKeyResult) {
       const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
       let nonceResult: GetOrSetNonceResult;
@@ -117,7 +117,7 @@ class Torus {
       let modifiedPubKey: curve.base.BasePoint;
 
       try {
-        nonceResult = await this.getOrSetNonce(X, Y, undefined, !isNewKey);
+        nonceResult = await this.getOrSetNonce(X, Y, undefined, !finalKeyResult.is_new_key);
         nonce = new BN(nonceResult.nonce || "0", 16);
       } catch {
         throw new GetOrSetNonceError();
@@ -151,7 +151,11 @@ class Torus {
         };
       }
     }
-    throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
+    throw new Error(
+      `Failed to do key lookup for verifier: ${verifier} and verifierId: ${verifierId} Please report this issue ${JSON.stringify(
+        finalKeyResult || {}
+      )}`
+    );
   }
 
   async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }: SetCustomKeyOptions): Promise<void> {
@@ -177,17 +181,6 @@ class Torus {
     extraParams: Record<string, unknown> = {}
   ): Promise<RetrieveSharesResponse> {
     const promiseArr = [];
-    await get<void>(
-      this.allowHost,
-      {
-        headers: {
-          verifier,
-          verifier_id: verifierParams.verifier_id,
-          network: this.network,
-        },
-      },
-      { useAPIKey: true }
-    );
     /*
       CommitmentRequestParams struct {
         MessagePrefix      string `json:"messageprefix"`
@@ -269,7 +262,7 @@ class Torus {
           // eslint-disable-next-line promise/no-nesting
           const p = post<JRPCResponse<ShareRequestResult>>(
             endpoints[i],
-            generateJsonRPCObject("ShareRequest", {
+            generateJsonRPCObject("GetShareOrKeyAssign", {
               encrypted: "yes",
               item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
             })
@@ -297,6 +290,8 @@ class Torus {
             */
           // check if threshold number of nodes have returned the same user public key
           const completedRequests = shareResponses.filter((x) => x);
+          // eslint-disable-next-line no-console
+          console.log("completedRequests", completedRequests);
           const thresholdPublicKey = thresholdSame(
             shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
             ~~(endpoints.length / 2) + 1
@@ -481,41 +476,23 @@ class Torus {
    */
   async getPublicAddress(
     endpoints: string[],
-    torusNodePubs: INodePub[],
     { verifier, verifierId }: { verifier: string; verifierId: string },
     isExtended = false
   ): Promise<string | TorusPublicKey> {
-    log.debug("> torus.js/getPublicAddress", { endpoints, torusNodePubs, verifier, verifierId, isExtended });
+    log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
 
-    let finalKeyResult: VerifierLookupResponse | undefined;
-    let isNewKey = false;
-
-    const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
+    const { keyResult, errorResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId);
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
       1. Are on the right network (Torus testnet/mainnet) \n
       2. Have setup a verifier on dashboard.web3auth.io?`);
-    } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
-      await keyAssign({
-        endpoints,
-        torusNodePubs,
-        lastPoint: undefined,
-        firstPoint: undefined,
-        verifier,
-        verifierId,
-        signerHost: this.signerHost,
-        network: this.network,
-      });
-      const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
-      finalKeyResult = assignResult?.keyResult;
-      isNewKey = true;
-    } else if (keyResult) {
-      finalKeyResult = keyResult;
-    } else {
+    } else if (errorResult) {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
     }
-    log.debug("> torus.js/getPublicAddress", { finalKeyResult, isNewKey });
+    const finalKeyResult: VerifierLookupResponse = keyResult;
+
+    log.debug("> torus.js/getPublicAddress", { finalKeyResult });
 
     if (finalKeyResult) {
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
@@ -526,7 +503,7 @@ class Torus {
       let pubNonce: { x: string; y: string } | undefined;
       if (this.enableOneKey) {
         try {
-          nonceResult = await this.getOrSetNonce(X, Y, undefined, !isNewKey);
+          nonceResult = await this.getOrSetNonce(X, Y, undefined, !finalKeyResult.is_new_key);
           nonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
         } catch {

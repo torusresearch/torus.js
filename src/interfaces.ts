@@ -45,6 +45,7 @@ export interface ShareResponse {
 
 export interface VerifierLookupResponse {
   keys: { pub_key_X: string; pub_key_Y: string; key_index: string; address: string }[];
+  is_new_key: boolean;
 }
 
 export interface CommitmentRequestResult {
