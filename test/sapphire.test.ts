@@ -1,12 +1,12 @@
 // import NodeManager from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
+import faker from "faker";
 
-// import faker from "faker";
 // import { keccak256 } from "web3-utils";
 import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
 
-const TORUS_TEST_EMAIL = "sapphiretest@tor.us";
+const TORUS_TEST_EMAIL = "sapphiretest123@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 
 // const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
@@ -14,8 +14,12 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 describe.only("torus utils sapphire", function () {
   let torus: TorusUtils;
 
-  const torusNodeEndpoints = ["http://localhost:5054/jrpc"];
-  const torusIndexes = [1];
+  const torusNodeEndpoints = [
+    "https://swaraj-test-coordinator-1.k8.authnetwork.dev/sss/jrpc",
+    "https://swaraj-test-coordinator-2.k8.authnetwork.dev/sss/jrpc",
+    "https://swaraj-test-coordinator-3.k8.authnetwork.dev/sss/jrpc",
+  ];
+  const torusIndexes = [1, 2, 3];
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({
       signerHost: "https://signer-polygon.tor.us/api/sign",
@@ -27,7 +31,7 @@ describe.only("torus utils sapphire", function () {
   it("should fetch public address", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
-    expect(publicAddress).to.equal("0xE15CABc206d6d9499D68898eEcc6C20A1b013E06");
+    expect(publicAddress).to.equal("0x4091D41C8ed5C7660E80dFE287A00C1846D15f43");
   });
 
   it("should fetch user type and public address", async function () {
@@ -35,17 +39,17 @@ describe.only("torus utils sapphire", function () {
     const { address, typeOfUser } = await torus.getUserTypeAndAddress(torusNodeEndpoints, verifierDetails, true);
     // eslint-disable-next-line no-console
     console.log("typeOfUser", typeOfUser);
-    expect(address).to.equal("0xE15CABc206d6d9499D68898eEcc6C20A1b013E06");
+    expect(address).to.equal("0x4091D41C8ed5C7660E80dFE287A00C1846D15f43");
     expect(typeOfUser).to.equal("v2");
   });
 
-  //   it("should be able to key assign", async function () {
-  //     const email = faker.internet.email();
-  //     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
-  //     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
-  //     expect(publicAddress).to.not.equal("");
-  //     expect(publicAddress).to.not.equal(null);
-  //   });
+  it("should be able to key assign", async function () {
+    const email = faker.internet.email();
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
+    const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
+    expect(publicAddress).to.not.equal("");
+    expect(publicAddress).to.not.equal(null);
+  });
 
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");

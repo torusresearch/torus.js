@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
 // import type { INodePub } from "@toruslabs/fetch-node-details";
 import { Data, generateJsonRPCObject, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
@@ -110,7 +111,7 @@ class Torus {
       finalKeyResult = keyResult;
     }
 
-    if (finalKeyResult) {
+    if (finalKeyResult?.keys) {
       const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
       let nonceResult: GetOrSetNonceResult;
       let nonce: BN;
@@ -210,7 +211,7 @@ class Torus {
           verifieridentifier: verifier,
         })
       ).catch((err) => {
-        log.error("commitment", err);
+        log.error("commitment error", err);
       });
       promiseArr.push(p);
     }
@@ -247,9 +248,11 @@ class Torus {
         }
         return true;
       });
-      if (completedRequests.length >= ~~(endpoints.length / 4) * 3 + 1) {
+
+      if (completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
         return Promise.resolve(resultArr);
       }
+
       return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
     })
       .then((responses) => {
@@ -258,6 +261,7 @@ class Torus {
         for (let i = 0; i < responses.length; i += 1) {
           if (responses[i]) nodeSigs.push((responses[i] as JRPCResponse<CommitmentRequestResult>).result);
         }
+
         for (let i = 0; i < endpoints.length; i += 1) {
           // eslint-disable-next-line promise/no-nesting
           const p = post<JRPCResponse<ShareRequestResult>>(
@@ -290,38 +294,40 @@ class Torus {
             */
           // check if threshold number of nodes have returned the same user public key
           const completedRequests = shareResponses.filter((x) => x);
-          // eslint-disable-next-line no-console
-          console.log("completedRequests", completedRequests);
-          const thresholdPublicKey = thresholdSame(
-            shareResponses.map((x) => x && x.result && x.result.keys[0].PublicKey),
-            ~~(endpoints.length / 2) + 1
-          );
+
+          const resp = shareResponses.map((x) => x && x.result && x.result.keys[0].public_key);
+          const thresholdPublicKey = thresholdSame(resp, ~~(endpoints.length / 2) + 1);
+
           // optimistically run lagrange interpolation once threshold number of shares have been received
           // this is matched against the user public key to ensure that shares are consistent
           if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
             const sharePromises: Promise<void | Buffer>[] = [];
             const nodeIndexes: BN[] = [];
+
             for (let i = 0; i < shareResponses.length; i += 1) {
               const currentShareResponse = shareResponses[i] as JRPCResponse<ShareRequestResult>;
+
               if (currentShareResponse?.result?.keys?.length > 0) {
-                currentShareResponse.result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)));
+                currentShareResponse.result.keys.sort((a, b) => new BN(a.index.index, 16).cmp(new BN(b.index.index, 16)));
                 const firstKey = currentShareResponse.result.keys[0];
-                if (firstKey.Metadata) {
+
+                if (firstKey.metadata) {
                   const metadata = {
-                    ephemPublicKey: Buffer.from(firstKey.Metadata.ephemPublicKey, "hex"),
-                    iv: Buffer.from(firstKey.Metadata.iv, "hex"),
-                    mac: Buffer.from(firstKey.Metadata.mac, "hex"),
+                    ephemPublicKey: Buffer.from(firstKey.metadata.ephemPublicKey, "hex"),
+                    iv: Buffer.from(firstKey.metadata.iv, "hex"),
+                    mac: Buffer.from(firstKey.metadata.mac, "hex"),
                     // mode: Buffer.from(firstKey.Metadata.mode, "hex"),
                   };
+
                   sharePromises.push(
                     // eslint-disable-next-line promise/no-nesting
                     decrypt(tmpKey, {
                       ...metadata,
-                      ciphertext: Buffer.from(Buffer.from(firstKey.Share, "base64").toString("binary").padStart(64, "0"), "hex"),
+                      ciphertext: Buffer.from(Buffer.from(firstKey.share, "base64").toString("binary").padStart(64, "0"), "hex"),
                     }).catch((err) => log.debug("share decryption", err))
                   );
                 } else {
-                  sharePromises.push(Promise.resolve(Buffer.from(firstKey.Share.padStart(64, "0"), "hex")));
+                  sharePromises.push(Promise.resolve(Buffer.from(firstKey.share.padStart(64, "0"), "hex")));
                 }
               } else {
                 sharePromises.push(Promise.resolve(undefined));
@@ -356,6 +362,8 @@ class Torus {
                 break;
               }
             }
+            console.log("privateKey", privateKey);
+
             if (privateKey === undefined || privateKey === null) {
               throw new Error("could not derive private key");
             }

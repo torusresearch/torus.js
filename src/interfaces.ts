@@ -2,6 +2,11 @@ import { Ecies } from "@toruslabs/eccrypto";
 import type { INodePub } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 
+export interface KeyIndex {
+  index: string;
+  service_group_id: string;
+}
+
 export type GetOrSetNonceResult =
   | { typeOfUser: "v1"; nonce?: string }
   | { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
@@ -44,7 +49,7 @@ export interface ShareResponse {
 }
 
 export interface VerifierLookupResponse {
-  keys: { pub_key_X: string; pub_key_Y: string; key_index: string; address: string }[];
+  keys: { pub_key_X: string; pub_key_Y: string; key_index: KeyIndex; address: string }[];
   is_new_key: boolean;
 }
 
@@ -115,15 +120,15 @@ export interface KeyAssignInput {
 }
 
 export interface KeyAssignment {
-  Index: string;
-  PublicKey: {
+  index: KeyIndex;
+  public_key: {
     X: string;
     Y: string;
   };
-  Threshold: number;
-  Verifiers: Record<string, string>;
-  Share: string;
-  Metadata: {
+  threshold: number;
+  verifiers: Record<string, string>;
+  share: string;
+  metadata: {
     [key in keyof Ecies]: string;
   };
 }
