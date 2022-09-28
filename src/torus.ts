@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
 // import type { INodePub } from "@toruslabs/fetch-node-details";
 import { Data, generateJsonRPCObject, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
@@ -118,7 +117,7 @@ class Torus {
       let modifiedPubKey: curve.base.BasePoint;
 
       try {
-        nonceResult = await this.getOrSetNonce(X, Y, undefined, !finalKeyResult.is_new_key);
+        nonceResult = await this.getOrSetNonce(X, Y, undefined, false);
         nonce = new BN(nonceResult.nonce || "0", 16);
       } catch {
         throw new GetOrSetNonceError();
@@ -175,7 +174,6 @@ class Torus {
 
   async retrieveShares(
     endpoints: string[],
-    indexes: number[],
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
@@ -296,6 +294,7 @@ class Torus {
           const completedRequests = shareResponses.filter((x) => x);
 
           const resp = shareResponses.map((x) => x && x.result && x.result.keys[0].public_key);
+
           const thresholdPublicKey = thresholdSame(resp, ~~(endpoints.length / 2) + 1);
 
           // optimistically run lagrange interpolation once threshold number of shares have been received
@@ -310,6 +309,7 @@ class Torus {
               if (currentShareResponse?.result?.keys?.length > 0) {
                 currentShareResponse.result.keys.sort((a, b) => new BN(a.index.index, 16).cmp(new BN(b.index.index, 16)));
                 const firstKey = currentShareResponse.result.keys[0];
+                nodeIndexes.push(new BN(firstKey.node_index, 16));
 
                 if (firstKey.metadata) {
                   const metadata = {
@@ -332,7 +332,6 @@ class Torus {
               } else {
                 sharePromises.push(Promise.resolve(undefined));
               }
-              nodeIndexes.push(new BN(indexes[i], 16));
             }
             const sharesResolved = await Promise.all(sharePromises);
             if (sharedState.resolved) return undefined;
@@ -343,6 +342,7 @@ class Torus {
             }, [] as { index: BN; value: BN }[]);
             // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
             const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1);
+
             let privateKey: BN | null = null;
             for (let j = 0; j < allCombis.length; j += 1) {
               const currentCombi = allCombis[j];
@@ -362,7 +362,6 @@ class Torus {
                 break;
               }
             }
-            console.log("privateKey", privateKey);
 
             if (privateKey === undefined || privateKey === null) {
               throw new Error("could not derive private key");
@@ -511,7 +510,7 @@ class Torus {
       let pubNonce: { x: string; y: string } | undefined;
       if (this.enableOneKey) {
         try {
-          nonceResult = await this.getOrSetNonce(X, Y, undefined, !finalKeyResult.is_new_key);
+          nonceResult = await this.getOrSetNonce(X, Y, undefined, false);
           nonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
         } catch {

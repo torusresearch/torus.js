@@ -128,6 +128,7 @@ export interface KeyAssignment {
   threshold: number;
   verifiers: Record<string, string>;
   share: string;
+  node_index: number;
   metadata: {
     [key in keyof Ecies]: string;
   };
