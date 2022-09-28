@@ -1,4 +1,4 @@
-import FetchNodeDetails from "@toruslabs/fetch-node-details";
+import FetchNodeDetails, { TORUS_NETWORK } from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
@@ -8,8 +8,8 @@ import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
 
 const TORUS_NODE_MANAGER = new FetchNodeDetails({
-  network: "ropsten",
-  proxyAddress: "0x6258c9d6c12ed3edda59a1a6527e469517744aa7",
+  network: TORUS_NETWORK.TESTNET,
+  proxyAddress: FetchNodeDetails.PROXY_ADDRESS_TESTNET,
 });
 const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
