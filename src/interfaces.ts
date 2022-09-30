@@ -136,12 +136,23 @@ export interface KeyAssignment {
 
 export interface ShareRequestResult {
   keys: KeyAssignment[];
+  session_tokens: string[];
+  session_token_sigs: string[];
+  node_pubx: string[];
+  node_puby: string[];
 }
 
+export interface SessionToken {
+  token: string;
+  signature: string;
+  node_pubx: string;
+  node_puby: string;
+}
 export interface RetrieveSharesResponse {
   ethAddress: string;
   privKey: string;
   metadataNonce: BN;
+  sessionTokensData: SessionToken[];
 }
 
 export interface VerifierParams {
