@@ -1,4 +1,4 @@
-import NodeManager, { TORUS_NETWORK } from "@toruslabs/fetch-node-details";
+import NodeManager from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
@@ -16,7 +16,10 @@ describe("torus utils ropsten", function () {
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({ network: "testnet" });
-    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.TESTNET, proxyAddress: NodeManager.PROXY_ADDRESS_TESTNET });
+    TORUS_NODE_MANAGER = new NodeManager({
+      network: "https://small-long-brook.ropsten.quiknode.pro/e2fd2eb01412e80623787d1c40094465aa67624a",
+      proxyAddress: NodeManager.PROXY_ADDRESS_TESTNET,
+    });
   });
   it("should fetch public address", async function () {
     const verifier = "google-lrc"; // any verifier
