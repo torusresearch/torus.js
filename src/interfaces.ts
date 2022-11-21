@@ -129,11 +129,13 @@ export interface KeyAssignment {
 
 export interface ShareRequestResult {
   keys: KeyAssignment[];
+  signature: string;
 }
 
 export interface RetrieveSharesResponse {
   ethAddress: string;
   privKey: string;
+  signatures: string[];
   metadataNonce: BN;
 }
 
