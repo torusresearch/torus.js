@@ -1,4 +1,4 @@
-import FetchNodeDetails from "@toruslabs/fetch-node-details";
+import FetchNodeDetails, { TORUS_NETWORK } from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
@@ -8,7 +8,7 @@ import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
 
 const TORUS_NODE_MANAGER = new FetchNodeDetails({
-  network: "https://small-long-brook.ropsten.quiknode.pro/e2fd2eb01412e80623787d1c40094465aa67624a",
+  network: TORUS_NETWORK.TESTNET,
   proxyAddress: FetchNodeDetails.PROXY_ADDRESS_TESTNET,
 });
 const TORUS_TEST_EMAIL = "hello@tor.us";
