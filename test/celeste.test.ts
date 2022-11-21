@@ -10,42 +10,43 @@ const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe("torus utils ropsten", function () {
+describe("torus utils celeste", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
   beforeEach("one time execution before all tests", async function () {
-    torus = new TorusUtils({ network: "testnet" });
-    TORUS_NODE_MANAGER = new NodeManager({
-      network: TORUS_NETWORK.TESTNET,
-      proxyAddress: NodeManager.PROXY_ADDRESS_TESTNET,
+    torus = new TorusUtils({
+      signerHost: "https://signer-polygon.tor.us/api/sign",
+      allowHost: "https://signer-polygon.tor.us/api/allow",
+      network: "celeste",
     });
+    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.CELESTE, proxyAddress: NodeManager.PROXY_ADDRESS_CELESTE });
   });
   it("should fetch public address", async function () {
-    const verifier = "google-lrc"; // any verifier
+    const verifier = "tkey-google-celeste"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
-    expect(publicAddress).to.equal("0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70");
+    expect(publicAddress).to.equal("0xeC80FB9aB308Be1789Bd3f9317962D5505A4A242");
   });
 
   it("should fetch user type and public address", async function () {
-    const verifier = "google-lrc"; // any verifier
+    const verifier = "tkey-google-celeste"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const { address, typeOfUser } = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
-    expect(address).to.equal("0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70");
+    expect(address).to.equal("0xeC80FB9aB308Be1789Bd3f9317962D5505A4A242");
     expect(typeOfUser).to.equal("v1");
 
-    const v2Verifier = "tkey-google-lrc";
+    const v2Verifier = "tkey-google-celeste";
     // 1/1 user
     const v2TestEmail = "somev2user@gmail.com";
     const { address: v2Address, typeOfUser: v2UserType } = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     });
-    expect(v2Address).to.equal("0xE91200d82029603d73d6E307DbCbd9A7D0129d8D");
-    expect(v2UserType).to.equal("v2");
+    expect(v2Address).to.equal("0x69fB3A96016817F698a1279aE2d65F3916F3Db6F");
+    expect(v2UserType).to.equal("v1");
 
     // 2/n user
     const v2nTestEmail = "caspertorus@gmail.com";
@@ -53,12 +54,12 @@ describe("torus utils ropsten", function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     });
-    expect(v2nAddress).to.equal("0x1016DA7c47A04C76036637Ea02AcF1d29c64a456");
-    expect(v2nUserType).to.equal("v2");
+    expect(v2nAddress).to.equal("0x24aCac36F8A4bD93052207dA410dA71AF92258b7");
+    expect(v2nUserType).to.equal("v1");
   });
 
   it("should be able to key assign", async function () {
-    const verifier = "google-lrc"; // any verifier
+    const verifier = "tkey-google-celeste"; // any verifier
     const email = faker.internet.email();
     const verifierDetails = { verifier, verifierId: email };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
@@ -78,7 +79,7 @@ describe("torus utils ropsten", function () {
       { verifier_id: TORUS_TEST_EMAIL },
       token
     );
-    expect(retrieveSharesResponse.privKey).to.be.equal("068ee4f97468ef1ae95d18554458d372e31968190ae38e377be59d8b3c9f7a25");
+    expect(retrieveSharesResponse.privKey).to.be.equal("0ae056aa938080c9e8bf6641261619e09fd510c91bb5aad14b0de9742085a914");
   });
 
   it("should be able to aggregate login", async function () {
@@ -97,6 +98,6 @@ describe("torus utils ropsten", function () {
       },
       hashedIdToken.substring(2)
     );
-    expect(retrieveSharesResponse.ethAddress).to.be.equal("0x5a165d2Ed4976BD104caDE1b2948a93B72FA91D2");
+    expect(retrieveSharesResponse.ethAddress).to.be.equal("0x535Eb1AefFAc6f699A2a1A5846482d7b5b2BD564");
   });
 });
