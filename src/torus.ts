@@ -262,7 +262,6 @@ class Torus {
         }
 
         for (let i = 0; i < endpoints.length; i += 1) {
-          // eslint-disable-next-line promise/no-nesting
           const p = post<JRPCResponse<ShareRequestResult>>(
             endpoints[i],
             generateJsonRPCObject("GetShareOrKeyAssign", {
@@ -330,7 +329,6 @@ class Torus {
                     };
 
                     sharePromises.push(
-                      // eslint-disable-next-line promise/no-nesting
                       decrypt(tmpKey, {
                         ...metadata,
                         ciphertext: Buffer.from(Buffer.from(firstKey.share, "base64").toString("binary").padStart(64, "0"), "hex"),
@@ -389,9 +387,11 @@ class Torus {
         const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
         const decryptedPubKeyY = decryptedPubKey.slice(66);
         let metadataNonce: BN;
+        let finalTypeOfUser: "v1" | "v2" = "v1";
         if (this.enableOneKey) {
-          const { nonce } = await this.getNonce(decryptedPubKeyX, decryptedPubKeyY, privateKey);
+          const { nonce, typeOfUser } = await this.getNonce(decryptedPubKeyX, decryptedPubKeyY, privateKey);
           metadataNonce = new BN(nonce || "0", 16);
+          finalTypeOfUser = typeOfUser;
         } else {
           metadataNonce = await this.getMetadata({ pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY });
         }
@@ -408,6 +408,9 @@ class Torus {
           privKey: privateKey.toString("hex", 64),
           metadataNonce,
           sessionTokensData: sessionTokenData,
+          X: decryptedPubKeyX,
+          Y: decryptedPubKeyY,
+          typeOfUser: finalTypeOfUser,
         };
       });
   }

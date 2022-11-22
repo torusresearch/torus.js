@@ -153,6 +153,9 @@ export interface RetrieveSharesResponse {
   privKey: string;
   metadataNonce: BN;
   sessionTokensData: SessionToken[];
+  X: string;
+  Y: string;
+  typeOfUser: "v1" | "v2";
 }
 
 export interface VerifierParams {
