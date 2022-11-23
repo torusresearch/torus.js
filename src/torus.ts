@@ -389,7 +389,7 @@ class Torus {
         let metadataNonce: BN;
         let finalTypeOfUser: "v1" | "v2" = "v1";
         if (this.enableOneKey) {
-          const { nonce, typeOfUser } = await this.getNonce(decryptedPubKeyX, decryptedPubKeyY, privateKey);
+          const { nonce, typeOfUser } = await this.getOrSetNonce(decryptedPubKeyX, decryptedPubKeyY, privateKey);
           metadataNonce = new BN(nonce || "0", 16);
           finalTypeOfUser = typeOfUser;
         } else {
