@@ -15,9 +15,11 @@ describe.only("torus utils sapphire", function () {
   let torus: TorusUtils;
 
   const torusNodeEndpoints = [
-    "https://swaraj-test-coordinator-1.k8.authnetwork.dev/sss/jrpc",
-    "https://swaraj-test-coordinator-2.k8.authnetwork.dev/sss/jrpc",
-    "https://swaraj-test-coordinator-3.k8.authnetwork.dev/sss/jrpc",
+    "https://lc-1.k8.authnetwork.dev/sss/jrpc",
+    "https://lc-2.k8.authnetwork.dev/sss/jrpc",
+    "https://lc-3.k8.authnetwork.dev/sss/jrpc",
+    "https://lc-4.k8.authnetwork.dev/sss/jrpc",
+    "https://lc-4.k8.authnetwork.dev/sss/jrpc",
   ];
 
   beforeEach("one time execution before all tests", async function () {
@@ -31,13 +33,13 @@ describe.only("torus utils sapphire", function () {
   it("should fetch public address", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
-    expect(publicAddress).to.equal("0xa8d7966138191e9505F8Baecf05c73E55A6d212F");
+    expect(publicAddress).to.equal("0xB9791486ef878C695901b3E7eE8a71493efB0D2F");
   });
 
   it("should fetch user type and public address", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { address, typeOfUser } = await torus.getUserTypeAndAddress(torusNodeEndpoints, verifierDetails, true);
-    expect(address).to.equal("0xa8d7966138191e9505F8Baecf05c73E55A6d212F");
+    expect(address).to.equal("0xB9791486ef878C695901b3E7eE8a71493efB0D2F");
     expect(typeOfUser).to.equal("v2");
   });
 
@@ -52,10 +54,10 @@ describe.only("torus utils sapphire", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const retrieveSharesResponse = await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
-    expect(retrieveSharesResponse.privKey).to.be.equal("681f35d6a359365f3f60e23cabced1b69f19ce08677e76cf024e2b1172bc6b66");
+    expect(retrieveSharesResponse.privKey).to.be.equal("f2fa3eb129511faacd61769c342a1140a16d2ad790fe0b159f489ff8b0d92bc5");
   });
 
-  it("should be able to aggregate login", async function () {
+  it.skip("should be able to aggregate login", async function () {
     const email = faker.internet.email();
     const idToken = generateIdToken(email, "ES256");
     const hashedIdToken = keccak256(idToken);
