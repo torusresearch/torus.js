@@ -134,8 +134,8 @@ export interface KeyAssignment {
   metadata: {
     [key in keyof Ecies]: string;
   };
-  server_nonce?: GetOrSetNonceResult;
-  server_metadata?: { message?: string };
+  nonce_data?: GetOrSetNonceResult;
+  key_metadata?: { message?: string };
 }
 
 export interface ShareRequestResult {

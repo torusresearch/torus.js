@@ -305,20 +305,39 @@ class Torus {
             */
           // check if threshold number of nodes have returned the same user public key
           const completedRequests = shareResponses.filter((x) => x);
-
-          const resp = shareResponses.map((x) => x && x.result && x.result.keys[0].public_key);
-
-          const thresholdPublicKey = thresholdSame(resp, ~~(endpoints.length / 2) + 1);
-
-          let metadataNonce: BN[];
+          let thresholdMetadataNonce: BN;
+          let thresholdTypeOfUser: UserType = "v1";
+          let thresholdPublicKey;
           if (this.enableOneKey) {
-            const nonce = shareResponses.map((x) => x && x.result && new BN(x.result.keys[0].server_nonce.nonce || "0", 16));
-            metadataNonce = nonce;
+            const nonceData = shareResponses.map((x) => {
+              if (x && x.result) {
+                return {
+                  public_key: x.result.keys[0].public_key,
+                  typeOfUser: x.result.keys[0].nonce_data.typeOfUser || "v1",
+                  nonce: new BN(x.result.keys[0].nonce_data.nonce || "0", 16),
+                };
+              }
+              return undefined;
+            });
+            const thresholdData = thresholdSame(nonceData, ~~(endpoints.length / 2) + 1);
+            thresholdMetadataNonce = thresholdData.nonce;
+            thresholdTypeOfUser = thresholdData.typeOfUser;
+            thresholdPublicKey = thresholdData.public_key;
           } else {
-            metadataNonce = shareResponses.map((x) => x && x.result && this.convertMetadataToNonce(x.result.keys[0].server_metadata));
+            const metadataNonces = shareResponses.map((x) => {
+              if (x && x.result) {
+                return {
+                  nonce: this._convertMetadataToNonce(x.result.keys[0].key_metadata),
+                  public_key: x.result.keys[0].public_key,
+                };
+              }
+              return undefined;
+            });
+            const thresholdData = thresholdSame(metadataNonces, ~~(endpoints.length / 2) + 1);
+            thresholdMetadataNonce = thresholdData.nonce;
+            thresholdTypeOfUser = "v1";
+            thresholdPublicKey = thresholdData.public_key;
           }
-
-          const thresholdMetadataNonce = thresholdSame(metadataNonce, ~~(endpoints.length / 2) + 1);
 
           // optimistically run lagrange interpolation once threshold number of shares have been received
           // this is matched against the user public key to ensure that shares are consistent
@@ -396,13 +415,7 @@ class Torus {
               throw new Error("could not derive private key");
             }
 
-            let typeOfUser: UserType = "v1";
-            if (this.enableOneKey) {
-              const userType: string[] = shareResponses.map((x) => x && x.result && x.result.keys[0].server_nonce.typeOfUser);
-              const thresholdVal = thresholdSame(userType, ~~(endpoints.length / 2) + 1);
-              if (thresholdVal) typeOfUser = thresholdVal as UserType;
-            }
-            return { privateKey, sessionTokenData, metadataNonce: thresholdMetadataNonce, typeOfUser };
+            return { privateKey, sessionTokenData, metadataNonce: thresholdMetadataNonce, typeOfUser: thresholdTypeOfUser };
           }
           throw new Error("invalid");
         });
@@ -436,14 +449,14 @@ class Torus {
   async getMetadata(data: Omit<MetadataParams, "set_data" | "signature">, options: RequestInit = {}): Promise<BN> {
     try {
       const metadataResponse = await post<{ message?: string }>(`${this.metadataHost}/get`, data, options, { useAPIKey: true });
-      return this.convertMetadataToNonce(metadataResponse);
+      return this._convertMetadataToNonce(metadataResponse);
     } catch (error) {
       log.error("get metadata error", error);
       return new BN(0);
     }
   }
 
-  convertMetadataToNonce(params: { message?: string }) {
+  _convertMetadataToNonce(params: { message?: string }) {
     if (!params || !params.message) {
       return new BN(0);
     }
