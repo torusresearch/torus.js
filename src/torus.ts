@@ -83,12 +83,13 @@ class Torus {
   async getUserTypeAndAddress(
     endpoints: string[],
     { verifier, verifierId }: { verifier: string; verifierId: string },
-    doesKeyAssign = false
+    doesKeyAssign = false,
+    doesHashVerifierId = false
   ): Promise<V1UserTypeAndAddress | V2UserTypeAndAddress> {
     let finalKeyResult: VerifierLookupResponse;
 
     if (doesKeyAssign) {
-      const { keyResult, errorResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId);
+      const { keyResult, errorResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, doesHashVerifierId);
       if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
         // change error msg
         throw new Error(`Verifier not supported. Check if you: \n
@@ -99,7 +100,7 @@ class Torus {
       }
       finalKeyResult = keyResult;
     } else {
-      const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
+      const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId, doesHashVerifierId)) || {};
       if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
         // change error msg
         throw new Error(`Verifier not supported. Check if you: \n
@@ -178,7 +179,8 @@ class Torus {
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
-    extraParams: Record<string, unknown> = {}
+    extraParams: Record<string, unknown> = {},
+    doesHashVerifierID = false
   ): Promise<RetrieveSharesResponse> {
     const promiseArr = [];
     /*
@@ -266,6 +268,7 @@ class Torus {
             endpoints[i],
             generateJsonRPCObject("GetShareOrKeyAssign", {
               encrypted: "yes",
+              does_hash: doesHashVerifierID,
               item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
             })
           ).catch((err) => log.error("share req", err));
@@ -499,11 +502,12 @@ class Torus {
   async getPublicAddress(
     endpoints: string[],
     { verifier, verifierId }: { verifier: string; verifierId: string },
-    isExtended = false
+    isExtended = false,
+    doesHashVerifierId = false
   ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
 
-    const { keyResult, errorResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId);
+    const { keyResult, errorResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, doesHashVerifierId);
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n

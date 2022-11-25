@@ -50,13 +50,14 @@ export const thresholdSame = <T>(arr: T[], t: number): T | undefined => {
   return undefined;
 };
 
-export const keyLookup = async (endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult> => {
+export const keyLookup = async (endpoints: string[], verifier: string, verifierId: string, doesHashVerifierId: boolean): Promise<KeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
       generateJsonRPCObject("VerifierLookupRequest", {
         verifier,
         verifier_id: verifierId.toString(),
+        does_hash: doesHashVerifierId,
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
@@ -77,13 +78,19 @@ export const keyLookup = async (endpoints: string[], verifier: string, verifierI
   });
 };
 
-export const GetPubKeyOrKeyAssign = async (endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult> => {
+export const GetPubKeyOrKeyAssign = async (
+  endpoints: string[],
+  verifier: string,
+  verifierId: string,
+  doesHashVerifierId = false
+): Promise<KeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
       generateJsonRPCObject("GetPubKeyOrKeyAssign", {
         verifier,
         verifier_id: verifierId.toString(),
+        does_hash: doesHashVerifierId,
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
@@ -104,10 +111,16 @@ export const GetPubKeyOrKeyAssign = async (endpoints: string[], verifier: string
   });
 };
 
-export const waitKeyLookup = (endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<KeyLookupResult> =>
+export const waitKeyLookup = (
+  endpoints: string[],
+  verifier: string,
+  verifierId: string,
+  timeout: number,
+  doesHashVerifierId = false
+): Promise<KeyLookupResult> =>
   new Promise((resolve, reject) => {
     setTimeout(() => {
-      keyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject);
+      keyLookup(endpoints, verifier, verifierId, doesHashVerifierId).then(resolve).catch(reject);
     }, timeout);
   });
 
