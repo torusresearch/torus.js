@@ -124,3 +124,20 @@ fetchNodeDetails
 
 - This package requires a peer dependency of `@babel/runtime`
 - Node 14+
+
+## Development
+
+Install dependencies.
+```
+npm install
+```
+
+Create file `.env.test` and insert `JWT_PRIVATE_KEY` environment variable.
+```
+JWT_PRIVATE_KEY="Insert private key"
+```
+
+Run tests.
+```
+npm run test
+```
