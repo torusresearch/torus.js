@@ -52,7 +52,7 @@ class Torus {
     serverTimeOffset = 0,
     network = "mainnet",
   }: TorusCtorOptions = {}) {
-    this.ec = new EC("secp256k1");
+    this.ec = new EC("ed25519");
     this.metadataHost = metadataHost;
     this.allowHost = allowHost;
     this.enableOneKey = enableOneKey;
@@ -399,12 +399,10 @@ class Torus {
               const indices = currentCombiShares.map((x) => x.index);
               const derivedPrivateKey = this.lagrangeInterpolation(shares, indices);
               if (!derivedPrivateKey) continue;
-              const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), "hex")).toString("hex");
-              const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-              const decryptedPubKeyY = decryptedPubKey.slice(66);
+              const decryptedPubKey = this.derivePubKey(derivedPrivateKey);
               if (
-                new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
-                new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
+                decryptedPubKey.getX().cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
+                decryptedPubKey.getY().cmp(new BN(thresholdPublicKey.Y, 16)) === 0
               ) {
                 privateKey = derivedPrivateKey;
                 break;
@@ -423,9 +421,9 @@ class Torus {
       .then(async (res) => {
         let { privateKey, sessionTokenData, metadataNonce, typeOfUser } = res;
         if (!privateKey) throw new Error("Invalid private key returned");
-        const decryptedPubKey = getPublic(Buffer.from(privateKey.toString(16, 64), "hex")).toString("hex");
-        const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-        const decryptedPubKeyY = decryptedPubKey.slice(66);
+        const decryptedPubKey = this.derivePubKey(privateKey);
+        const decryptedPubKeyX = decryptedPubKey.getX().toString(16, 64);
+        const decryptedPubKeyY = decryptedPubKey.getY().toString(16, 64);
         log.debug("> torus.js/retrieveShares", { privKey: privateKey.toString(16), metadataNonce: metadataNonce.toString(16) });
 
         privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n);
@@ -627,6 +625,11 @@ class Torus {
     const privKeyBN = new BN(privKey, 16);
     const nonceBN = new BN(nonce, 16);
     return privKeyBN.sub(nonceBN).umod(this.ec.curve.n).toString("hex");
+  }
+
+  derivePubKey(sk: BN): curve.base.BasePoint {
+    const skHex = sk.toString(16, 64);
+    return this.ec.keyFromPrivate(skHex).getPublic();
   }
 }
 
