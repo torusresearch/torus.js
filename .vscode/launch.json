@@ -21,7 +21,10 @@
       "runtimeArgs": ["${workspaceRoot}/node_modules/.bin/mocha", "--inspect-brk", "${relativeFile}"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "attachSimplePort": 9229
+      "attachSimplePort": 9229,
+      "env": {
+        "NODE_ENV": "test"
+      }
     }
   ]
 }
