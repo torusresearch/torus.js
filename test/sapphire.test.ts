@@ -15,18 +15,18 @@ describe.only("torus utils sapphire", function () {
   let torus: TorusUtils;
 
   const torusNodeEndpoints = [
-    "https://lc-1.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-2.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-3.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-4.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-4.k8.authnetwork.dev/sss/jrpc",
+    "https://lrc-edwards-1.k8.authnetwork.dev/sss/jrpc",
+    "https://lrc-edwards-2.k8.authnetwork.dev/sss/jrpc",
+    "https://lrc-edwards-3.k8.authnetwork.dev/sss/jrpc",
+    "https://lrc-edwards-4.k8.authnetwork.dev/sss/jrpc",
+    "https://lrc-edwards-5.k8.authnetwork.dev/sss/jrpc",
   ];
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({
       signerHost: "https://signer-polygon.tor.us/api/sign",
       allowHost: "https://signer-polygon.tor.us/api/allow",
-      metadataHost: "https://lc-1.k8.authnetwork.dev/metadata",
+      metadataHost: "https://lrc-edwards-1.k8.authnetwork.dev/metadata",
       network: "cyan",
       enableOneKey: true,
     });
