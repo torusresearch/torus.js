@@ -7,6 +7,8 @@ export interface KeyIndex {
   service_group_id: string;
 }
 
+export type UserType = "v1" | "v2";
+
 export type GetOrSetNonceResult =
   | { typeOfUser: "v1"; nonce?: string }
   | { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
@@ -49,7 +51,14 @@ export interface ShareResponse {
 }
 
 export interface VerifierLookupResponse {
-  keys: { pub_key_X: string; pub_key_Y: string; key_index: KeyIndex; address: string }[];
+  keys: {
+    pub_key_X: string;
+    pub_key_Y: string;
+    key_index: KeyIndex;
+    address: string;
+    nonce_data?: GetOrSetNonceResult;
+    key_metadata?: { message?: string };
+  }[];
   is_new_key: boolean;
 }
 
@@ -100,6 +109,8 @@ export interface JRPCResponse<T> {
 export interface KeyLookupResult {
   keyResult: VerifierLookupResponse;
   errorResult: JRPCResponse<VerifierLookupResponse>["error"];
+  metadataNonce?: BN;
+  nonceResult?: GetOrSetNonceResult;
 }
 
 export interface SignerResponse {
@@ -132,6 +143,8 @@ export interface KeyAssignment {
   metadata: {
     [key in keyof Ecies]: string;
   };
+  nonce_data?: GetOrSetNonceResult;
+  key_metadata?: { message?: string };
 }
 
 export interface ShareRequestResult {
