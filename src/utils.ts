@@ -1,4 +1,5 @@
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
+import BN from "bn.js";
 import JsonStringify from "json-stable-stringify";
 import createKeccakHash from "keccak";
 
@@ -7,6 +8,13 @@ import log from "./loglevel";
 import { Some } from "./some";
 
 export class GetOrSetNonceError extends Error {}
+
+export function _convertMetadataToNonce(params: { message?: string }) {
+  if (!params || !params.message) {
+    return new BN(0);
+  }
+  return new BN(params.message, 16);
+}
 
 export const kCombinations = (s: number | number[], k: number): number[][] => {
   let set = s;
@@ -77,18 +85,39 @@ export const keyLookup = async (endpoints: string[], verifier: string, verifierI
   });
 };
 
-export const GetPubKeyOrKeyAssign = async (endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult> => {
+export const GetPubKeyOrKeyAssign = async (
+  endpoints: string[],
+  verifier: string,
+  verifierId: string,
+  enableOneKey: boolean
+): Promise<KeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
       generateJsonRPCObject("GetPubKeyOrKeyAssign", {
         verifier,
         verifier_id: verifierId.toString(),
+        one_key_flow: enableOneKey,
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
   return Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
-    const lookupShares = lookupResults.filter((x1) => x1);
+    let metadataNonce;
+    let nonceResult;
+    const lookupShares = lookupResults.filter((x1) => {
+      if (x1) {
+        if (enableOneKey) {
+          if (x1.result?.keys[0].nonce_data.nonce) {
+            nonceResult = x1.result?.keys[0].nonce_data;
+          }
+        } else if (x1.result.keys[0].key_metadata) {
+          metadataNonce = _convertMetadataToNonce(x1.result.keys[0].key_metadata);
+        }
+
+        return x1;
+      }
+      return false;
+    });
     const errorResult = thresholdSame(
       lookupShares.map((x2) => x2 && x2.error),
       ~~(endpoints.length / 2) + 1
@@ -98,7 +127,7 @@ export const GetPubKeyOrKeyAssign = async (endpoints: string[], verifier: string
       ~~(endpoints.length / 2) + 1
     );
     if (keyResult || errorResult) {
-      return Promise.resolve({ keyResult, errorResult });
+      return Promise.resolve({ keyResult, errorResult, nonceResult, metadataNonce });
     }
     return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`));
   });

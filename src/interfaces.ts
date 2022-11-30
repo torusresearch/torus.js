@@ -51,7 +51,14 @@ export interface ShareResponse {
 }
 
 export interface VerifierLookupResponse {
-  keys: { pub_key_X: string; pub_key_Y: string; key_index: KeyIndex; address: string }[];
+  keys: {
+    pub_key_X: string;
+    pub_key_Y: string;
+    key_index: KeyIndex;
+    address: string;
+    nonce_data?: GetOrSetNonceResult;
+    key_metadata?: { message?: string };
+  }[];
   is_new_key: boolean;
 }
 
@@ -102,6 +109,8 @@ export interface JRPCResponse<T> {
 export interface KeyLookupResult {
   keyResult: VerifierLookupResponse;
   errorResult: JRPCResponse<VerifierLookupResponse>["error"];
+  metadataNonce?: BN;
+  nonceResult?: GetOrSetNonceResult;
 }
 
 export interface SignerResponse {

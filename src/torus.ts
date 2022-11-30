@@ -25,7 +25,7 @@ import {
 } from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
-import { GetOrSetNonceError, GetPubKeyOrKeyAssign, kCombinations, keccak256, keyLookup, thresholdSame } from "./utils";
+import { _convertMetadataToNonce, GetOrSetNonceError, GetPubKeyOrKeyAssign, kCombinations, keccak256, keyLookup, thresholdSame } from "./utils";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -87,9 +87,9 @@ class Torus {
     doesKeyAssign = false
   ): Promise<V1UserTypeAndAddress | V2UserTypeAndAddress> {
     let finalKeyResult: VerifierLookupResponse;
-
+    let finalNonceResult: GetOrSetNonceResult;
     if (doesKeyAssign) {
-      const { keyResult, errorResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId);
+      const { keyResult, errorResult, nonceResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, this.enableOneKey);
       if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
         // change error msg
         throw new Error(`Verifier not supported. Check if you: \n
@@ -99,6 +99,7 @@ class Torus {
         throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
       }
       finalKeyResult = keyResult;
+      finalNonceResult = nonceResult;
     } else {
       const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
       if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
@@ -114,39 +115,40 @@ class Torus {
 
     if (finalKeyResult?.keys) {
       const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
-      let nonceResult: GetOrSetNonceResult;
       let nonce: BN;
       let modifiedPubKey: curve.base.BasePoint;
 
-      try {
-        nonceResult = await this.getOrSetNonce(X, Y, undefined, false);
-        nonce = new BN(nonceResult.nonce || "0", 16);
-      } catch {
-        throw new GetOrSetNonceError();
+      if (!finalNonceResult) {
+        try {
+          finalNonceResult = await this.getOrSetNonce(X, Y, undefined, false);
+          nonce = new BN(finalNonceResult.nonce || "0", 16);
+        } catch {
+          throw new GetOrSetNonceError();
+        }
       }
-      if (nonceResult.typeOfUser === "v1") {
+      if (finalNonceResult.typeOfUser === "v1") {
         modifiedPubKey = this.ec
           .keyFromPublic({ x: X, y: Y })
           .getPublic()
           .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
-      } else if (nonceResult.typeOfUser === "v2") {
+      } else if (finalNonceResult.typeOfUser === "v2") {
         modifiedPubKey = this.ec
           .keyFromPublic({ x: X, y: Y })
           .getPublic()
-          .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
+          .add(this.ec.keyFromPublic({ x: finalNonceResult.pubNonce.x, y: finalNonceResult.pubNonce.y }).getPublic());
       } else {
         throw new Error("getOrSetNonce should always return typeOfUser.");
       }
       const finalX = modifiedPubKey.getX().toString(16);
       const finalY = modifiedPubKey.getY().toString(16);
       const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY());
-      if (nonceResult.typeOfUser === "v1") return { typeOfUser: nonceResult.typeOfUser, nonce, X: finalX, Y: finalY, address };
-      else if (nonceResult.typeOfUser === "v2") {
+      if (finalNonceResult.typeOfUser === "v1") return { typeOfUser: finalNonceResult.typeOfUser, nonce, X: finalX, Y: finalY, address };
+      else if (finalNonceResult.typeOfUser === "v2") {
         return {
-          typeOfUser: nonceResult.typeOfUser,
+          typeOfUser: finalNonceResult.typeOfUser,
           nonce,
-          pubNonce: nonceResult.pubNonce,
-          upgraded: nonceResult.upgraded,
+          pubNonce: finalNonceResult.pubNonce,
+          upgraded: finalNonceResult.upgraded,
           X: finalX,
           Y: finalY,
           address,
@@ -276,7 +278,7 @@ class Torus {
                   ...extraParams,
                 },
               ],
-              oneKeyFlow: this.enableOneKey,
+              one_key_flow: this.enableOneKey,
             })
           ).catch((err) => log.error("share req", err));
           promiseArrRequest.push(p);
@@ -307,37 +309,35 @@ class Torus {
           const completedRequests = shareResponses.filter((x) => x);
           let thresholdMetadataNonce: BN;
           let thresholdTypeOfUser: UserType = "v1";
-          let thresholdPublicKey;
+          let pubkeys = [];
           if (this.enableOneKey) {
-            const nonceData = shareResponses.map((x) => {
-              if (x && x.result) {
-                return {
-                  public_key: x.result.keys[0].public_key,
-                  typeOfUser: x.result.keys[0].nonce_data.typeOfUser || "v1",
-                  nonce: new BN(x.result.keys[0].nonce_data.nonce || "0", 16),
-                };
+            pubkeys = shareResponses.map((x) => {
+              if (x && x.result && x.result.keys[0].public_key) {
+                if (x.result.keys[0].nonce_data.nonce) {
+                  thresholdTypeOfUser = x.result.keys[0].nonce_data.typeOfUser || "v1";
+                  thresholdMetadataNonce = new BN(x.result.keys[0].nonce_data.nonce || "0", 16);
+                }
+                return x.result.keys[0].public_key;
               }
               return undefined;
             });
-            const thresholdData = thresholdSame(nonceData, ~~(endpoints.length / 2) + 1);
-            thresholdMetadataNonce = thresholdData.nonce;
-            thresholdTypeOfUser = thresholdData.typeOfUser;
-            thresholdPublicKey = thresholdData.public_key;
           } else {
-            const metadataNonces = shareResponses.map((x) => {
-              if (x && x.result) {
-                return {
-                  nonce: this._convertMetadataToNonce(x.result.keys[0].key_metadata),
-                  public_key: x.result.keys[0].public_key,
-                };
+            pubkeys = shareResponses.map((x) => {
+              if (x && x.result && x.result.keys[0].public_key) {
+                if (x.result.keys[0].nonce_data.nonce) {
+                  thresholdTypeOfUser = x.result.keys[0].nonce_data.typeOfUser || "v1";
+                  thresholdMetadataNonce = _convertMetadataToNonce(x.result.keys[0].key_metadata);
+                }
+                return x.result.keys[0].public_key;
               }
               return undefined;
             });
-            const thresholdData = thresholdSame(metadataNonces, ~~(endpoints.length / 2) + 1);
-            thresholdMetadataNonce = thresholdData.nonce;
-            thresholdTypeOfUser = "v1";
-            thresholdPublicKey = thresholdData.public_key;
           }
+
+          if (thresholdMetadataNonce === undefined) {
+            throw new Error("could not get metadata nonce");
+          }
+          const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
 
           // optimistically run lagrange interpolation once threshold number of shares have been received
           // this is matched against the user public key to ensure that shares are consistent
@@ -449,18 +449,11 @@ class Torus {
   async getMetadata(data: Omit<MetadataParams, "set_data" | "signature">, options: RequestInit = {}): Promise<BN> {
     try {
       const metadataResponse = await post<{ message?: string }>(`${this.metadataHost}/get`, data, options, { useAPIKey: true });
-      return this._convertMetadataToNonce(metadataResponse);
+      return _convertMetadataToNonce(metadataResponse);
     } catch (error) {
       log.error("get metadata error", error);
       return new BN(0);
     }
-  }
-
-  _convertMetadataToNonce(params: { message?: string }) {
-    if (!params || !params.message) {
-      return new BN(0);
-    }
-    return new BN(params.message, 16);
   }
 
   generateMetadataParams(message: string, privateKey: BN): MetadataParams {
@@ -538,7 +531,7 @@ class Torus {
   ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
 
-    const { keyResult, errorResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId);
+    const { keyResult, errorResult, nonceResult, metadataNonce } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, this.enableOneKey);
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
@@ -553,19 +546,13 @@ class Torus {
 
     if (finalKeyResult?.keys) {
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
-      let nonceResult: GetOrSetNonceResult;
       let nonce: BN;
       let modifiedPubKey: curve.base.BasePoint;
       let typeOfUser: GetOrSetNonceResult["typeOfUser"];
       let pubNonce: { x: string; y: string } | undefined;
       if (this.enableOneKey) {
-        try {
-          nonceResult = await this.getOrSetNonce(X, Y, undefined, false);
-          nonce = new BN(nonceResult.nonce || "0", 16);
-          typeOfUser = nonceResult.typeOfUser;
-        } catch {
-          throw new GetOrSetNonceError();
-        }
+        nonce = new BN(nonceResult.nonce || "0", 16);
+        typeOfUser = nonceResult.typeOfUser;
         if (nonceResult.typeOfUser === "v1") {
           modifiedPubKey = this.ec
             .keyFromPublic({ x: X, y: Y })
@@ -587,7 +574,7 @@ class Torus {
         }
       } else {
         typeOfUser = "v1";
-        nonce = await this.getMetadata({ pub_key_X: X, pub_key_Y: Y });
+        nonce = metadataNonce;
         modifiedPubKey = this.ec
           .keyFromPublic({ x: X, y: Y })
           .getPublic()
