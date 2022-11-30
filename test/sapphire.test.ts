@@ -26,6 +26,7 @@ describe.only("torus utils sapphire", function () {
     torus = new TorusUtils({
       signerHost: "https://signer-polygon.tor.us/api/sign",
       allowHost: "https://signer-polygon.tor.us/api/allow",
+      metadataHost: "https://lc-1.k8.authnetwork.dev/metadata",
       network: "cyan",
       enableOneKey: true,
     });
