@@ -42,7 +42,9 @@ describe.only("torus utils sapphire", function () {
     sk = retrieveSharesResponse.privKey;
   });
 
-  it("should be able to construct public key from private key", async function () {
+  // We skip this test because metadata server does not support ed25519 and
+  // therefore the public nonce is computed incorrectly.
+  it.skip("should be able to construct public key from private key", async function () {
     const ec = new EC("ed25519");
     const pkFromSk = ec.keyFromPrivate(sk).getPublic();
     expect(pk.X).to.be.equal(pkFromSk.getX().toString(16));
