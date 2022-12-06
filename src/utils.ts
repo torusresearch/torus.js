@@ -9,7 +9,7 @@ import { Some } from "./some";
 
 export class GetOrSetNonceError extends Error {}
 
-export function _convertMetadataToNonce(params: { message?: string }) {
+export function convertMetadataToNonce(params: { message?: string }) {
   if (!params || !params.message) {
     return new BN(0);
   }
@@ -111,7 +111,7 @@ export const GetPubKeyOrKeyAssign = async (
             nonceResult = x1.result?.keys[0].nonce_data;
           }
         } else if (x1.result.keys[0].key_metadata) {
-          metadataNonce = _convertMetadataToNonce(x1.result.keys[0].key_metadata);
+          metadataNonce = convertMetadataToNonce(x1.result.keys[0].key_metadata);
         }
 
         return x1;

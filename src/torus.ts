@@ -25,7 +25,7 @@ import {
 } from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
-import { _convertMetadataToNonce, GetOrSetNonceError, GetPubKeyOrKeyAssign, kCombinations, keccak256, keyLookup, thresholdSame } from "./utils";
+import { convertMetadataToNonce, GetOrSetNonceError, GetPubKeyOrKeyAssign, kCombinations, keccak256, keyLookup, thresholdSame } from "./utils";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -283,6 +283,8 @@ class Torus {
           ).catch((err) => log.error("share req", err));
           promiseArrRequest.push(p);
         }
+        let thresholdMetadataNonce: BN;
+        let thresholdTypeOfUser: UserType = "v1";
         return Some<
           void | JRPCResponse<ShareRequestResult>,
           { privateKey: BN; sessionTokenData: SessionToken[]; metadataNonce: BN; typeOfUser: UserType } | undefined
@@ -307,13 +309,11 @@ class Torus {
             */
           // check if threshold number of nodes have returned the same user public key
           const completedRequests = shareResponses.filter((x) => x);
-          let thresholdMetadataNonce: BN;
-          let thresholdTypeOfUser: UserType = "v1";
           let pubkeys = [];
           if (this.enableOneKey) {
             pubkeys = shareResponses.map((x) => {
               if (x && x.result && x.result.keys[0].public_key) {
-                if (x.result.keys[0].nonce_data.nonce) {
+                if (!thresholdMetadataNonce) {
                   thresholdTypeOfUser = x.result.keys[0].nonce_data.typeOfUser || "v1";
                   thresholdMetadataNonce = new BN(x.result.keys[0].nonce_data.nonce || "0", 16);
                 }
@@ -324,18 +324,11 @@ class Torus {
           } else {
             pubkeys = shareResponses.map((x) => {
               if (x && x.result && x.result.keys[0].public_key) {
-                if (x.result.keys[0].nonce_data.nonce) {
-                  thresholdTypeOfUser = x.result.keys[0].nonce_data.typeOfUser || "v1";
-                  thresholdMetadataNonce = _convertMetadataToNonce(x.result.keys[0].key_metadata);
-                }
+                if (!thresholdMetadataNonce) thresholdMetadataNonce = convertMetadataToNonce(x.result.keys[0].key_metadata);
                 return x.result.keys[0].public_key;
               }
               return undefined;
             });
-          }
-
-          if (thresholdMetadataNonce === undefined) {
-            throw new Error("could not get metadata nonce");
           }
           const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
 
@@ -449,7 +442,7 @@ class Torus {
   async getMetadata(data: Omit<MetadataParams, "set_data" | "signature">, options: RequestInit = {}): Promise<BN> {
     try {
       const metadataResponse = await post<{ message?: string }>(`${this.metadataHost}/get`, data, options, { useAPIKey: true });
-      return _convertMetadataToNonce(metadataResponse);
+      return convertMetadataToNonce(metadataResponse);
     } catch (error) {
       log.error("get metadata error", error);
       return new BN(0);
