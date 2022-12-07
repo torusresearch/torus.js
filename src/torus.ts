@@ -16,8 +16,6 @@ import {
   ShareRequestResult,
   TorusCtorOptions,
   TorusPublicKey,
-  V1UserTypeAndAddress,
-  V2UserTypeAndAddress,
   VerifierLookupResponse,
   VerifierParams,
 } from "./interfaces";
@@ -84,11 +82,16 @@ class Torus {
     torusNodePubs: INodePub[],
     { verifier, verifierId }: { verifier: string; verifierId: string },
     doesKeyAssign = false
-  ): Promise<V1UserTypeAndAddress | V2UserTypeAndAddress> {
+  ): Promise<TorusPublicKey> {
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
     let isNewKey = false;
     let finalKeyResult: VerifierLookupResponse;
-    if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
+    if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
+      // change error msg
+      throw new Error(`Verifier not supported. Check if you: \n
+      1. Are on the right network (Torus testnet/mainnet) \n
+      2. Have setup a verifier on dashboard.web3auth.io?`);
+    } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
       if (!doesKeyAssign) {
         throw new Error("Verifier + VerifierID has not yet been assigned");
       }
@@ -110,15 +113,20 @@ class Torus {
     } else {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
     }
+    log.debug("> torus.js/getUserTypeAndAddress", { finalKeyResult, isNewKey });
+
     if (finalKeyResult) {
       const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
       let nonceResult: GetOrSetNonceResult;
       let nonce: BN;
       let modifiedPubKey: curve.base.BasePoint;
+      let typeOfUser: GetOrSetNonceResult["typeOfUser"];
+      let pubNonce: { x: string; y: string } | undefined;
 
       try {
         nonceResult = await this.getOrSetNonce(X, Y, undefined, !isNewKey);
         nonce = new BN(nonceResult.nonce || "0", 16);
+        typeOfUser = nonceResult.typeOfUser;
       } catch {
         throw new GetOrSetNonceError();
       }
@@ -128,28 +136,28 @@ class Torus {
           .getPublic()
           .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
       } else if (nonceResult.typeOfUser === "v2") {
+        // pubNonce is never deleted, so we can use it to always get the tkey
         modifiedPubKey = this.ec
           .keyFromPublic({ x: X, y: Y })
           .getPublic()
           .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
+        pubNonce = nonceResult.pubNonce;
       } else {
         throw new Error("getOrSetNonce should always return typeOfUser.");
       }
+
       const finalX = modifiedPubKey.getX().toString(16);
       const finalY = modifiedPubKey.getY().toString(16);
       const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY());
-      if (nonceResult.typeOfUser === "v1") return { typeOfUser: nonceResult.typeOfUser, nonce, X: finalX, Y: finalY, address };
-      else if (nonceResult.typeOfUser === "v2") {
-        return {
-          typeOfUser: nonceResult.typeOfUser,
-          nonce,
-          pubNonce: nonceResult.pubNonce,
-          upgraded: nonceResult.upgraded,
-          X: finalX,
-          Y: finalY,
-          address,
-        };
-      }
+      log.debug("> torus.js/getUserTypeAndAddress", { X, Y, address, typeOfUser, nonce: nonce?.toString(16), pubNonce });
+      return {
+        typeOfUser,
+        address,
+        X: finalX,
+        Y: finalY,
+        metadataNonce: nonce,
+        pubNonce,
+      };
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
   }
@@ -266,7 +274,6 @@ class Torus {
           if (responses[i]) nodeSigs.push((responses[i] as JRPCResponse<CommitmentRequestResult>).result);
         }
         for (let i = 0; i < endpoints.length; i += 1) {
-          // eslint-disable-next-line promise/no-nesting
           const p = post<JRPCResponse<ShareRequestResult>>(
             endpoints[i],
             generateJsonRPCObject("ShareRequest", {
@@ -319,7 +326,6 @@ class Torus {
                     // mode: Buffer.from(firstKey.Metadata.mode, "hex"),
                   };
                   sharePromises.push(
-                    // eslint-disable-next-line promise/no-nesting
                     decrypt(tmpKey, {
                       ...metadata,
                       ciphertext: Buffer.from(Buffer.from(firstKey.Share, "base64").toString("binary").padStart(64, "0"), "hex"),
@@ -574,6 +580,7 @@ class Torus {
         Y,
         metadataNonce: nonce,
         pubNonce,
+        upgraded: (nonceResult as { upgraded?: boolean })?.upgraded || undefined,
       };
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
