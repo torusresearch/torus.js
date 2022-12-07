@@ -24,6 +24,7 @@ export const Some = <K, T>(promises: Promise<K>[], predicate: (resultArr: K[], {
     const errorArr: Error[] = new Array(promises.length).fill(undefined);
     const resultArr: K[] = new Array(promises.length).fill(undefined);
     let predicateError: Error | string;
+    // eslint-disable-next-line no-promise-executor-return
     return promises.forEach((x, index) => {
       return (
         x
