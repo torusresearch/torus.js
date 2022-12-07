@@ -53,7 +53,7 @@ describe("torus utils goerli", function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     });
-    expect(v2nAddress).to.equal("0xd45383fbF04BccFa0450d7d8ee453ca86b7C6544");
+    expect(v2nAddress).to.equal("0x1016DA7c47A04C76036637Ea02AcF1d29c64a456");
     expect(v2nUserType).to.equal("v2");
   });
 

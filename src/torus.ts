@@ -136,16 +136,12 @@ class Torus {
           .getPublic()
           .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
       } else if (nonceResult.typeOfUser === "v2") {
-        if (nonceResult.upgraded) {
-          // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
-          modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
-        } else {
-          modifiedPubKey = this.ec
-            .keyFromPublic({ x: X, y: Y })
-            .getPublic()
-            .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
-          pubNonce = nonceResult.pubNonce;
-        }
+        // pubNonce is never deleted, so we can use it to always get the tkey
+        modifiedPubKey = this.ec
+          .keyFromPublic({ x: X, y: Y })
+          .getPublic()
+          .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
+        pubNonce = nonceResult.pubNonce;
       } else {
         throw new Error("getOrSetNonce should always return typeOfUser.");
       }
