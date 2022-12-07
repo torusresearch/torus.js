@@ -10,7 +10,7 @@ const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe("torus utils ropsten", function () {
+describe("torus utils goerli", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -53,7 +53,7 @@ describe("torus utils ropsten", function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     });
-    expect(v2nAddress).to.equal("0x1016DA7c47A04C76036637Ea02AcF1d29c64a456");
+    expect(v2nAddress).to.equal("0xd45383fbF04BccFa0450d7d8ee453ca86b7C6544");
     expect(v2nUserType).to.equal("v2");
   });
 

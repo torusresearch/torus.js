@@ -35,6 +35,7 @@ export interface TorusPublicKey extends INodePub {
   address: string;
   metadataNonce: BN;
   pubNonce?: { x: string; y: string };
+  upgraded?: boolean;
 }
 
 export interface ShareResponse {
@@ -59,25 +60,6 @@ export interface SetCustomKeyOptions {
   metadataNonce?: BN;
   torusKeyHex?: string;
   customKeyHex: BN;
-}
-
-export interface V1UserTypeAndAddress {
-  typeOfUser: "v1";
-  nonce?: BN;
-  X: string;
-  Y: string;
-  address: string;
-}
-
-export interface V2UserTypeAndAddress {
-  typeOfUser: "v2";
-  nonce?: BN;
-  pubNonce: { x: string; y: string };
-  ipfs?: string;
-  upgraded?: boolean;
-  X: string;
-  Y: string;
-  address: string;
 }
 
 export interface JRPCResponse<T> {
