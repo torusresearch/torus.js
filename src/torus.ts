@@ -313,8 +313,9 @@ class Torus {
           if (this.enableOneKey) {
             pubkeys = shareResponses.map((x) => {
               if (x && x.result && x.result.keys[0].public_key) {
-                if (!thresholdMetadataNonce) {
-                  thresholdTypeOfUser = x.result.keys[0].nonce_data.typeOfUser || "v1";
+                const userType = x.result.keys[0].nonce_data.typeOfUser;
+                if (!thresholdMetadataNonce && userType) {
+                  thresholdTypeOfUser = userType;
                   thresholdMetadataNonce = new BN(x.result.keys[0].nonce_data.nonce || "0", 16);
                 }
                 return x.result.keys[0].public_key;
@@ -324,7 +325,8 @@ class Torus {
           } else {
             pubkeys = shareResponses.map((x) => {
               if (x && x.result && x.result.keys[0].public_key) {
-                if (!thresholdMetadataNonce) thresholdMetadataNonce = convertMetadataToNonce(x.result.keys[0].key_metadata);
+                const metadata = x.result.keys[0].key_metadata;
+                if (!thresholdMetadataNonce && metadata) thresholdMetadataNonce = convertMetadataToNonce(metadata);
                 return x.result.keys[0].public_key;
               }
               return undefined;
