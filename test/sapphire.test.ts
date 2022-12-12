@@ -15,11 +15,11 @@ describe.only("torus utils sapphire", function () {
   let torus: TorusUtils;
 
   const torusNodeEndpoints = [
-    "https://lc-1.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-2.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-3.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-4.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-4.k8.authnetwork.dev/sss/jrpc",
+    "https://mpcmain-cluster-1.k8.authnetwork.dev/sss/jrpc",
+    "https://mpcmain-cluster-2.k8.authnetwork.dev/sss/jrpc",
+    "https://mpcmain-cluster-3.k8.authnetwork.dev/sss/jrpc",
+    "https://mpcmain-cluster-4.k8.authnetwork.dev/sss/jrpc",
+    "https://mpcmain-cluster-5.k8.authnetwork.dev/sss/jrpc",
   ];
 
   beforeEach("one time execution before all tests", async function () {

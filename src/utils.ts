@@ -1,5 +1,6 @@
-import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
+import { CustomOptions, Data, generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
+import crypto from "crypto";
 import JsonStringify from "json-stable-stringify";
 import createKeccakHash from "keccak";
 
@@ -58,9 +59,14 @@ export const thresholdSame = <T>(arr: T[], t: number): T | undefined => {
   return undefined;
 };
 
+export const postWithTraceId = <T>(url: string, data?: Data, options_?: RequestInit, customOptions?: CustomOptions): Promise<T> => {
+  const options: RequestInit = { ...options_, headers: { "x-web3auth-trace-id": crypto.randomUUID() } };
+  return post<T>(url, data, options, customOptions);
+};
+
 export const keyLookup = async (endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
-    post<JRPCResponse<VerifierLookupResponse>>(
+    postWithTraceId<JRPCResponse<VerifierLookupResponse>>(
       x,
       generateJsonRPCObject("VerifierLookupRequest", {
         verifier,
@@ -92,7 +98,7 @@ export const GetPubKeyOrKeyAssign = async (
   enableOneKey: boolean
 ): Promise<KeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
-    post<JRPCResponse<VerifierLookupResponse>>(
+    postWithTraceId<JRPCResponse<VerifierLookupResponse>>(
       x,
       generateJsonRPCObject("GetPubKeyOrKeyAssign", {
         verifier,
