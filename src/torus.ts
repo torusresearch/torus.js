@@ -1,6 +1,6 @@
 import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
 // import type { INodePub } from "@toruslabs/fetch-node-details";
-import { Data, generateJsonRPCObject, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
+import { Data, generateJsonRPCObject, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
@@ -25,7 +25,16 @@ import {
 } from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
-import { convertMetadataToNonce, GetOrSetNonceError, GetPubKeyOrKeyAssign, kCombinations, keccak256, keyLookup, thresholdSame } from "./utils";
+import {
+  convertMetadataToNonce,
+  GetOrSetNonceError,
+  GetPubKeyOrKeyAssign,
+  kCombinations,
+  keccak256,
+  keyLookup,
+  postWithTraceId,
+  thresholdSame,
+} from "./utils";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -203,7 +212,7 @@ class Torus {
 
     // make commitment requests to endpoints
     for (let i = 0; i < endpoints.length; i += 1) {
-      const p = post<JRPCResponse<CommitmentRequestResult>>(
+      const p = postWithTraceId<JRPCResponse<CommitmentRequestResult>>(
         endpoints[i],
         generateJsonRPCObject("CommitmentRequest", {
           messageprefix: "mug00",
@@ -265,7 +274,7 @@ class Torus {
         }
 
         for (let i = 0; i < endpoints.length; i += 1) {
-          const p = post<JRPCResponse<ShareRequestResult>>(
+          const p = postWithTraceId<JRPCResponse<ShareRequestResult>>(
             endpoints[i],
             generateJsonRPCObject("GetShareOrKeyAssign", {
               encrypted: "yes",
@@ -441,7 +450,7 @@ class Torus {
 
   async getMetadata(data: Omit<MetadataParams, "set_data" | "signature">, options: RequestInit = {}): Promise<BN> {
     try {
-      const metadataResponse = await post<{ message?: string }>(`${this.metadataHost}/get`, data, options, { useAPIKey: true });
+      const metadataResponse = await postWithTraceId<{ message?: string }>(`${this.metadataHost}/get`, data, options, { useAPIKey: true });
       return convertMetadataToNonce(metadataResponse);
     } catch (error) {
       log.error("get metadata error", error);
@@ -466,7 +475,7 @@ class Torus {
 
   async setMetadata(data: MetadataParams, options: RequestInit = {}): Promise<string> {
     try {
-      const metadataResponse = await post<{ message: string }>(`${this.metadataHost}/set`, data, options, { useAPIKey: true });
+      const metadataResponse = await postWithTraceId<{ message: string }>(`${this.metadataHost}/set`, data, options, { useAPIKey: true });
       return metadataResponse.message; // IPFS hash
     } catch (error) {
       log.error("set metadata error", error);
@@ -609,7 +618,7 @@ class Torus {
         set_data: { data: msg },
       };
     }
-    return post<GetOrSetNonceResult>(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
+    return postWithTraceId<GetOrSetNonceResult>(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
   }
 
   async getNonce(X: string, Y: string, privKey?: BN): Promise<GetOrSetNonceResult> {
