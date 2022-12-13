@@ -326,7 +326,7 @@ class Torus {
             pubkeys = shareResponses.map((x) => {
               if (x && x.result && x.result.keys[0].public_key) {
                 const metadata = x.result.keys[0].key_metadata;
-                if (!thresholdMetadataNonce && metadata) thresholdMetadataNonce = convertMetadataToNonce(metadata);
+                if (!thresholdMetadataNonce || thresholdMetadataNonce.isZero()) thresholdMetadataNonce = convertMetadataToNonce(metadata);
                 return x.result.keys[0].public_key;
               }
               return undefined;

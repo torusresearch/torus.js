@@ -101,19 +101,22 @@ export const GetPubKeyOrKeyAssign = async (
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
-  return Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
-    let metadataNonce;
-    let nonceResult;
+  let metadataNonce;
+  let nonceResult;
+  const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
     const lookupShares = lookupResults.filter((x1) => {
       if (x1) {
         if (enableOneKey) {
-          if (x1.result?.keys[0].nonce_data.nonce) {
-            nonceResult = x1.result?.keys[0].nonce_data;
+          // currently only one node returns metadata nonce
+          // other nodes returns empty object
+          const userType = x1.result?.keys[0].nonce_data.typeOfUser;
+          if (!nonceResult && userType) {
+            nonceResult = x1.result.keys[0].nonce_data;
           }
-        } else if (x1.result.keys[0].key_metadata) {
-          metadataNonce = convertMetadataToNonce(x1.result.keys[0].key_metadata);
+        } else {
+          const metadata = x1.result.keys[0].key_metadata;
+          if (!metadataNonce || metadataNonce.isZero()) metadataNonce = convertMetadataToNonce(metadata);
         }
-
         return x1;
       }
       return false;
@@ -126,11 +129,20 @@ export const GetPubKeyOrKeyAssign = async (
       lookupShares.map((x3) => x3 && x3.result),
       ~~(endpoints.length / 2) + 1
     );
-    if (keyResult || errorResult) {
+    if ((keyResult && nonceResult) || errorResult) {
       return Promise.resolve({ keyResult, errorResult, nonceResult, metadataNonce });
     }
     return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`));
   });
+
+  if (enableOneKey) {
+    if (!nonceResult) {
+      throw new Error("public key lookup should always return nonce data");
+    }
+  } else if (!metadataNonce) {
+    throw new Error("public key lookup should always return metadata");
+  }
+  return result;
 };
 
 export const waitKeyLookup = (endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<KeyLookupResult> =>

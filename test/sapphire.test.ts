@@ -6,7 +6,7 @@ import { keccak256 } from "web3-utils";
 import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
 
-const TORUS_TEST_EMAIL = "sapphiretest329@tor.us";
+const TORUS_TEST_EMAIL = "sapphiretest340@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
@@ -15,18 +15,18 @@ describe.only("torus utils sapphire", function () {
   let torus: TorusUtils;
 
   const torusNodeEndpoints = [
-    "https://lc-1.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-2.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-3.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-4.k8.authnetwork.dev/sss/jrpc",
-    "https://lc-4.k8.authnetwork.dev/sss/jrpc",
+    "https://mpcmain-cluster-1.k8.authnetwork.dev/sss/jrpc",
+    "https://mpcmain-cluster-2.k8.authnetwork.dev/sss/jrpc",
+    "https://mpcmain-cluster-3.k8.authnetwork.dev/sss/jrpc",
+    "https://mpcmain-cluster-4.k8.authnetwork.dev/sss/jrpc",
+    "https://mpcmain-cluster-4.k8.authnetwork.dev/sss/jrpc",
   ];
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({
       signerHost: "https://signer-polygon.tor.us/api/sign",
       allowHost: "https://signer-polygon.tor.us/api/allow",
-      metadataHost: "https://lc-1.k8.authnetwork.dev/metadata",
+      metadataHost: "https://mpcmain-cluster-1.k8.authnetwork.dev/metadata",
       network: "cyan",
       enableOneKey: true,
     });
@@ -34,13 +34,13 @@ describe.only("torus utils sapphire", function () {
   it("should fetch public address", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
-    expect(publicAddress).to.equal("0x3264b7790E4A5C6d9e5314DF899a840C8aC3A96C");
+    expect(publicAddress).to.equal("0x3aFfea6b6F6Dc47d088F405e97808bfd5b6389FA");
   });
 
   it("should fetch user type and public address", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { address, typeOfUser } = await torus.getUserTypeAndAddress(torusNodeEndpoints, verifierDetails, true);
-    expect(address).to.equal("0x3264b7790E4A5C6d9e5314DF899a840C8aC3A96C");
+    expect(address).to.equal("0x3aFfea6b6F6Dc47d088F405e97808bfd5b6389FA");
     expect(typeOfUser).to.equal("v2");
   });
 
@@ -55,7 +55,7 @@ describe.only("torus utils sapphire", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const retrieveSharesResponse = await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
-    expect(retrieveSharesResponse.privKey).to.be.equal("ff019fccb6908a006c36af79ca1699395043ba75a9a4b851f6a0bc15e9488a64");
+    expect(retrieveSharesResponse.privKey).to.be.equal("ba66d7d6884bf14660236f4be34af4465c8f370c63e10df45d167ee70cd35aac");
   });
 
   it.skip("should be able to aggregate login", async function () {
