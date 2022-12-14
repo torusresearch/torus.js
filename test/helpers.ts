@@ -1,5 +1,8 @@
+import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import dotenv from "dotenv";
 import jwt, { Algorithm } from "jsonwebtoken";
+
+import { JRPCResponse } from "../src";
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 const jwtPrivateKey = `-----BEGIN PRIVATE KEY-----\n${process.env.JWT_PRIVATE_KEY}\n-----END PRIVATE KEY-----`;
@@ -21,4 +24,18 @@ export const generateIdToken = (email: string, alg: Algorithm) => {
   };
 
   return jwt.sign(payload, jwtPrivateKey, algo);
+};
+
+interface KeyLookupResponse {
+  verifiers: Record<string, string[]>;
+}
+
+export const lookupVerifier = (endpoint: string, pubKeyX: string, pubKeyY: string) => {
+  return post<JRPCResponse<KeyLookupResponse>>(
+    endpoint,
+    generateJsonRPCObject("KeyLookupRequest", {
+      pub_key_x: pubKeyX,
+      pub_key_y: pubKeyY,
+    })
+  );
 };
