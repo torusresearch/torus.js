@@ -65,7 +65,9 @@ export const keyLookup = async (endpoints: string[], verifier: string, verifierI
       generateJsonRPCObject("VerifierLookupRequest", {
         verifier,
         verifier_id: verifierId.toString(),
-      })
+      }),
+      null,
+      { logTracingHeader: true }
     ).catch((err) => log.error("lookup request failed", err))
   );
   return Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
@@ -98,7 +100,9 @@ export const GetPubKeyOrKeyAssign = async (
         verifier,
         verifier_id: verifierId.toString(),
         one_key_flow: enableOneKey,
-      })
+      }),
+      null,
+      { logTracingHeader: true }
     ).catch((err) => log.error("lookup request failed", err))
   );
   let metadataNonce;
