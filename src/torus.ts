@@ -6,6 +6,7 @@ import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 import { toChecksumAddress } from "web3-utils";
 
+import { config } from "./config";
 import {
   CommitmentRequestResult,
   GetOrSetNonceResult,
@@ -62,8 +63,10 @@ class Torus {
   }
 
   static enableLogging(v = true): void {
-    if (v) log.enableAll();
-    else log.disableAll();
+    if (v) {
+      log.enableAll();
+      config.logRequestTracing = true;
+    } else log.disableAll();
   }
 
   static setAPIKey(apiKey: string): void {
@@ -213,7 +216,7 @@ class Torus {
           verifieridentifier: verifier,
         }),
         undefined,
-        { logTracingHeader: true }
+        { logTracingHeader: config.logRequestTracing }
       ).catch((err) => {
         log.error("commitment error", err);
       });
@@ -283,7 +286,7 @@ class Torus {
               one_key_flow: this.enableOneKey,
             }),
             undefined,
-            { logTracingHeader: true }
+            { logTracingHeader: config.logRequestTracing }
           ).catch((err) => log.error("share req", err));
           promiseArrRequest.push(p);
         }
@@ -449,7 +452,7 @@ class Torus {
     try {
       const metadataResponse = await post<{ message?: string }>(`${this.metadataHost}/get`, data, options, {
         useAPIKey: true,
-        logTracingHeader: true,
+        logTracingHeader: config.logRequestTracing,
       });
       return convertMetadataToNonce(metadataResponse);
     } catch (error) {
@@ -477,7 +480,7 @@ class Torus {
     try {
       const metadataResponse = await post<{ message: string }>(`${this.metadataHost}/set`, data, options, {
         useAPIKey: true,
-        logTracingHeader: true,
+        logTracingHeader: config.logRequestTracing,
       });
       return metadataResponse.message; // IPFS hash
     } catch (error) {
@@ -621,7 +624,10 @@ class Torus {
         set_data: { data: msg },
       };
     }
-    return post<GetOrSetNonceResult>(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true, logTracingHeader: true });
+    return post<GetOrSetNonceResult>(`${this.metadataHost}/get_or_set_nonce`, data, undefined, {
+      useAPIKey: true,
+      logTracingHeader: config.logRequestTracing,
+    });
   }
 
   async getNonce(X: string, Y: string, privKey?: BN): Promise<GetOrSetNonceResult> {

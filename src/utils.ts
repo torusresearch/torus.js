@@ -3,6 +3,7 @@ import BN from "bn.js";
 import JsonStringify from "json-stable-stringify";
 import createKeccakHash from "keccak";
 
+import { config } from "./config";
 import { JRPCResponse, KeyLookupResult, VerifierLookupResponse } from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
@@ -67,7 +68,7 @@ export const keyLookup = async (endpoints: string[], verifier: string, verifierI
         verifier_id: verifierId.toString(),
       }),
       null,
-      { logTracingHeader: true }
+      { logTracingHeader: config.logRequestTracing }
     ).catch((err) => log.error("lookup request failed", err))
   );
   return Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
@@ -102,7 +103,7 @@ export const GetPubKeyOrKeyAssign = async (
         one_key_flow: enableOneKey,
       }),
       null,
-      { logTracingHeader: true }
+      { logTracingHeader: config.logRequestTracing }
     ).catch((err) => log.error("lookup request failed", err))
   );
   let metadataNonce;
