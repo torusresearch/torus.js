@@ -64,6 +64,7 @@ typings/
 
 # Output of 'npm pack'
 *.tgz
+!toruslabs-http-helpers-3.2.0.tgz
 
 # Yarn Integrity file
 .yarn-integrity

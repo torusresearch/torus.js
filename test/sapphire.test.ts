@@ -31,6 +31,7 @@ describe.only("torus utils sapphire", function () {
       network: "cyan",
       enableOneKey: true,
     });
+    TorusUtils.enableLogging(true);
   });
   it("should fetch public address", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
