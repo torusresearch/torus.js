@@ -141,7 +141,7 @@ export const keyAssign = async ({
       "TypeError: cancelled", // iOS
       "TypeError: NetworkError when attempting to fetch resource.", // Firefox
     ];
-    if (acceptedErrorMsgs.includes(error.message))
+    if (acceptedErrorMsgs.includes(error.message) || (error.message && error.message.includes("reason: getaddrinfo EAI_AGAIN")))
       return keyAssign({ endpoints, torusNodePubs, lastPoint: nodeNum + 1, firstPoint: initialPoint, verifier, verifierId, signerHost, network });
     throw new Error(
       `Sorry, the Torus Network that powers Web3Auth is currently very busy.
