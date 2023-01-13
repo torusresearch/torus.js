@@ -27,9 +27,7 @@ export interface MetadataParams {
 export interface TorusCtorOptions {
   enableOneKey?: boolean;
   metadataHost?: string;
-  allowHost?: string;
   serverTimeOffset?: number;
-  signerHost?: string;
   network?: string;
 }
 
