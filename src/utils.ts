@@ -85,38 +85,28 @@ export const keyLookup = async (endpoints: string[], verifier: string, verifierI
   });
 };
 
-export const GetPubKeyOrKeyAssign = async (
-  endpoints: string[],
-  verifier: string,
-  verifierId: string,
-  enableOneKey: boolean
-): Promise<KeyLookupResult> => {
+export const GetPubKeyOrKeyAssign = async (endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
       generateJsonRPCObject("GetPubKeyOrKeyAssign", {
         verifier,
         verifier_id: verifierId.toString(),
-        one_key_flow: enableOneKey,
+        one_key_flow: true,
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
-  let metadataNonce;
   let nonceResult;
   const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
     const lookupShares = lookupResults.filter((x1) => {
       if (x1) {
-        if (enableOneKey) {
-          // currently only one node returns metadata nonce
-          // other nodes returns empty object
-          const userType = x1.result?.keys[0].nonce_data.typeOfUser;
-          if (!nonceResult && userType) {
-            nonceResult = x1.result.keys[0].nonce_data;
-          }
-        } else {
-          const metadata = x1.result.keys[0].key_metadata;
-          if (!metadataNonce || metadataNonce.isZero()) metadataNonce = convertMetadataToNonce(metadata);
+        // currently only one node returns metadata nonce
+        // other nodes returns empty object
+        const pubNonceX = x1.result?.keys[0].nonce_data?.pubNonce?.x;
+        if (!nonceResult && pubNonceX) {
+          nonceResult = x1.result.keys[0].nonce_data;
         }
+
         return x1;
       }
       return false;
@@ -130,18 +120,15 @@ export const GetPubKeyOrKeyAssign = async (
       ~~(endpoints.length / 2) + 1
     );
     if ((keyResult && nonceResult) || errorResult) {
-      return Promise.resolve({ keyResult, errorResult, nonceResult, metadataNonce });
+      return Promise.resolve({ keyResult, errorResult, nonceResult });
     }
     return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`));
   });
 
-  if (enableOneKey) {
-    if (!nonceResult) {
-      throw new Error("public key lookup should always return nonce data");
-    }
-  } else if (!metadataNonce) {
-    throw new Error("public key lookup should always return metadata");
+  if (!nonceResult) {
+    throw new Error("public key lookup should always return nonce data");
   }
+
   return result;
 };
 

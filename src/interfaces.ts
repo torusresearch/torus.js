@@ -7,11 +7,7 @@ export interface KeyIndex {
   service_group_id: string;
 }
 
-export type UserType = "v1" | "v2";
-
-export type GetOrSetNonceResult =
-  | { typeOfUser: "v1"; nonce?: string }
-  | { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
+export type GetOrSetNonceResult = { nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
 
 export interface MetadataResponse {
   message: string;
@@ -38,7 +34,6 @@ export interface TorusCtorOptions {
 }
 
 export interface TorusPublicKey extends INodePub {
-  typeOfUser: "v1" | "v2";
   address: string;
   metadataNonce: BN;
   pubNonce?: { x: string; y: string };
@@ -84,8 +79,7 @@ export interface V1UserTypeAndAddress {
   address: string;
 }
 
-export interface V2UserTypeAndAddress {
-  typeOfUser: "v2";
+export interface UserTypeAndAddress {
   nonce?: BN;
   pubNonce: { x: string; y: string };
   ipfs?: string;
@@ -109,7 +103,6 @@ export interface JRPCResponse<T> {
 export interface KeyLookupResult {
   keyResult: VerifierLookupResponse;
   errorResult: JRPCResponse<VerifierLookupResponse>["error"];
-  metadataNonce?: BN;
   nonceResult?: GetOrSetNonceResult;
 }
 
@@ -168,7 +161,6 @@ export interface RetrieveSharesResponse {
   sessionTokensData: SessionToken[];
   X: string;
   Y: string;
-  typeOfUser: "v1" | "v2";
 }
 
 export interface VerifierParams {
