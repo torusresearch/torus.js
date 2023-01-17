@@ -502,7 +502,7 @@ class Torus {
 
     if (finalKeyResult?.keys) {
       if (!nonceResult) {
-        throw new GetOrSetNonceError("not able to fetch metadata nonce");
+        throw new GetOrSetNonceError("metadata nonce is missing in share response");
       }
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
       let modifiedPubKey: curve.base.BasePoint;
