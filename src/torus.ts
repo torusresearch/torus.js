@@ -108,7 +108,7 @@ class Torus {
           finalNonceResult = await this.getOrSetNonce(X, Y, undefined, false);
           nonce = new BN(finalNonceResult.nonce || "0", 16);
         } catch {
-          throw new GetOrSetNonceError();
+          throw new GetOrSetNonceError("not able to fetch metadata nonce");
         }
       }
 
@@ -502,7 +502,7 @@ class Torus {
 
     if (finalKeyResult?.keys) {
       if (!nonceResult) {
-        throw new GetOrSetNonceError();
+        throw new GetOrSetNonceError("not able to fetch metadata nonce");
       }
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
       let modifiedPubKey: curve.base.BasePoint;
