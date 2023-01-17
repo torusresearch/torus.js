@@ -125,10 +125,6 @@ export const GetPubKeyOrKeyAssign = async (endpoints: string[], verifier: string
     return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`));
   });
 
-  if (!nonceResult) {
-    throw new Error("public key lookup should always return nonce data");
-  }
-
   return result;
 };
 
