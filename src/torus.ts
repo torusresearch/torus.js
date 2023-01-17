@@ -17,9 +17,7 @@ import {
   ShareRequestResult,
   TorusCtorOptions,
   TorusPublicKey,
-  UserType,
-  V1UserTypeAndAddress,
-  V2UserTypeAndAddress,
+  UserTypeAndAddress,
   VerifierLookupResponse,
   VerifierParams,
 } from "./interfaces";
@@ -36,28 +34,16 @@ class Torus {
 
   public serverTimeOffset: number;
 
-  public enableOneKey: boolean;
-
   public signerHost: string;
 
   public network: string;
 
   protected ec: EC;
 
-  constructor({
-    enableOneKey = false,
-    metadataHost = "https://metadata.tor.us",
-    allowHost = "https://signer.tor.us/api/allow",
-    signerHost = "https://signer.tor.us/api/sign",
-    serverTimeOffset = 0,
-    network = "mainnet",
-  }: TorusCtorOptions = {}) {
+  constructor({ metadataHost, serverTimeOffset = 0, network = "mainnet" }: TorusCtorOptions = {}) {
     this.ec = new EC("secp256k1");
     this.metadataHost = metadataHost;
-    this.allowHost = allowHost;
-    this.enableOneKey = enableOneKey;
     this.serverTimeOffset = serverTimeOffset || 0; // ms
-    this.signerHost = signerHost;
     this.network = network;
   }
 
@@ -85,11 +71,11 @@ class Torus {
     endpoints: string[],
     { verifier, verifierId }: { verifier: string; verifierId: string },
     doesKeyAssign = false
-  ): Promise<V1UserTypeAndAddress | V2UserTypeAndAddress> {
+  ): Promise<UserTypeAndAddress> {
     let finalKeyResult: VerifierLookupResponse;
     let finalNonceResult: GetOrSetNonceResult;
     if (doesKeyAssign) {
-      const { keyResult, errorResult, nonceResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, this.enableOneKey);
+      const { keyResult, errorResult, nonceResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId);
       if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
         // change error msg
         throw new Error(`Verifier not supported. Check if you: \n
@@ -116,7 +102,6 @@ class Torus {
     if (finalKeyResult?.keys) {
       const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
       let nonce: BN;
-      let modifiedPubKey: curve.base.BasePoint;
 
       if (!finalNonceResult) {
         try {
@@ -126,35 +111,25 @@ class Torus {
           throw new GetOrSetNonceError();
         }
       }
-      if (finalNonceResult.typeOfUser === "v1") {
-        modifiedPubKey = this.ec
-          .keyFromPublic({ x: X, y: Y })
-          .getPublic()
-          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
-      } else if (finalNonceResult.typeOfUser === "v2") {
-        modifiedPubKey = this.ec
-          .keyFromPublic({ x: X, y: Y })
-          .getPublic()
-          .add(this.ec.keyFromPublic({ x: finalNonceResult.pubNonce.x, y: finalNonceResult.pubNonce.y }).getPublic());
-      } else {
-        throw new Error("getOrSetNonce should always return typeOfUser.");
-      }
+
+      const modifiedPubKey = this.ec
+        .keyFromPublic({ x: X, y: Y })
+        .getPublic()
+        .add(this.ec.keyFromPublic({ x: finalNonceResult.pubNonce.x, y: finalNonceResult.pubNonce.y }).getPublic());
+
       const finalX = modifiedPubKey.getX().toString(16);
       const finalY = modifiedPubKey.getY().toString(16);
       const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY());
-      if (finalNonceResult.typeOfUser === "v1") return { typeOfUser: finalNonceResult.typeOfUser, nonce, X: finalX, Y: finalY, address };
-      else if (finalNonceResult.typeOfUser === "v2") {
-        return {
-          typeOfUser: finalNonceResult.typeOfUser,
-          nonce,
-          pubNonce: finalNonceResult.pubNonce,
-          upgraded: finalNonceResult.upgraded,
-          X: finalX,
-          Y: finalY,
-          address,
-        };
-      }
+      return {
+        nonce,
+        pubNonce: finalNonceResult.pubNonce,
+        upgraded: finalNonceResult.upgraded,
+        X: finalX,
+        Y: finalY,
+        address,
+      };
     }
+
     throw new Error(
       `Failed to do key lookup for verifier: ${verifier} and verifierId: ${verifierId} Please report this issue ${JSON.stringify(
         finalKeyResult || {}
@@ -278,18 +253,16 @@ class Torus {
                   ...extraParams,
                 },
               ],
-              one_key_flow: this.enableOneKey,
+              one_key_flow: true,
             })
           ).catch((err) => log.error("share req", err));
           promiseArrRequest.push(p);
         }
         let thresholdMetadataNonce: BN;
-        let thresholdTypeOfUser: UserType = "v1";
-        return Some<
-          void | JRPCResponse<ShareRequestResult>,
-          { privateKey: BN; sessionTokenData: SessionToken[]; metadataNonce: BN; typeOfUser: UserType } | undefined
-        >(promiseArrRequest, async (shareResponses, sharedState) => {
-          /*
+        return Some<void | JRPCResponse<ShareRequestResult>, { privateKey: BN; sessionTokenData: SessionToken[]; metadataNonce: BN } | undefined>(
+          promiseArrRequest,
+          async (shareResponses, sharedState) => {
+            /*
               ShareRequestResult struct {
                 Keys []KeyAssignment
               }
@@ -307,116 +280,105 @@ class Torus {
                 Share big.Int // Or Si
               }
             */
-          // check if threshold number of nodes have returned the same user public key
-          const completedRequests = shareResponses.filter((x) => x);
-          let pubkeys = [];
-          if (this.enableOneKey) {
-            pubkeys = shareResponses.map((x) => {
+            // check if threshold number of nodes have returned the same user public key
+            const completedRequests = shareResponses.filter((x) => x);
+            const pubkeys = shareResponses.map((x) => {
               if (x && x.result && x.result.keys[0].public_key) {
-                const userType = x.result.keys[0].nonce_data.typeOfUser;
-                if (!thresholdMetadataNonce && userType) {
-                  thresholdTypeOfUser = userType;
+                const pubNonce = x.result.keys[0].nonce_data?.pubNonce?.x;
+                if (!thresholdMetadataNonce && pubNonce) {
                   thresholdMetadataNonce = new BN(x.result.keys[0].nonce_data.nonce || "0", 16);
                 }
                 return x.result.keys[0].public_key;
               }
               return undefined;
             });
-          } else {
-            pubkeys = shareResponses.map((x) => {
-              if (x && x.result && x.result.keys[0].public_key) {
-                const metadata = x.result.keys[0].key_metadata;
-                if (!thresholdMetadataNonce || thresholdMetadataNonce.isZero()) thresholdMetadataNonce = convertMetadataToNonce(metadata);
-                return x.result.keys[0].public_key;
-              }
-              return undefined;
-            });
-          }
-          const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
 
-          // optimistically run lagrange interpolation once threshold number of shares have been received
-          // this is matched against the user public key to ensure that shares are consistent
-          if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey && thresholdMetadataNonce) {
-            const sharePromises: Promise<void | Buffer>[] = [];
-            const nodeIndexes: BN[] = [];
-            const sessionTokenData: SessionToken[] = [];
+            const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
 
-            for (let i = 0; i < shareResponses.length; i += 1) {
-              const currentShareResponse = shareResponses[i] as JRPCResponse<ShareRequestResult>;
+            // optimistically run lagrange interpolation once threshold number of shares have been received
+            // this is matched against the user public key to ensure that shares are consistent
+            if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey && thresholdMetadataNonce) {
+              const sharePromises: Promise<void | Buffer>[] = [];
+              const nodeIndexes: BN[] = [];
+              const sessionTokenData: SessionToken[] = [];
 
-              if (currentShareResponse?.result?.keys?.length > 0) {
-                currentShareResponse.result.keys.sort((a, b) => new BN(a.index.index, 16).cmp(new BN(b.index.index, 16)));
-                const firstKey = currentShareResponse.result.keys[0];
+              for (let i = 0; i < shareResponses.length; i += 1) {
+                const currentShareResponse = shareResponses[i] as JRPCResponse<ShareRequestResult>;
 
-                nodeIndexes.push(new BN(firstKey.node_index, 16));
-                sessionTokenData.push({
-                  token: currentShareResponse.result.session_tokens[0],
-                  signature: currentShareResponse.result.session_token_sigs[0],
-                  node_pubx: currentShareResponse.result.node_pubx[0],
-                  node_puby: currentShareResponse.result.node_puby[0],
-                });
-                if (firstKey.metadata) {
-                  const metadata = {
-                    ephemPublicKey: Buffer.from(firstKey.metadata.ephemPublicKey, "hex"),
-                    iv: Buffer.from(firstKey.metadata.iv, "hex"),
-                    mac: Buffer.from(firstKey.metadata.mac, "hex"),
-                    // mode: Buffer.from(firstKey.Metadata.mode, "hex"),
-                  };
+                if (currentShareResponse?.result?.keys?.length > 0) {
+                  currentShareResponse.result.keys.sort((a, b) => new BN(a.index.index, 16).cmp(new BN(b.index.index, 16)));
+                  const firstKey = currentShareResponse.result.keys[0];
 
-                  sharePromises.push(
-                    decrypt(tmpKey, {
-                      ...metadata,
-                      ciphertext: Buffer.from(Buffer.from(firstKey.share, "base64").toString("binary").padStart(64, "0"), "hex"),
-                    }).catch((err) => log.debug("share decryption", err))
-                  );
+                  nodeIndexes.push(new BN(firstKey.node_index, 16));
+                  sessionTokenData.push({
+                    token: currentShareResponse.result.session_tokens[0],
+                    signature: currentShareResponse.result.session_token_sigs[0],
+                    node_pubx: currentShareResponse.result.node_pubx[0],
+                    node_puby: currentShareResponse.result.node_puby[0],
+                  });
+                  if (firstKey.metadata) {
+                    const metadata = {
+                      ephemPublicKey: Buffer.from(firstKey.metadata.ephemPublicKey, "hex"),
+                      iv: Buffer.from(firstKey.metadata.iv, "hex"),
+                      mac: Buffer.from(firstKey.metadata.mac, "hex"),
+                      // mode: Buffer.from(firstKey.Metadata.mode, "hex"),
+                    };
+
+                    sharePromises.push(
+                      decrypt(tmpKey, {
+                        ...metadata,
+                        ciphertext: Buffer.from(Buffer.from(firstKey.share, "base64").toString("binary").padStart(64, "0"), "hex"),
+                      }).catch((err) => log.debug("share decryption", err))
+                    );
+                  } else {
+                    sharePromises.push(Promise.resolve(Buffer.from(firstKey.share.padStart(64, "0"), "hex")));
+                  }
                 } else {
-                  sharePromises.push(Promise.resolve(Buffer.from(firstKey.share.padStart(64, "0"), "hex")));
+                  sharePromises.push(Promise.resolve(undefined));
                 }
-              } else {
-                sharePromises.push(Promise.resolve(undefined));
               }
-            }
-            const sharesResolved = await Promise.all(sharePromises);
-            if (sharedState.resolved) return undefined;
+              const sharesResolved = await Promise.all(sharePromises);
+              if (sharedState.resolved) return undefined;
 
-            const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
-              if (curr) acc.push({ index: nodeIndexes[index], value: new BN(curr) });
-              return acc;
-            }, [] as { index: BN; value: BN }[]);
-            // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
-            const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1);
+              const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
+                if (curr) acc.push({ index: nodeIndexes[index], value: new BN(curr) });
+                return acc;
+              }, [] as { index: BN; value: BN }[]);
+              // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
+              const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1);
 
-            let privateKey: BN | null = null;
-            for (let j = 0; j < allCombis.length; j += 1) {
-              const currentCombi = allCombis[j];
-              const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index));
-              const shares = currentCombiShares.map((x) => x.value);
-              const indices = currentCombiShares.map((x) => x.index);
-              const derivedPrivateKey = this.lagrangeInterpolation(shares, indices);
-              if (!derivedPrivateKey) continue;
-              const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), "hex")).toString("hex");
-              const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-              const decryptedPubKeyY = decryptedPubKey.slice(66);
-              if (
-                new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
-                new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
-              ) {
-                privateKey = derivedPrivateKey;
-                break;
+              let privateKey: BN | null = null;
+              for (let j = 0; j < allCombis.length; j += 1) {
+                const currentCombi = allCombis[j];
+                const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index));
+                const shares = currentCombiShares.map((x) => x.value);
+                const indices = currentCombiShares.map((x) => x.index);
+                const derivedPrivateKey = this.lagrangeInterpolation(shares, indices);
+                if (!derivedPrivateKey) continue;
+                const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), "hex")).toString("hex");
+                const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
+                const decryptedPubKeyY = decryptedPubKey.slice(66);
+                if (
+                  new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
+                  new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
+                ) {
+                  privateKey = derivedPrivateKey;
+                  break;
+                }
               }
-            }
 
-            if (privateKey === undefined || privateKey === null) {
-              throw new Error("could not derive private key");
-            }
+              if (privateKey === undefined || privateKey === null) {
+                throw new Error("could not derive private key");
+              }
 
-            return { privateKey, sessionTokenData, metadataNonce: thresholdMetadataNonce, typeOfUser: thresholdTypeOfUser };
+              return { privateKey, sessionTokenData, metadataNonce: thresholdMetadataNonce };
+            }
+            throw new Error("invalid");
           }
-          throw new Error("invalid");
-        });
+        );
       })
       .then(async (res) => {
-        let { privateKey, sessionTokenData, metadataNonce, typeOfUser } = res;
+        let { privateKey, sessionTokenData, metadataNonce } = res;
         if (!privateKey) throw new Error("Invalid private key returned");
         const decryptedPubKey = getPublic(Buffer.from(privateKey.toString(16, 64), "hex")).toString("hex");
         const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
@@ -436,7 +398,6 @@ class Torus {
           sessionTokensData: sessionTokenData,
           X: decryptedPubKeyX,
           Y: decryptedPubKeyY,
-          typeOfUser,
         };
       });
   }
@@ -526,7 +487,7 @@ class Torus {
   ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
 
-    const { keyResult, errorResult, nonceResult, metadataNonce } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, this.enableOneKey);
+    const { keyResult, errorResult, nonceResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId);
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
@@ -540,51 +501,33 @@ class Torus {
     log.debug("> torus.js/getPublicAddress", { finalKeyResult });
 
     if (finalKeyResult?.keys) {
+      if (!nonceResult) {
+        throw new GetOrSetNonceError();
+      }
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
-      let nonce: BN;
       let modifiedPubKey: curve.base.BasePoint;
-      let typeOfUser: GetOrSetNonceResult["typeOfUser"];
       let pubNonce: { x: string; y: string } | undefined;
-      if (this.enableOneKey) {
-        nonce = new BN(nonceResult.nonce || "0", 16);
-        typeOfUser = nonceResult.typeOfUser;
-        if (nonceResult.typeOfUser === "v1") {
-          modifiedPubKey = this.ec
-            .keyFromPublic({ x: X, y: Y })
-            .getPublic()
-            .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
-        } else if (nonceResult.typeOfUser === "v2") {
-          if (nonceResult.upgraded) {
-            // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
-            modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
-          } else {
-            modifiedPubKey = this.ec
-              .keyFromPublic({ x: X, y: Y })
-              .getPublic()
-              .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
-            pubNonce = nonceResult.pubNonce;
-          }
-        } else {
-          throw new Error("getOrSetNonce should always return typeOfUser.");
-        }
+      const nonce = new BN(nonceResult.nonce || "0", 16);
+
+      if (nonceResult.upgraded) {
+        // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
+        modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
       } else {
-        typeOfUser = "v1";
-        nonce = metadataNonce;
         modifiedPubKey = this.ec
           .keyFromPublic({ x: X, y: Y })
           .getPublic()
-          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
+          .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
+        pubNonce = nonceResult.pubNonce;
       }
 
       X = modifiedPubKey.getX().toString(16);
       Y = modifiedPubKey.getY().toString(16);
 
       const address = this.generateAddressFromPubKey(modifiedPubKey.getX(), modifiedPubKey.getY());
-      log.debug("> torus.js/getPublicAddress", { X, Y, address, typeOfUser, nonce: nonce?.toString(16), pubNonce });
+      log.debug("> torus.js/getPublicAddress", { X, Y, address, nonce: nonce?.toString(16), pubNonce });
 
       if (!isExtended) return address;
       return {
-        typeOfUser,
         address,
         X,
         Y,
