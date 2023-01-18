@@ -334,6 +334,8 @@ class Torus {
                     sharePromises.push(Promise.resolve(Buffer.from(firstKey.share.padStart(64, "0"), "hex")));
                   }
                 } else {
+                  sessionTokenData.push(undefined);
+                  nodeIndexes.push(undefined);
                   sharePromises.push(Promise.resolve(undefined));
                 }
               }
