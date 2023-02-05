@@ -31,7 +31,8 @@
     "json-stable-stringify": "^1.0.2",
     "keccak": "^3.0.3",
     "loglevel": "^1.8.1",
-    "web3-utils": "^1.8.1"
+    "web3-utils": "^1.8.1",
+    "@toruslabs/openlogin-jrpc": "^2.13.0"
   },
   "devDependencies": {
     "@babel/register": "^7.18.9",

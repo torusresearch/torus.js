@@ -1,6 +1,7 @@
 import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import type { INodePub } from "@toruslabs/fetch-node-details";
 import { Data, generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
+import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
@@ -21,14 +22,16 @@ import {
 } from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
-import { GetOrSetNonceError, kCombinations, keccak256, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from "./utils";
+import { GetOrSetNonceError, kCombinations, keccak256, keyAssign, keyAssignWithQueue, keyLookup, thresholdSame, waitKeyLookup } from "./utils";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
-class Torus {
+class Torus extends SafeEventEmitter {
   public metadataHost: string;
 
   public allowHost: string;
+
+  public keyAssignQueueHost?: string;
 
   public serverTimeOffset: number;
 
@@ -45,9 +48,11 @@ class Torus {
     metadataHost = "https://metadata.tor.us",
     allowHost = "https://signer.tor.us/api/allow",
     signerHost = "https://signer.tor.us/api/sign",
+    keyAssignQueueHost,
     serverTimeOffset = 0,
     network = "mainnet",
   }: TorusCtorOptions = {}) {
+    super();
     this.ec = new EC("secp256k1");
     this.metadataHost = metadataHost;
     this.allowHost = allowHost;
@@ -55,6 +60,7 @@ class Torus {
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.signerHost = signerHost;
     this.network = network;
+    this.keyAssignQueueHost = keyAssignQueueHost;
   }
 
   static enableLogging(v = true): void {
@@ -95,16 +101,27 @@ class Torus {
       if (!doesKeyAssign) {
         throw new Error("Verifier + VerifierID has not yet been assigned");
       }
-      await keyAssign({
-        endpoints,
-        torusNodePubs,
-        lastPoint: undefined,
-        firstPoint: undefined,
-        verifier,
-        verifierId,
-        signerHost: this.signerHost,
-        network: this.network,
-      });
+
+      if (this.network === "cyan" && this.keyAssignQueueHost) {
+        await keyAssignWithQueue({
+          verifier,
+          verifierId,
+          network: this.network,
+          keyAssignQueueHost: this.keyAssignQueueHost,
+          keyAssignListener: this,
+        });
+      } else {
+        await keyAssign({
+          endpoints,
+          torusNodePubs,
+          lastPoint: undefined,
+          firstPoint: undefined,
+          verifier,
+          verifierId,
+          signerHost: this.signerHost,
+          network: this.network,
+        });
+      }
       const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
       finalKeyResult = assignResult?.keyResult;
       isNewKey = true;
@@ -504,16 +521,28 @@ class Torus {
       1. Are on the right network (Torus testnet/mainnet) \n
       2. Have setup a verifier on dashboard.web3auth.io?`);
     } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
-      await keyAssign({
-        endpoints,
-        torusNodePubs,
-        lastPoint: undefined,
-        firstPoint: undefined,
-        verifier,
-        verifierId,
-        signerHost: this.signerHost,
-        network: this.network,
-      });
+      // currently using queue for cyan only
+      if (this.network === "cyan" && this.keyAssignQueueHost) {
+        await keyAssignWithQueue({
+          verifier,
+          verifierId,
+          network: this.network,
+          keyAssignQueueHost: this.keyAssignQueueHost,
+          keyAssignListener: this,
+        });
+      } else {
+        await keyAssign({
+          endpoints,
+          torusNodePubs,
+          lastPoint: undefined,
+          firstPoint: undefined,
+          verifier,
+          verifierId,
+          signerHost: this.signerHost,
+          network: this.network,
+        });
+      }
+
       const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
       finalKeyResult = assignResult?.keyResult;
       isNewKey = true;

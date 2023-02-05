@@ -1,8 +1,18 @@
-import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
+import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
+import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import JsonStringify from "json-stable-stringify";
 import createKeccakHash from "keccak";
 
-import { JRPCResponse, KeyAssignInput, KeyLookupResult, SignerResponse, VerifierLookupResponse } from "./interfaces";
+import {
+  JRPCResponse,
+  KeyAssignInput,
+  KeyAssignInputWithQueue,
+  KeyAssignQueueResponse,
+  KeyAssignStatus,
+  KeyLookupResult,
+  SignerResponse,
+  VerifierLookupResponse,
+} from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
 
@@ -147,6 +157,145 @@ export const keyAssign = async ({
       (error.message && error.message.includes("reason: getaddrinfo EAI_AGAIN"))
     )
       return keyAssign({ endpoints, torusNodePubs, lastPoint: nodeNum + 1, firstPoint: initialPoint, verifier, verifierId, signerHost, network });
+    throw new Error(
+      `Sorry, the Torus Network that powers Web3Auth is currently very busy.
+    We will generate your key in time. Pls try again later. \n
+    ${error.message || ""}`
+    );
+  }
+};
+
+const emitKeyAssignEvent = (key: string, data: KeyAssignQueueResponse, emitter: SafeEventEmitter) => {
+  if (emitter?.emit) {
+    const finalData: KeyAssignStatus = {
+      processingTime: data.processingTime,
+      status: data.status,
+    };
+    emitter.emit(key, finalData);
+  }
+};
+
+const checkKeyAssignStatus = async (params: {
+  keyAssignQueueHost: string;
+  verifier: string;
+  verifierId: string;
+  network: string;
+  retries: number;
+  keyAssignListener: SafeEventEmitter;
+}) => {
+  const { verifier, verifierId, network, retries, keyAssignQueueHost, keyAssignListener } = params;
+  const eventKey = `${verifier}:${verifierId}:${network}`;
+
+  let pendingRetries = retries;
+  try {
+    if (pendingRetries === 0) {
+      throw new Error("Failed to do key assign, please try again");
+    }
+    if (pendingRetries > 0) {
+      pendingRetries -= 1;
+    }
+
+    const url = new URL(`${keyAssignQueueHost}/api/keyAssignStatus`);
+    url.searchParams.append("verifier", verifier);
+    url.searchParams.append("verifier_id", verifierId);
+    url.searchParams.append("network", network);
+
+    const keyAssignResponse = await get<KeyAssignQueueResponse>(url.href, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+      },
+    });
+    if (keyAssignResponse.status === "success") {
+      emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
+      return;
+    }
+    if (keyAssignResponse.status === "failed") {
+      // no need to retry if status is failed
+      // hack to bypass eslint warning
+      // basically setting finalRetries = 0
+      pendingRetries = pendingRetries - pendingRetries;
+      emitKeyAssignEvent(eventKey, { ...keyAssignResponse, processingTime: 0 }, keyAssignListener);
+      throw new Error("Failed to do key assign");
+    }
+    if (keyAssignResponse.status === "waiting") {
+      // retry till pendingRetries in case of `waiting` in catch block
+      throw new Error("Failed to process your request within estimated time, please try again");
+    }
+  } catch (error) {
+    if (pendingRetries > 0) {
+      return new Promise((resolve, reject) => {
+        setTimeout(async () => {
+          try {
+            await checkKeyAssignStatus({ keyAssignQueueHost, verifier, verifierId, network, keyAssignListener, retries: pendingRetries });
+            return resolve(true);
+          } catch (err) {
+            return reject(err);
+          }
+        }, 1000);
+      });
+    }
+    throw error;
+  }
+};
+
+/**
+ *
+ * This function will emit event and returns in case of success key assign
+ * and it will throw and emit event in case of failure after retries
+ */
+export const keyAssignWithQueue = async ({
+  verifier,
+  verifierId,
+  keyAssignQueueHost,
+  network,
+  keyAssignListener,
+}: KeyAssignInputWithQueue): Promise<void> => {
+  try {
+    const keyAssignResponse = await post<KeyAssignQueueResponse>(
+      `${keyAssignQueueHost}/api/keyAssign`,
+      { verifier, verifier_id: verifierId, network },
+      {
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+      }
+    );
+
+    const eventKey = `${verifier}:${verifierId}:${network}`;
+    if (keyAssignResponse.status === "waiting") {
+      // since shares can be fetched up to 60 seconds
+      // we can wait here up to 55 seconds and give 5 second buffer for retrieveShares and keylookup apis
+      // So if `processingTime` is more than 55 seconds, key assign will throw and user will have to retry login.
+      if (keyAssignResponse.processingTime > 55) {
+        emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
+        const errMessage = `Your request is in queue, Please try after ${keyAssignResponse.processingTime} seconds`;
+        throw new Error(errMessage);
+      }
+      emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
+
+      const keyAssignStatusCheckTime = keyAssignResponse.processingTime * 1000;
+      return await new Promise((resolve, reject) => {
+        setTimeout(async () => {
+          try {
+            // check key assign status
+            await checkKeyAssignStatus({ keyAssignQueueHost, verifier, verifierId, network, keyAssignListener, retries: 3 });
+            return resolve();
+          } catch (error) {
+            return reject(error);
+          }
+        }, keyAssignStatusCheckTime);
+      });
+    } else if (keyAssignResponse.status === "success") {
+      emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
+      return;
+    } else if (keyAssignResponse.status === "failed") {
+      emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
+      throw new Error("Failed to do key assign");
+    } else {
+      throw new Error(`Unknown error, unknown keyAssign status: ${keyAssignResponse.status}`);
+    }
+  } catch (error) {
+    log.error(error);
     throw new Error(
       `Sorry, the Torus Network that powers Web3Auth is currently very busy.
     We will generate your key in time. Pls try again later. \n

@@ -1,7 +1,7 @@
 import { Ecies } from "@toruslabs/eccrypto";
 import type { INodePub } from "@toruslabs/fetch-node-details";
+import { SafeEventEmitter } from "@toruslabs/openlogin-jrpc";
 import BN from "bn.js";
-
 export type GetOrSetNonceResult =
   | { typeOfUser: "v1"; nonce?: string }
   | { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
@@ -21,12 +21,19 @@ export interface MetadataParams {
   signature: string;
 }
 
+export type keyAssignStatus = "waiting" | "processing" | "success" | "failed";
+export interface KeyAssignStatus {
+  processingTime: number;
+  status: keyAssignStatus;
+  errorMessage?: string;
+}
 export interface TorusCtorOptions {
   enableOneKey?: boolean;
   metadataHost?: string;
   allowHost?: string;
   serverTimeOffset?: number;
   signerHost?: string;
+  keyAssignQueueHost?: string;
   network?: string;
 }
 
@@ -84,6 +91,20 @@ export interface SignerResponse {
   "torus-signature": string;
 }
 
+export interface KeyAssignQueueResponse {
+  success: boolean;
+  processingTime: number;
+  status: keyAssignStatus;
+}
+
+export interface KeyAssignInputWithQueue {
+  verifier: string;
+  verifierId: string;
+  keyAssignQueueHost: string;
+  network: string;
+  keyAssignListener?: SafeEventEmitter;
+}
+
 export interface KeyAssignInput {
   endpoints: string[];
   torusNodePubs: INodePub[];
@@ -94,7 +115,6 @@ export interface KeyAssignInput {
   signerHost: string;
   network: string;
 }
-
 export interface KeyAssignment {
   Index: string;
   PublicKey: {

@@ -10,12 +10,13 @@ const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe("torus utils cyan", function () {
+describe.only("torus utils cyan", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({
+      keyAssignQueueHost: "http://localhost:3060",
       signerHost: "https://signer-polygon.tor.us/api/sign",
       allowHost: "https://signer-polygon.tor.us/api/allow",
       network: "cyan",
