@@ -102,6 +102,7 @@ export interface KeyAssignInputWithQueue {
   verifierId: string;
   keyAssignQueueHost: string;
   network: string;
+  instanceId: string;
   keyAssignListener?: SafeEventEmitter;
 }
 

@@ -86,7 +86,7 @@ class Torus extends SafeEventEmitter {
   async getUserTypeAndAddress(
     endpoints: string[],
     torusNodePubs: INodePub[],
-    { verifier, verifierId }: { verifier: string; verifierId: string },
+    { verifier, verifierId, instanceId }: { verifier: string; verifierId: string; instanceId?: string },
     doesKeyAssign = false
   ): Promise<TorusPublicKey> {
     const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
@@ -108,6 +108,7 @@ class Torus extends SafeEventEmitter {
           verifierId,
           network: this.network,
           keyAssignQueueHost: this.keyAssignQueueHost,
+          instanceId,
           keyAssignListener: this,
         });
       } else {
@@ -506,7 +507,7 @@ class Torus extends SafeEventEmitter {
   async getPublicAddress(
     endpoints: string[],
     torusNodePubs: INodePub[],
-    { verifier, verifierId }: { verifier: string; verifierId: string },
+    { verifier, verifierId, instanceId }: { verifier: string; verifierId: string; instanceId?: string },
     isExtended = false
   ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, torusNodePubs, verifier, verifierId, isExtended });
@@ -522,12 +523,13 @@ class Torus extends SafeEventEmitter {
       2. Have setup a verifier on dashboard.web3auth.io?`);
     } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
       // currently using queue for cyan only
-      if (this.network === "cyan" && this.keyAssignQueueHost) {
+      if (this.network === "cyan" && this.keyAssignQueueHost && instanceId) {
         await keyAssignWithQueue({
           verifier,
           verifierId,
           network: this.network,
           keyAssignQueueHost: this.keyAssignQueueHost,
+          instanceId,
           keyAssignListener: this,
         });
       } else {

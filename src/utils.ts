@@ -165,6 +165,10 @@ export const keyAssign = async ({
   }
 };
 
+export const getKeyAssignEventKey = (instanceId: string) => {
+  return `ks:${instanceId}`;
+};
+
 const emitKeyAssignEvent = (key: string, data: KeyAssignQueueResponse, emitter: SafeEventEmitter) => {
   if (emitter?.emit) {
     const finalData: KeyAssignStatus = {
@@ -181,10 +185,11 @@ const checkKeyAssignStatus = async (params: {
   verifierId: string;
   network: string;
   retries: number;
+  instanceId: string;
   keyAssignListener: SafeEventEmitter;
 }) => {
-  const { verifier, verifierId, network, retries, keyAssignQueueHost, keyAssignListener } = params;
-  const eventKey = `${verifier}:${verifierId}:${network}`;
+  const { verifier, verifierId, network, retries, keyAssignQueueHost, keyAssignListener, instanceId } = params;
+  const eventKey = getKeyAssignEventKey(instanceId);
 
   let pendingRetries = retries;
   try {
@@ -226,7 +231,7 @@ const checkKeyAssignStatus = async (params: {
       return new Promise((resolve, reject) => {
         setTimeout(async () => {
           try {
-            await checkKeyAssignStatus({ keyAssignQueueHost, verifier, verifierId, network, keyAssignListener, retries: pendingRetries });
+            await checkKeyAssignStatus({ keyAssignQueueHost, verifier, verifierId, network, instanceId, keyAssignListener, retries: pendingRetries });
             return resolve(true);
           } catch (err) {
             return reject(err);
@@ -248,6 +253,7 @@ export const keyAssignWithQueue = async ({
   verifierId,
   keyAssignQueueHost,
   network,
+  instanceId,
   keyAssignListener,
 }: KeyAssignInputWithQueue): Promise<void> => {
   try {
@@ -261,7 +267,7 @@ export const keyAssignWithQueue = async ({
       }
     );
 
-    const eventKey = `${verifier}:${verifierId}:${network}`;
+    const eventKey = getKeyAssignEventKey(instanceId);
     if (keyAssignResponse.status === "waiting") {
       // since shares can be fetched up to 60 seconds
       // we can wait here up to 55 seconds and give 5 second buffer for retrieveShares and keylookup apis
@@ -278,7 +284,7 @@ export const keyAssignWithQueue = async ({
         setTimeout(async () => {
           try {
             // check key assign status
-            await checkKeyAssignStatus({ keyAssignQueueHost, verifier, verifierId, network, keyAssignListener, retries: 3 });
+            await checkKeyAssignStatus({ keyAssignQueueHost, verifier, verifierId, network, instanceId, keyAssignListener, retries: 3 });
             return resolve();
           } catch (error) {
             return reject(error);
