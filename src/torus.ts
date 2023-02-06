@@ -102,7 +102,7 @@ class Torus extends SafeEventEmitter {
         throw new Error("Verifier + VerifierID has not yet been assigned");
       }
 
-      if (this.network === "cyan" && this.keyAssignQueueHost) {
+      if (this.network === "cyan" && this.keyAssignQueueHost && instanceId) {
         await keyAssignWithQueue({
           verifier,
           verifierId,
@@ -204,14 +204,27 @@ class Torus extends SafeEventEmitter {
     extraParams: Record<string, unknown> = {}
   ): Promise<RetrieveSharesResponse> {
     const promiseArr = [];
+    let allowEndpoint = this.allowHost;
+    let allowRequestHeaders: Record<string, string> = {
+      verifier,
+      network: this.network,
+    };
+    if (this.network === "cyan" && this.keyAssignQueueHost) {
+      allowEndpoint = `${this.keyAssignQueueHost}/api/allow`;
+      allowRequestHeaders = {
+        ...allowRequestHeaders,
+        verifierId: verifierParams.verifier_id,
+      };
+    } else {
+      allowRequestHeaders = {
+        ...allowRequestHeaders,
+        verifier_id: verifierParams.verifier_id,
+      };
+    }
     await get<void>(
-      this.allowHost,
+      allowEndpoint,
       {
-        headers: {
-          verifier,
-          verifier_id: verifierParams.verifier_id,
-          network: this.network,
-        },
+        headers: allowRequestHeaders,
       },
       { useAPIKey: true }
     );

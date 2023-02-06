@@ -213,7 +213,7 @@ const checkKeyAssignStatus = async (params: {
 
     const url = new URL(`${keyAssignQueueHost}/api/keyAssignStatus`);
     url.searchParams.append("verifier", verifier);
-    url.searchParams.append("verifier_id", verifierId);
+    url.searchParams.append("verifierId", verifierId);
     url.searchParams.append("network", network);
 
     const keyAssignResponse = await get<KeyAssignQueueResponse>(url.href, {
@@ -223,10 +223,6 @@ const checkKeyAssignStatus = async (params: {
     });
     // eslint-disable-next-line no-console
     console.log("keyAssignResponse", keyAssignResponse);
-    if (keyAssignResponse.status === "processing") {
-      emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
-      return;
-    }
     if (keyAssignResponse.status === "success") {
       emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
       return;
@@ -239,10 +235,13 @@ const checkKeyAssignStatus = async (params: {
       emitKeyAssignEvent(eventKey, { ...keyAssignResponse, processingTime: 0 }, keyAssignListener);
       throw new Error("Failed to do key assign");
     }
-    if (keyAssignResponse.status === "waiting") {
-      // retry till pendingRetries in case of `waiting` in catch block
-      throw new Error("Failed to process your request within estimated time, please try again");
+
+    // emit event if request is processing but also retry if possible in catch block
+    if (keyAssignResponse.status === "processing") {
+      emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
     }
+    // retry till pendingRetries in case of `waiting` in catch block
+    throw new Error("Failed to process your request within estimated time, please try again");
   } catch (error) {
     if (pendingRetries > 0) {
       // check key assign status after retryInterval.
@@ -258,6 +257,8 @@ const checkKeyAssignStatus = async (params: {
         retries: pendingRetries,
       });
     }
+    // emit failed if request fails after all attempts
+    emitKeyAssignEvent(eventKey, { status: "failed", processingTime: 0, success: false }, keyAssignListener);
     log.error("Failed to check key assign status after all retries", error);
     throw error;
   }
@@ -279,7 +280,7 @@ export const keyAssignWithQueue = async ({
   try {
     const keyAssignResponse = await post<KeyAssignQueueResponse>(
       `${keyAssignQueueHost}/api/keyAssign`,
-      { verifier, verifier_id: verifierId, network },
+      { verifier, verifierId, network },
       {
         headers: {
           "Content-Type": "application/json; charset=utf-8",
@@ -299,7 +300,7 @@ export const keyAssignWithQueue = async ({
       }
 
       const retries = 3;
-      const retryInterval = 1; // 1s
+      const retryInterval = 2; // 2s
       const maxWaitingTime = keyAssignResponse.processingTime + retries * retryInterval;
       emitKeyAssignEvent(
         eventKey,
@@ -322,8 +323,8 @@ export const keyAssignWithQueue = async ({
               network,
               instanceId,
               keyAssignListener,
-              retries: 3,
-              retryInterval: 1,
+              retries,
+              retryInterval,
             });
             return resolve();
           } catch (error) {
