@@ -169,6 +169,14 @@ export const getKeyAssignEventKey = (instanceId: string) => {
   return `ks:${instanceId}`;
 };
 
+const sleep = async (seconds: number) => {
+  return new Promise((resolve) => {
+    setTimeout(async () => {
+      return resolve(true);
+    }, seconds * 1000);
+  });
+};
+
 const emitKeyAssignEvent = (key: string, data: KeyAssignQueueResponse, emitter: SafeEventEmitter) => {
   if (emitter?.emit) {
     const finalData: KeyAssignStatus = {
@@ -184,14 +192,17 @@ const checkKeyAssignStatus = async (params: {
   verifier: string;
   verifierId: string;
   network: string;
+  retryInterval: number; // in seconds
   retries: number;
   instanceId: string;
   keyAssignListener: SafeEventEmitter;
 }) => {
-  const { verifier, verifierId, network, retries, keyAssignQueueHost, keyAssignListener, instanceId } = params;
+  const { verifier, verifierId, network, retries, retryInterval, keyAssignQueueHost, keyAssignListener, instanceId } = params;
   const eventKey = getKeyAssignEventKey(instanceId);
 
   let pendingRetries = retries;
+  // eslint-disable-next-line no-console
+  console.log("checking key assign status", pendingRetries);
   try {
     if (pendingRetries === 0) {
       throw new Error("Failed to do key assign, please try again");
@@ -210,6 +221,12 @@ const checkKeyAssignStatus = async (params: {
         "Content-Type": "application/json; charset=utf-8",
       },
     });
+    // eslint-disable-next-line no-console
+    console.log("keyAssignResponse", keyAssignResponse);
+    if (keyAssignResponse.status === "processing") {
+      emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
+      return;
+    }
     if (keyAssignResponse.status === "success") {
       emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
       return;
@@ -228,17 +245,20 @@ const checkKeyAssignStatus = async (params: {
     }
   } catch (error) {
     if (pendingRetries > 0) {
-      return new Promise((resolve, reject) => {
-        setTimeout(async () => {
-          try {
-            await checkKeyAssignStatus({ keyAssignQueueHost, verifier, verifierId, network, instanceId, keyAssignListener, retries: pendingRetries });
-            return resolve(true);
-          } catch (err) {
-            return reject(err);
-          }
-        }, 1000);
+      // check key assign status after retryInterval.
+      await sleep(retryInterval);
+      return checkKeyAssignStatus({
+        keyAssignQueueHost,
+        verifier,
+        verifierId,
+        network,
+        instanceId,
+        keyAssignListener,
+        retryInterval,
+        retries: pendingRetries,
       });
     }
+    log.error("Failed to check key assign status after all retries", error);
     throw error;
   }
 };
@@ -277,14 +297,34 @@ export const keyAssignWithQueue = async ({
         const errMessage = `Your request is in queue, Please try after ${keyAssignResponse.processingTime} seconds`;
         throw new Error(errMessage);
       }
-      emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
+
+      const retries = 3;
+      const retryInterval = 1; // 1s
+      const maxWaitingTime = keyAssignResponse.processingTime + retries * retryInterval;
+      emitKeyAssignEvent(
+        eventKey,
+        {
+          ...keyAssignResponse,
+          processingTime: maxWaitingTime,
+        },
+        keyAssignListener
+      );
 
       const keyAssignStatusCheckTime = keyAssignResponse.processingTime * 1000;
       return await new Promise((resolve, reject) => {
         setTimeout(async () => {
           try {
             // check key assign status
-            await checkKeyAssignStatus({ keyAssignQueueHost, verifier, verifierId, network, instanceId, keyAssignListener, retries: 3 });
+            await checkKeyAssignStatus({
+              keyAssignQueueHost,
+              verifier,
+              verifierId,
+              network,
+              instanceId,
+              keyAssignListener,
+              retries: 3,
+              retryInterval: 1,
+            });
             return resolve();
           } catch (error) {
             return reject(error);
