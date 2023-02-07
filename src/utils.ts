@@ -16,6 +16,8 @@ import {
 import log from "./loglevel";
 import { Some } from "./some";
 
+export const MAX_ALLOWED_WAITING_TIME = 55;
+
 export class GetOrSetNonceError extends Error {}
 
 export const kCombinations = (s: number | number[], k: number): number[][] => {
@@ -177,9 +179,10 @@ const sleep = async (seconds: number) => {
   });
 };
 
-const emitKeyAssignEvent = (key: string, data: KeyAssignQueueResponse, emitter: SafeEventEmitter) => {
+const emitKeyAssignEvent = (key: string, data: KeyAssignQueueResponse & { minWaitingTime?: number }, emitter: SafeEventEmitter) => {
   if (emitter?.emit) {
     const finalData: KeyAssignStatus = {
+      minWaitingTime: data.minWaitingTime || data.processingTime,
       processingTime: data.processingTime,
       status: data.status,
     };
@@ -276,11 +279,12 @@ export const keyAssignWithQueue = async ({
   network,
   instanceId,
   keyAssignListener,
+  isNewKey,
 }: KeyAssignInputWithQueue): Promise<void> => {
   try {
     const keyAssignResponse = await post<KeyAssignQueueResponse>(
       `${keyAssignQueueHost}/api/keyAssign`,
-      { verifier, verifierId, network },
+      { verifier, verifierId, network, isNewUser: isNewKey },
       {
         headers: {
           "Content-Type": "application/json; charset=utf-8",
@@ -291,15 +295,15 @@ export const keyAssignWithQueue = async ({
     const eventKey = getKeyAssignEventKey(instanceId);
     if (keyAssignResponse.status === "waiting") {
       // since shares can be fetched up to 60 seconds
-      // we can wait here up to 55 seconds and give 5 second buffer for retrieveShares and keylookup apis
-      // So if `processingTime` is more than 55 seconds, key assign will throw and user will have to retry login.
-      if (keyAssignResponse.processingTime > 55) {
+      // we can wait here up to MAX_ALLOWED_WAITING_TIME seconds and give 5 second buffer for retrieveShares and keylookup apis
+      // So if `processingTime` is more than MAX_ALLOWED_WAITING_TIME seconds, key assign will throw and user will have to retry login.
+      if (keyAssignResponse.processingTime > MAX_ALLOWED_WAITING_TIME) {
         emitKeyAssignEvent(eventKey, keyAssignResponse, keyAssignListener);
         const errMessage = `Your request is in queue, Please try after ${keyAssignResponse.processingTime} seconds`;
         throw new Error(errMessage);
       }
 
-      const retries = 3;
+      const retries = 4;
       const retryInterval = 2; // 2s
       const maxWaitingTime = keyAssignResponse.processingTime + retries * retryInterval;
       emitKeyAssignEvent(
@@ -307,6 +311,7 @@ export const keyAssignWithQueue = async ({
         {
           ...keyAssignResponse,
           processingTime: maxWaitingTime,
+          minWaitingTime: keyAssignResponse.processingTime,
         },
         keyAssignListener
       );

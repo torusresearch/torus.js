@@ -110,6 +110,7 @@ class Torus extends SafeEventEmitter {
           keyAssignQueueHost: this.keyAssignQueueHost,
           instanceId,
           keyAssignListener: this,
+          isNewKey: true,
         });
       } else {
         await keyAssign({
@@ -122,10 +123,10 @@ class Torus extends SafeEventEmitter {
           signerHost: this.signerHost,
           network: this.network,
         });
+        isNewKey = true;
       }
       const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
       finalKeyResult = assignResult?.keyResult;
-      isNewKey = true;
     } else if (keyResult) {
       finalKeyResult = keyResult;
     } else {
@@ -544,6 +545,7 @@ class Torus extends SafeEventEmitter {
           keyAssignQueueHost: this.keyAssignQueueHost,
           instanceId,
           keyAssignListener: this,
+          isNewKey: true,
         });
       } else {
         await keyAssign({
@@ -556,11 +558,11 @@ class Torus extends SafeEventEmitter {
           signerHost: this.signerHost,
           network: this.network,
         });
+        isNewKey = true;
       }
 
       const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
       finalKeyResult = assignResult?.keyResult;
-      isNewKey = true;
     } else if (keyResult) {
       finalKeyResult = keyResult;
     } else {

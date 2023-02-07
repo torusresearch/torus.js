@@ -25,7 +25,7 @@ export type keyAssignStatus = "waiting" | "processing" | "success" | "failed";
 export interface KeyAssignStatus {
   processingTime: number;
   status: keyAssignStatus;
-  errorMessage?: string;
+  minWaitingTime: number;
 }
 export interface TorusCtorOptions {
   enableOneKey?: boolean;
@@ -103,6 +103,7 @@ export interface KeyAssignInputWithQueue {
   keyAssignQueueHost: string;
   network: string;
   instanceId: string;
+  isNewKey: boolean;
   keyAssignListener?: SafeEventEmitter;
 }
 
