@@ -102,7 +102,7 @@ class Torus extends SafeEventEmitter {
         throw new Error("Verifier + VerifierID has not yet been assigned");
       }
 
-      if (this.network === "cyan" && this.keyAssignQueueHost && instanceId) {
+      if (this.keyAssignQueueHost && instanceId) {
         await keyAssignWithQueue({
           verifier,
           verifierId,
@@ -210,7 +210,7 @@ class Torus extends SafeEventEmitter {
       verifier,
       network: this.network,
     };
-    if (this.network === "cyan" && this.keyAssignQueueHost) {
+    if (this.keyAssignQueueHost) {
       allowEndpoint = `${this.keyAssignQueueHost}/api/allow`;
       allowRequestHeaders = {
         ...allowRequestHeaders,
@@ -537,7 +537,7 @@ class Torus extends SafeEventEmitter {
       2. Have setup a verifier on dashboard.web3auth.io?`);
     } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
       // currently using queue for cyan only
-      if (this.network === "cyan" && this.keyAssignQueueHost && instanceId) {
+      if (this.keyAssignQueueHost && instanceId) {
         await keyAssignWithQueue({
           verifier,
           verifierId,
