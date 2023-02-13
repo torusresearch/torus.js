@@ -146,6 +146,15 @@ export interface ShareRequestResult {
   node_puby: string[];
 }
 
+export interface ImportedShare {
+  pub_key_x: string;
+  pub_key_y: string;
+  share: string;
+  node_index: number;
+  key_type: string;
+}
+export type ImportShareRequestResult = ShareRequestResult;
+
 export interface SessionToken {
   token: string;
   signature: string;
@@ -164,4 +173,9 @@ export interface RetrieveSharesResponse {
 export interface VerifierParams {
   [key: string]: unknown;
   verifier_id: string;
+  extended_verifier_id: string;
 }
+
+export type BNString = string | BN;
+
+export type StringifiedType = Record<string, unknown>;
