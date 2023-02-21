@@ -1,4 +1,5 @@
 // import type { INodePub } from "@toruslabs/fetch-node-details";
+import { generatePrivate } from "@toruslabs/eccrypto";
 import { Data, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
@@ -8,8 +9,10 @@ import {
   GetOrSetNonceResult,
   ImportedShare,
   MetadataParams,
+  NonceMetadataParams,
   RetrieveSharesResponse,
   SetCustomKeyOptions,
+  SetNonceData,
   TorusCtorOptions,
   TorusPublicKey,
   UserTypeAndAddress,
@@ -189,6 +192,25 @@ class Torus {
     };
   }
 
+  generateNonceMetadataParams(operation: string, privateKey: BN, nonce?: BN): NonceMetadataParams {
+    const key = this.ec.keyFromPrivate(privateKey.toString("hex", 64));
+    const setData: Partial<SetNonceData> = {
+      operation,
+      timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
+    };
+
+    if (nonce) {
+      setData.data = nonce.toString("hex");
+    }
+    const sig = key.sign(keccak256(stringify(setData)).slice(2));
+    return {
+      pub_key_X: key.getPublic().getX().toString("hex"),
+      pub_key_Y: key.getPublic().getY().toString("hex"),
+      set_data: setData,
+      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
+    };
+  }
+
   async setMetadata(data: MetadataParams, options: RequestInit = {}): Promise<string> {
     try {
       const metadataResponse = await post<{ message: string }>(`${this.metadataHost}/set`, data, options, { useAPIKey: true });
@@ -204,12 +226,12 @@ class Torus {
    */
   async getPublicAddress(
     endpoints: string[],
-    { verifier, verifierId }: { verifier: string; verifierId: string },
+    { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
     isExtended = false
   ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
 
-    const { keyResult, errorResult, nonceResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId);
+    const { keyResult, errorResult, nonceResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, extendedVerifierId);
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
@@ -223,15 +245,16 @@ class Torus {
     log.debug("> torus.js/getPublicAddress", { finalKeyResult });
 
     if (finalKeyResult?.keys) {
-      if (!nonceResult) {
+      // no need of nonce for extendedVerifierId
+      if (!nonceResult && !extendedVerifierId) {
         throw new GetOrSetNonceError("metadata nonce is missing in share response");
       }
       let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
       let modifiedPubKey: curve.base.BasePoint;
       let pubNonce: { x: string; y: string } | undefined;
-      const nonce = new BN(nonceResult.nonce || "0", 16);
+      const nonce = new BN(nonceResult?.nonce || "0", 16);
 
-      if (nonceResult.upgraded) {
+      if (nonceResult?.upgraded || extendedVerifierId) {
         // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
         modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
       } else {
@@ -273,7 +296,7 @@ class Torus {
       data = {
         pub_key_X: X,
         pub_key_Y: Y,
-        set_data: { data: msg },
+        set_data: { operation: msg },
       };
     }
     return post<GetOrSetNonceResult>(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
@@ -302,26 +325,35 @@ class Torus {
     const shareIndexes = [];
 
     const key = this.ec.keyFromPrivate(privateKey.padStart(64, "0"), "hex");
-    const publicKey = key.getPublic();
     for (let i = 0; i < endpoints.length; i++) {
       const shareIndex = new BN(i + 1, "hex");
       shareIndexes.push(shareIndex);
     }
-    const poly = generateRandomPolynomial(this.ec, degree, new BN(key.getPrivate(), "hex"));
+    const privKeyBn = new BN(key.getPrivate(), "hex");
+    const randomNonce = new BN(generatePrivate(), "hex");
+
+    const oauthKey = privKeyBn.sub(randomNonce).umod(this.ec.curve.n);
+    const oauthPubKey = this.ec.keyFromPrivate(oauthKey.toString("hex")).getPublic();
+
+    const poly = generateRandomPolynomial(this.ec, degree, oauthKey);
     const shares = poly.generateShares(shareIndexes);
+    const nonceParams = this.generateNonceMetadataParams("getOrSetNonce", oauthKey, randomNonce);
     const sharesData: ImportedShare[] = [];
     for (let i = 0; i < shareIndexes.length; i++) {
       const shareJson = shares[shareIndexes[i].toString("hex")].toJSON() as Record<string, string>;
-
+      const nonceData = Buffer.from(stringify(nonceParams.set_data), "utf-8").toString("base64");
       const shareData: ImportedShare = {
-        pub_key_x: publicKey.getX().toString("hex"),
-        pub_key_y: publicKey.getY().toString("hex"),
+        pub_key_x: oauthPubKey.getX().toString("hex"),
+        pub_key_y: oauthPubKey.getY().toString("hex"),
         share: shareJson.share,
         node_index: parseInt(shareJson.shareIndex, 16),
         key_type: "secp256k1", // TODO: test for ed25519
+        nonce_data: nonceData,
+        nonce_signature: nonceParams.signature,
       };
       sharesData.push(shareData);
     }
+
     return _retrieveOrImportShare(this.ec, endpoints, verifier, verifierParams, idToken, sharesData, extraParams);
   }
 }

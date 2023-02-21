@@ -121,13 +121,19 @@ export const keyLookup = async (endpoints: string[], verifier: string, verifierI
   });
 };
 
-export const GetPubKeyOrKeyAssign = async (endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult> => {
+export const GetPubKeyOrKeyAssign = async (
+  endpoints: string[],
+  verifier: string,
+  verifierId: string,
+  extendedVerifierId?: string
+): Promise<KeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
       generateJsonRPCObject("GetPubKeyOrKeyAssign", {
         verifier,
         verifier_id: verifierId.toString(),
+        extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
       })
     ).catch((err) => log.error("lookup request failed", err))
@@ -155,7 +161,7 @@ export const GetPubKeyOrKeyAssign = async (endpoints: string[], verifier: string
       lookupShares.map((x3) => x3 && x3.result),
       ~~(endpoints.length / 2) + 1
     );
-    if ((keyResult && nonceResult) || errorResult) {
+    if ((keyResult && (nonceResult || extendedVerifierId)) || errorResult) {
       return Promise.resolve({ keyResult, errorResult, nonceResult });
     }
     return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`));
@@ -198,7 +204,7 @@ export function _retrieveOrImportShare(
   const pubKeyY = pubKey.slice(66);
   const tokenCommitment = keccak256(idToken);
   let isImportShareReq = false;
-  if (importedShares.length > 0) {
+  if (importedShares && importedShares.length > 0) {
     if (importedShares.length !== endpoints.length) {
       throw new Error("Invalid imported shares length");
     }
@@ -278,14 +284,16 @@ export function _retrieveOrImportShare(
               item: [
                 {
                   ...verifierParams,
-                  id_token: idToken,
-                  node_signatures: nodeSigs,
-                  verifier_identifier: verifier,
+                  idtoken: idToken,
+                  nodesignatures: nodeSigs,
+                  verifieridentifier: verifier,
                   pub_key_x: importedShare.pub_key_x,
                   pub_key_y: importedShare.pub_key_y,
                   share: importedShare.share,
                   node_index: importedShare.node_index,
                   key_type: importedShare.key_type,
+                  nonce_data: importedShare.nonce_data,
+                  nonce_signature: importedShare.nonce_signature,
                   ...extraParams,
                 },
               ],
@@ -301,9 +309,9 @@ export function _retrieveOrImportShare(
               item: [
                 {
                   ...verifierParams,
-                  id_token: idToken,
-                  node_signatures: nodeSigs,
-                  verifier_identifier: verifier,
+                  idtoken: idToken,
+                  nodesignatures: nodeSigs,
+                  verifieridentifier: verifier,
                   ...extraParams,
                 },
               ],
@@ -352,7 +360,7 @@ export function _retrieveOrImportShare(
 
           // optimistically run lagrange interpolation once threshold number of shares have been received
           // this is matched against the user public key to ensure that shares are consistent
-          // Note: no need of thresholdMetadataNonce for extended_verifier_id import
+          // Note: no need of thresholdMetadataNonce for extended_verifier_id key
           if (
             completedRequests.length >= ~~(endpoints.length / 2) + 1 &&
             thresholdPublicKey &&
@@ -366,7 +374,7 @@ export function _retrieveOrImportShare(
               const currentShareResponse = shareResponses[i] as JRPCResponse<ShareRequestResult>;
 
               if (currentShareResponse?.result?.keys?.length > 0) {
-                currentShareResponse.result.keys.sort((a, b) => new BN(a.index.index, 16).cmp(new BN(b.index.index, 16)));
+                // currentShareResponse.result.keys.sort((a, b) => new BN(a.index.index, 16).cmp(new BN(b.index.index, 16)));
                 const firstKey = currentShareResponse.result.keys[0];
 
                 nodeIndexes.push(new BN(firstKey.node_index, 16));
