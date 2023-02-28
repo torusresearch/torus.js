@@ -378,12 +378,18 @@ export function _retrieveOrImportShare(
                 const firstKey = currentShareResponse.result.keys[0];
 
                 nodeIndexes.push(new BN(firstKey.node_index, 16));
-                sessionTokenData.push({
-                  token: currentShareResponse.result.session_tokens[0],
-                  signature: currentShareResponse.result.session_token_sigs[0],
-                  node_pubx: currentShareResponse.result.node_pubx[0],
-                  node_puby: currentShareResponse.result.node_puby[0],
-                });
+
+                if (currentShareResponse.result.session_tokens) {
+                  sessionTokenData.push({
+                    token: currentShareResponse.result.session_tokens[0],
+                    signature: currentShareResponse.result.session_token_sigs[0],
+                    node_pubx: currentShareResponse.result.node_pubx[0],
+                    node_puby: currentShareResponse.result.node_puby[0],
+                  });
+                } else {
+                  sessionTokenData.push(undefined);
+                }
+
                 if (firstKey.metadata) {
                   const metadata = {
                     ephemPublicKey: Buffer.from(firstKey.metadata.ephemPublicKey, "hex"),
@@ -453,6 +459,9 @@ export function _retrieveOrImportShare(
       const decryptedPubKey = getPublic(Buffer.from(privateKey.toString(16, 64), "hex")).toString("hex");
       const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
       const decryptedPubKeyY = decryptedPubKey.slice(66);
+      if (verifierParams.extended_verifier_id) {
+        metadataNonce = new BN(0);
+      }
       log.debug("> torus.js/retrieveShares", { privKey: privateKey.toString(16), metadataNonce: metadataNonce.toString(16) });
 
       privateKey = privateKey.add(metadataNonce).umod(ecCurve.curve.n);
