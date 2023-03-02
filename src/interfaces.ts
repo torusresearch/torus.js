@@ -5,6 +5,7 @@ import BN from "bn.js";
 export interface KeyIndex {
   index: string;
   service_group_id: string;
+  tag: "imported" | "generated";
 }
 
 export type GetOrSetNonceResult = { nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
@@ -21,6 +22,20 @@ export interface MetadataParams {
     data: "getNonce" | "getOrSetNonce" | string;
     timestamp: string;
   };
+  signature: string;
+}
+
+export interface SetNonceData {
+  operation: string;
+  data: string;
+  timestamp: string;
+}
+
+export interface NonceMetadataParams {
+  namespace?: string;
+  pub_key_X: string;
+  pub_key_Y: string;
+  set_data: Partial<SetNonceData>;
   signature: string;
 }
 
@@ -47,7 +62,6 @@ export interface VerifierLookupResponse {
   keys: {
     pub_key_X: string;
     pub_key_Y: string;
-    key_index: KeyIndex;
     address: string;
     nonce_data?: GetOrSetNonceResult;
     key_metadata?: { message?: string };
@@ -146,6 +160,17 @@ export interface ShareRequestResult {
   node_puby: string[];
 }
 
+export interface ImportedShare {
+  pub_key_x: string;
+  pub_key_y: string;
+  share: string;
+  node_index: number;
+  key_type: string;
+  nonce_data: string;
+  nonce_signature: string;
+}
+export type ImportShareRequestResult = ShareRequestResult;
+
 export interface SessionToken {
   token: string;
   signature: string;
@@ -164,4 +189,9 @@ export interface RetrieveSharesResponse {
 export interface VerifierParams {
   [key: string]: unknown;
   verifier_id: string;
+  extended_verifier_id?: string;
 }
+
+export type BNString = string | BN;
+
+export type StringifiedType = Record<string, unknown>;
