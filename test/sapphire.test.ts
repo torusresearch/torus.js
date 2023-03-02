@@ -8,7 +8,7 @@ import { TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
 
-const TORUS_TEST_EMAIL = "testuser132@example.com";
+const TORUS_TEST_EMAIL = "saasas@tr.us";
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
 
 const TORUS_TEST_VERIFIER = "torus-test-health";
@@ -38,7 +38,7 @@ describe.only("torus utils sapphire", function () {
   it("should fetch public address", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
-    expect(publicAddress).to.equal("0x75FD03D936c36Ec13B6015a8Af68850CcE02909C");
+    expect(publicAddress).to.equal("0x4924F91F5d6701dDd41042D94832bB17B76F316F");
   });
 
   it("should keep public address same", async function () {
@@ -50,7 +50,7 @@ describe.only("torus utils sapphire", function () {
   it("should fetch user type and public address", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { address } = await torus.getUserTypeAndAddress(torusNodeEndpoints, verifierDetails, true);
-    expect(address).to.equal("0x75FD03D936c36Ec13B6015a8Af68850CcE02909C");
+    expect(address).to.equal("0x4924F91F5d6701dDd41042D94832bB17B76F316F");
   });
 
   it("should be able to key assign", async function () {
@@ -64,7 +64,7 @@ describe.only("torus utils sapphire", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const retrieveSharesResponse = await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
-    expect(retrieveSharesResponse.privKey).to.be.equal("36ba84a123a1d081481f239f40745d743564dbefa8d28f8e0f98900683fc127a");
+    expect(retrieveSharesResponse.privKey).to.be.equal("04eb166ddcf59275a210c7289dca4a026f87a33fd2d6ed22f56efae7eab4052c");
   });
 
   it("should be able to import a key for a new user", async function () {
@@ -119,17 +119,13 @@ describe.only("torus utils sapphire", function () {
     expect(publicAddress).to.not.equal(null);
   });
 
-  it("should not allow tss verifier id to fetch shares", async function () {
-    try {
-      const email = faker.internet.email();
-      const nonce = 0;
-      const tssTag = "default";
-      const tssVerifierId = `${email}\u0015${tssTag}\u0016${nonce}`;
-      const token = generateIdToken(email, "ES256");
-      await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { extended_verifier_id: tssVerifierId, verifier_id: email }, token);
-    } catch (error) {
-      expect(error?.message).contains("extended_verifier_id is not allowed");
-    }
+  it("should allow test tss verifier id to fetch shares", async function () {
+    const email = faker.internet.email();
+    const nonce = 0;
+    const tssTag = "default";
+    const tssVerifierId = `${email}\u0015${tssTag}\u0016${nonce}`;
+    const token = generateIdToken(email, "ES256");
+    await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { extended_verifier_id: tssVerifierId, verifier_id: email }, token);
   });
 
   it("should fetch public address when verifierID hash enabled", async function () {
