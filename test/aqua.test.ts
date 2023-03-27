@@ -19,6 +19,7 @@ describe("torus utils aqua", function () {
       signerHost: "https://signer-polygon.tor.us/api/sign",
       allowHost: "https://signer-polygon.tor.us/api/allow",
       network: "aqua",
+      clientId: "YOUR_CLIENT_ID",
     });
     TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.AQUA, proxyAddress: NodeManager.PROXY_ADDRESS_AQUA });
   });

@@ -22,6 +22,7 @@ describe("torus onekey", function () {
     torus = new TorusUtils({
       enableOneKey: true,
       network: "testnet",
+      clientId: "YOUR_CLIENT_ID",
     });
   });
 

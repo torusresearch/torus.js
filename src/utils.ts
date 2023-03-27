@@ -93,6 +93,7 @@ export const keyAssign = async ({
   verifierId,
   signerHost,
   network,
+  clientId,
 }: KeyAssignInput): Promise<void> => {
   let nodeNum: number;
   let initialPoint: number | undefined;
@@ -118,6 +119,7 @@ export const keyAssign = async ({
           pubKeyX: torusNodePubs[nodeNum].X,
           pubKeyY: torusNodePubs[nodeNum].Y,
           network,
+          clientId,
         },
       },
       { useAPIKey: true }
@@ -146,7 +148,17 @@ export const keyAssign = async ({
       acceptedErrorMsgs.includes(error.message) ||
       (error.message && error.message.includes("reason: getaddrinfo EAI_AGAIN"))
     )
-      return keyAssign({ endpoints, torusNodePubs, lastPoint: nodeNum + 1, firstPoint: initialPoint, verifier, verifierId, signerHost, network });
+      return keyAssign({
+        endpoints,
+        torusNodePubs,
+        lastPoint: nodeNum + 1,
+        firstPoint: initialPoint,
+        verifier,
+        verifierId,
+        signerHost,
+        network,
+        clientId,
+      });
     throw new Error(
       `Sorry, the Torus Network that powers Web3Auth is currently very busy.
     We will generate your key in time. Pls try again later. \n

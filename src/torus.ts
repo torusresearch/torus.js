@@ -38,6 +38,8 @@ class Torus {
 
   public network: string;
 
+  public clientId: string;
+
   protected ec: EC;
 
   constructor({
@@ -47,7 +49,9 @@ class Torus {
     signerHost = "https://signer.tor.us/api/sign",
     serverTimeOffset = 0,
     network = "mainnet",
-  }: TorusCtorOptions = {}) {
+    clientId,
+  }: TorusCtorOptions) {
+    if (!clientId) throw Error("Please provide a valid clientId in constructor");
     this.ec = new EC("secp256k1");
     this.metadataHost = metadataHost;
     this.allowHost = allowHost;
@@ -55,6 +59,7 @@ class Torus {
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.signerHost = signerHost;
     this.network = network;
+    this.clientId = clientId;
   }
 
   static enableLogging(v = true): void {
@@ -104,6 +109,7 @@ class Torus {
         verifierId,
         signerHost: this.signerHost,
         network: this.network,
+        clientId: this.clientId,
       });
       const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
       finalKeyResult = assignResult?.keyResult;
@@ -191,8 +197,9 @@ class Torus {
       {
         headers: {
           verifier,
-          verifier_id: verifierParams.verifier_id,
+          verifierId: verifierParams.verifier_id,
           network: this.network,
+          clientId: this.clientId,
         },
       },
       { useAPIKey: true }
@@ -513,6 +520,7 @@ class Torus {
         verifierId,
         signerHost: this.signerHost,
         network: this.network,
+        clientId: this.clientId,
       });
       const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
       finalKeyResult = assignResult?.keyResult;
