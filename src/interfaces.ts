@@ -1,5 +1,5 @@
 import { Ecies } from "@toruslabs/eccrypto";
-import type { INodePub } from "@toruslabs/fetch-node-details";
+import type { INodePub } from "@toruslabs/fnd-base";
 import BN from "bn.js";
 
 export interface KeyIndex {
@@ -65,6 +65,7 @@ export interface VerifierLookupResponse {
     address: string;
     nonce_data?: GetOrSetNonceResult;
     key_metadata?: { message?: string };
+    created_at?: number;
   }[];
   is_new_key: boolean;
 }

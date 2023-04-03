@@ -6,7 +6,6 @@ import JsonStringify from "json-stable-stringify";
 import createKeccakHash from "keccak";
 import { toChecksumAddress } from "web3-utils";
 
-// import type { INodePub } from "@toruslabs/fetch-node-details";
 import {
   CommitmentRequestResult,
   ImportedShare,
@@ -94,6 +93,21 @@ export const thresholdSame = <T>(arr: T[], t: number): T | undefined => {
   return undefined;
 };
 
+const normalizeResult = (result: VerifierLookupResponse) => {
+  if (result && result.keys && result.keys.length > 0) {
+    const normalizedKeys = result.keys.map((key) => {
+      // created_at can different for each node
+      delete key.created_at;
+      // nonce_data response is not guaranteed from all nodes so not including it in threshold check.
+      delete key.nonce_data;
+      return key;
+    });
+    result.keys = normalizedKeys;
+    return result;
+  }
+  return result;
+};
+
 export const keyLookup = async (endpoints: string[], verifier: string, verifierId: string): Promise<KeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
@@ -111,7 +125,7 @@ export const keyLookup = async (endpoints: string[], verifier: string, verifierI
       ~~(endpoints.length / 2) + 1
     );
     const keyResult = thresholdSame(
-      lookupShares.map((x3) => x3 && x3.result),
+      lookupShares.map((x3) => x3 && normalizeResult(x3.result)),
       ~~(endpoints.length / 2) + 1
     );
     if (keyResult || errorResult) {
@@ -158,9 +172,10 @@ export const GetPubKeyOrKeyAssign = async (
       ~~(endpoints.length / 2) + 1
     );
     const keyResult = thresholdSame(
-      lookupShares.map((x3) => x3 && x3.result),
+      lookupShares.map((x3) => x3 && normalizeResult(x3.result)),
       ~~(endpoints.length / 2) + 1
     );
+
     if ((keyResult && (nonceResult || extendedVerifierId)) || errorResult) {
       return Promise.resolve({ keyResult, errorResult, nonceResult });
     }

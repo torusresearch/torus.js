@@ -1,4 +1,3 @@
-// import NodeManager from "@toruslabs/fetch-node-details";
 import { generatePrivate } from "@toruslabs/eccrypto";
 import { expect } from "chai";
 import faker from "faker";
