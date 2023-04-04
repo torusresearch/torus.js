@@ -1,4 +1,6 @@
 import { generatePrivate } from "@toruslabs/eccrypto";
+import NodeManager from "@toruslabs/fetch-node-details";
+import { TORUS_NETWORK } from "@toruslabs/fnd-base";
 import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
@@ -17,18 +19,16 @@ const HashEnabledVerifier = "torus-test-verifierid-hash";
 
 describe.only("torus utils sapphire", function () {
   let torus: TorusUtils;
+  let TORUS_NODE_MANAGER: NodeManager;
 
-  const torusNodeEndpoints = [
-    "https://sapphire-dev-2-1.authnetwork.dev/sss/jrpc",
-    "https://sapphire-dev-2-2.authnetwork.dev/sss/jrpc",
-    "https://sapphire-dev-2-3.authnetwork.dev/sss/jrpc",
-    "https://sapphire-dev-2-4.authnetwork.dev/sss/jrpc",
-    "https://sapphire-dev-2-5.authnetwork.dev/sss/jrpc",
-  ];
+  let torusNodeEndpoints;
 
   beforeEach("one time execution before all tests", async function () {
+    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.SAPPHIRE_DEVNET });
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({});
+    torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     torus = new TorusUtils({
-      metadataHost: "https://sapphire-dev-2-1.authnetwork.dev/metadata",
+      metadataHost: "https://sapphire-1.authnetwork.dev/metadata",
       network: "cyan",
       enableOneKey: true,
     });
