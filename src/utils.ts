@@ -321,6 +321,7 @@ export function _retrieveOrImportShare(
             endpoints[i],
             generateJsonRPCObject("GetShareOrKeyAssign", {
               encrypted: "yes",
+              use_temp: true, // TODO: only for backward comp with trust wallet, remove it once they upgrade.
               item: [
                 {
                   ...verifierParams,
@@ -393,11 +394,44 @@ export function _retrieveOrImportShare(
                 const firstKey = currentShareResponse.result.keys[0];
 
                 nodeIndexes.push(new BN(firstKey.node_index, 16));
+                const { session_tokens: sessionTokens, session_token_sigs: sessionSigs } = currentShareResponse.result;
+                if (sessionTokens && sessionSigs) {
+                  let sessionSig = sessionSigs[0];
 
-                if (currentShareResponse.result.session_tokens) {
+                  // decrypt signature if enc metadata is sent
+                  if (firstKey.sig_metadata?.ephemPublicKey) {
+                    const metadata = {
+                      ephemPublicKey: Buffer.from(firstKey.sig_metadata.ephemPublicKey, "hex"),
+                      iv: Buffer.from(firstKey.sig_metadata.iv, "hex"),
+                      mac: Buffer.from(firstKey.sig_metadata.mac, "hex"),
+                      // mode: Buffer.from(firstKey.Metadata.mode, "hex"),
+                    };
+                    const decryptedSigBuffer = await decrypt(tmpKey, {
+                      ...metadata,
+                      ciphertext: Buffer.from(sessionSig, "hex"),
+                    });
+                    sessionSig = decryptedSigBuffer.toString("hex");
+                  }
+
+                  let sessionToken = sessionTokens[0];
+
+                  // decrypt session token if enc metadata is sent
+                  if (firstKey.session_token_metadata?.ephemPublicKey) {
+                    const metadata = {
+                      ephemPublicKey: Buffer.from(firstKey.session_token_metadata.ephemPublicKey, "hex"),
+                      iv: Buffer.from(firstKey.session_token_metadata.iv, "hex"),
+                      mac: Buffer.from(firstKey.session_token_metadata.mac, "hex"),
+                      // mode: Buffer.from(firstKey.Metadata.mode, "hex"),
+                    };
+                    const decryptedSigBuffer = await decrypt(tmpKey, {
+                      ...metadata,
+                      ciphertext: Buffer.from(sessionToken, "hex"),
+                    });
+                    sessionToken = decryptedSigBuffer.toString("hex");
+                  }
                   sessionTokenData.push({
-                    token: currentShareResponse.result.session_tokens[0],
-                    signature: currentShareResponse.result.session_token_sigs[0],
+                    token: sessionToken,
+                    signature: sessionSig,
                     node_pubx: currentShareResponse.result.node_pubx[0],
                     node_puby: currentShareResponse.result.node_puby[0],
                   });

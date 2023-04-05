@@ -149,6 +149,12 @@ export interface KeyAssignment {
   metadata: {
     [key in keyof Ecies]: string;
   };
+  session_token_metadata: {
+    [key in keyof Ecies]: string;
+  };
+  sig_metadata: {
+    [key in keyof Ecies]: string;
+  };
   nonce_data?: GetOrSetNonceResult;
   key_metadata?: { message?: string };
 }

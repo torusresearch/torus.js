@@ -17,7 +17,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe.only("torus utils sapphire", function () {
+describe("torus utils sapphire", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -28,7 +28,7 @@ describe.only("torus utils sapphire", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({});
     torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     torus = new TorusUtils({
-      metadataHost: "https://sapphire-1.authnetwork.dev/metadata",
+      metadataHost: "https://sapphire-dev-2-1.authnetwork.dev/metadata",
       network: "cyan",
       enableOneKey: true,
     });
@@ -130,7 +130,7 @@ describe.only("torus utils sapphire", function () {
   it("should fetch public address when verifierID hash enabled", async function () {
     const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_TEST_EMAIL };
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
-    expect(publicAddress).to.equal("0x9d45b6EB6cC4791aC74f26AEa64CdFE5c7A39dd1");
+    expect(publicAddress).to.equal("0xF79b5ffA48463eba839ee9C97D61c6063a96DA03");
   });
 
   // to do: update pub keys
@@ -147,13 +147,13 @@ describe.only("torus utils sapphire", function () {
   it("should fetch user type and public address when verifierID hash enabled", async function () {
     const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_TEST_EMAIL };
     const { address } = await torus.getUserTypeAndAddress(torusNodeEndpoints, verifierDetails, false);
-    expect(address).to.equal("0x9d45b6EB6cC4791aC74f26AEa64CdFE5c7A39dd1");
+    expect(address).to.equal("0xF79b5ffA48463eba839ee9C97D61c6063a96DA03");
   });
   it("should be able to login when verifierID hash enabled", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const retrieveSharesResponse = await torus.retrieveShares(torusNodeEndpoints, HashEnabledVerifier, { verifier_id: TORUS_TEST_EMAIL }, token);
 
-    expect(retrieveSharesResponse.privKey).to.be.equal("6fb1bd7d799e8bbe52cd0b2221386828ca675a699bb5d57e159718e104291fa9");
+    expect(retrieveSharesResponse.privKey).to.be.equal("066270dfa345d3d0415c8223e045f366b238b50870de7e9658e3c6608a7e2d32");
   });
 
   it.skip("should be able to aggregate login", async function () {
