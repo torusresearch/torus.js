@@ -6,6 +6,7 @@ import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 import { toChecksumAddress } from "web3-utils";
 
+import { SIGNER_MAP } from "./enums";
 import {
   CommitmentRequestResult,
   GetOrSetNonceResult,
@@ -45,8 +46,8 @@ class Torus {
   constructor({
     enableOneKey = false,
     metadataHost = "https://metadata.tor.us",
-    allowHost = "https://signer.tor.us/api/allow",
-    signerHost = "https://signer.tor.us/api/sign",
+    allowHost,
+    signerHost,
     serverTimeOffset = 0,
     network,
     clientId,
@@ -55,12 +56,13 @@ class Torus {
     if (!network) throw Error("Please provide a valid network in constructor");
     this.ec = new EC("secp256k1");
     this.metadataHost = metadataHost;
-    this.allowHost = allowHost;
     this.enableOneKey = enableOneKey;
     this.serverTimeOffset = serverTimeOffset || 0; // ms
-    this.signerHost = signerHost;
     this.network = network;
     this.clientId = clientId;
+
+    this.allowHost = allowHost || `${SIGNER_MAP[network]}/api/allow`;
+    this.signerHost = signerHost || `${SIGNER_MAP[network]}/api/sign`;
   }
 
   static enableLogging(v = true): void {
