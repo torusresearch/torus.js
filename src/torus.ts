@@ -48,10 +48,11 @@ class Torus {
     allowHost = "https://signer.tor.us/api/allow",
     signerHost = "https://signer.tor.us/api/sign",
     serverTimeOffset = 0,
-    network = "mainnet",
+    network,
     clientId,
   }: TorusCtorOptions) {
     if (!clientId) throw Error("Please provide a valid clientId in constructor");
+    if (!network) throw Error("Please provide a valid network in constructor");
     this.ec = new EC("secp256k1");
     this.metadataHost = metadataHost;
     this.allowHost = allowHost;

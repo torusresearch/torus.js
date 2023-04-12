@@ -27,7 +27,7 @@ export interface TorusCtorOptions {
   allowHost?: string;
   serverTimeOffset?: number;
   signerHost?: string;
-  network?: string;
+  network: string;
   clientId: string;
 }
 
