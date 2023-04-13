@@ -15,7 +15,7 @@ describe("torus utils goerli", function () {
   let TORUS_NODE_MANAGER: NodeManager;
 
   beforeEach("one time execution before all tests", async function () {
-    torus = new TorusUtils({ network: "testnet" });
+    torus = new TorusUtils({ network: "testnet", clientId: "YOUR_CLIENT_ID" });
     TORUS_NODE_MANAGER = new NodeManager({
       network: TORUS_NETWORK.TESTNET,
       proxyAddress: NodeManager.PROXY_ADDRESS_TESTNET,

@@ -27,7 +27,8 @@ export interface TorusCtorOptions {
   allowHost?: string;
   serverTimeOffset?: number;
   signerHost?: string;
-  network?: string;
+  network: string;
+  clientId: string;
 }
 
 export interface TorusPublicKey extends INodePub {
@@ -93,6 +94,7 @@ export interface KeyAssignInput {
   verifierId: string;
   signerHost: string;
   network: string;
+  clientId: string;
 }
 
 export interface KeyAssignment {
