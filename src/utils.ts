@@ -98,6 +98,8 @@ export const keyAssign = async ({
   let initialPoint: number | undefined;
   if (lastPoint === undefined) {
     nodeNum = Math.floor(Math.random() * endpoints.length);
+    // nodeNum = endpoints.indexOf("https://torus-node.ens.domains/jrpc");
+    log.info("keyassign", nodeNum, endpoints[nodeNum]);
     initialPoint = nodeNum;
   } else {
     nodeNum = lastPoint % endpoints.length;
@@ -132,10 +134,13 @@ export const keyAssign = async ({
       }
     );
   } catch (error) {
-    log.error(error);
+    log.error(error.status, error.message, error, "key assign error");
     const acceptedErrorMsgs = [
       // Slow node
       "Timed out",
+      "Failed to fetch",
+      "cancelled",
+      "NetworkError when attempting to fetch resource.",
       // Happens when the node is not reachable (dns issue etc)
       "TypeError: Failed to fetch", // All except iOS and Firefox
       "TypeError: cancelled", // iOS
