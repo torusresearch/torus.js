@@ -9,13 +9,14 @@
     const fetchNodeDetails = new FetchNodeDetails.default();
     const torus = new TorusUtils.default({ network: "mainnet" });
     const verifier = "google"; // any verifier
-    const verifierId = "hello@tor.us"; // any verifier id
+    const verifierId = `${Math.random().toString(36).substring(2)}@tor.us`; // any verifier id
     fetchNodeDetails
       .getNodeDetails({ verifier, verifierId })
       .then(function ({ torusNodeEndpoints, torusNodePub }) {
         console.log(arguments);
         return torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId });
       })
-      .then((publicAddress) => console.log(publicAddress));
+      .then((publicAddress) => console.log(publicAddress))
+      .catch(console.error);
   </script>
 </body>
