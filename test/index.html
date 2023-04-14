@@ -7,7 +7,7 @@
   <script src="../dist/torusUtils.umd.min.js"></script>
   <script>
     const fetchNodeDetails = new FetchNodeDetails.default();
-    const torus = new TorusUtils.default({ network: "mainnet" });
+    const torus = new TorusUtils.default({ network: "mainnet", clientId: "test" });
     const verifier = "google"; // any verifier
     const verifierId = `${Math.random().toString(36).substring(2)}@tor.us`; // any verifier id
     fetchNodeDetails
