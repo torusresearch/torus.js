@@ -2,9 +2,9 @@ import { generatePrivate } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 import { ec as EC } from "elliptic";
 
-import Point from "./Point";
-import Polynomial from "./polynomial";
-import Share from "./Share";
+import Point from "../Point";
+import Polynomial from "../polynomial";
+import Share from "../Share";
 
 function generatePrivateExcludingIndexes(shareIndexes: Array<BN>): BN {
   const key = new BN(generatePrivate());

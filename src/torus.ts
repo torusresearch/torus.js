@@ -1,35 +1,32 @@
 // import type { INodePub } from "@toruslabs/fetch-node-details";
 import { generatePrivate } from "@toruslabs/eccrypto";
-import { Data, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
+import { NODE_DETAILS_SAPPHIRE_MAINNET } from "@toruslabs/fnd-base";
+import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 
 import {
-  GetOrSetNonceResult,
-  ImportedShare,
-  MetadataParams,
-  NonceMetadataParams,
-  RetrieveSharesResponse,
-  SetCustomKeyOptions,
-  SetNonceData,
-  TorusCtorOptions,
-  TorusPublicKey,
-  UserTypeAndAddress,
-  VerifierLookupResponse,
-  VerifierParams,
-} from "./interfaces";
-import { generateRandomPolynomial } from "./langrangeInterpolatePoly";
-import log from "./loglevel";
-import {
   _retrieveOrImportShare,
-  convertMetadataToNonce,
   generateAddressFromPubKey,
+  generateRandomPolynomial,
   GetOrSetNonceError,
   GetPubKeyOrKeyAssign,
   keccak256,
-  keyLookup,
-} from "./utils";
+  waitKeyLookup,
+} from "./helpers";
+import {
+  ImportedShare,
+  KeyLookupResult,
+  NonceMetadataParams,
+  RetrieveSharesResponse,
+  SetNonceData,
+  TorusCtorOptions,
+  TorusPublicKey,
+  VerifierLookupResponse,
+  VerifierParams,
+} from "./interfaces";
+import log from "./loglevel";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -44,13 +41,22 @@ class Torus {
 
   public network: string;
 
+  public clientId: string;
+
   protected ec: EC;
 
-  constructor({ metadataHost, serverTimeOffset = 0, network = "mainnet" }: TorusCtorOptions = {}) {
+  constructor({ clientId, metadataHost, serverTimeOffset = 0, network }: TorusCtorOptions) {
+    if (!clientId) throw Error("Please provide a valid clientId in constructor");
+    if (!network) throw Error("Please provide a valid network in constructor");
     this.ec = new EC("secp256k1");
-    this.metadataHost = metadataHost;
+    if (!metadataHost) {
+      this.metadataHost = `${NODE_DETAILS_SAPPHIRE_MAINNET.torusNodeEndpoints[0]}/metadata`;
+    } else {
+      this.metadataHost = metadataHost;
+    }
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.network = network;
+    this.clientId = clientId;
   }
 
   static enableLogging(v = true): void {
@@ -70,93 +76,6 @@ class Torus {
     return err instanceof GetOrSetNonceError;
   }
 
-  /**
-   * Note: use this function only for openlogin tkey account lookups.
-   */
-  async getUserTypeAndAddress(
-    endpoints: string[],
-    { verifier, verifierId }: { verifier: string; verifierId: string },
-    doesKeyAssign = false
-  ): Promise<UserTypeAndAddress> {
-    let finalKeyResult: VerifierLookupResponse;
-    let finalNonceResult: GetOrSetNonceResult;
-    if (doesKeyAssign) {
-      const { keyResult, errorResult, nonceResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId);
-      if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
-        // change error msg
-        throw new Error(`Verifier not supported. Check if you: \n
-        1. Are on the right network (Torus testnet/mainnet) \n
-        2. Have setup a verifier on dashboard.web3auth.io?`);
-      } else if (errorResult) {
-        throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
-      }
-      finalKeyResult = keyResult;
-      finalNonceResult = nonceResult;
-    } else {
-      const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
-      if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
-        // change error msg
-        throw new Error(`Verifier not supported. Check if you: \n
-        1. Are on the right network (Torus testnet/mainnet) \n
-        2. Have setup a verifier on dashboard.web3auth.io?`);
-      } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
-        throw new Error("Verifier + VerifierID has not yet been assigned");
-      }
-      finalKeyResult = keyResult;
-    }
-
-    if (finalKeyResult?.keys) {
-      const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
-      let nonce: BN;
-
-      if (!finalNonceResult) {
-        try {
-          finalNonceResult = await this.getOrSetNonce(X, Y, undefined, false);
-          nonce = new BN(finalNonceResult.nonce || "0", 16);
-        } catch {
-          throw new GetOrSetNonceError("not able to fetch metadata nonce");
-        }
-      }
-
-      const modifiedPubKey = this.ec
-        .keyFromPublic({ x: X, y: Y })
-        .getPublic()
-        .add(this.ec.keyFromPublic({ x: finalNonceResult.pubNonce.x, y: finalNonceResult.pubNonce.y }).getPublic());
-
-      const finalX = modifiedPubKey.getX().toString(16);
-      const finalY = modifiedPubKey.getY().toString(16);
-      const address = generateAddressFromPubKey(this.ec, modifiedPubKey.getX(), modifiedPubKey.getY());
-      return {
-        nonce,
-        pubNonce: finalNonceResult.pubNonce,
-        upgraded: finalNonceResult.upgraded,
-        X: finalX,
-        Y: finalY,
-        address,
-      };
-    }
-
-    throw new Error(
-      `Failed to do key lookup for verifier: ${verifier} and verifierId: ${verifierId} Please report this issue ${JSON.stringify(
-        finalKeyResult || {}
-      )}`
-    );
-  }
-
-  async setCustomKey({ privKeyHex, metadataNonce, torusKeyHex, customKeyHex }: SetCustomKeyOptions): Promise<void> {
-    let torusKey: BN;
-    if (torusKeyHex) {
-      torusKey = new BN(torusKeyHex, 16);
-    } else {
-      const privKey = new BN(privKeyHex as string, 16);
-      torusKey = privKey.sub(metadataNonce as BN).umod(this.ec.curve.n);
-    }
-    const customKey = new BN(customKeyHex, 16);
-    const newMetadataNonce = customKey.sub(torusKey).umod(this.ec.curve.n);
-    const data = this.generateMetadataParams(newMetadataNonce.toString(16), torusKey);
-    await this.setMetadata(data);
-  }
-
   async retrieveShares(
     endpoints: string[],
     verifier: string,
@@ -165,31 +84,6 @@ class Torus {
     extraParams: Record<string, unknown> = {}
   ): Promise<RetrieveSharesResponse> {
     return _retrieveOrImportShare(this.ec, endpoints, verifier, verifierParams, idToken, undefined, extraParams);
-  }
-
-  async getMetadata(data: Omit<MetadataParams, "set_data" | "signature">, options: RequestInit = {}): Promise<BN> {
-    try {
-      const metadataResponse = await post<{ message?: string }>(`${this.metadataHost}/get`, data, options, { useAPIKey: true });
-      return convertMetadataToNonce(metadataResponse);
-    } catch (error) {
-      log.error("get metadata error", error);
-      return new BN(0);
-    }
-  }
-
-  generateMetadataParams(message: string, privateKey: BN): MetadataParams {
-    const key = this.ec.keyFromPrivate(privateKey.toString("hex", 64));
-    const setData = {
-      data: message,
-      timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
-    };
-    const sig = key.sign(keccak256(stringify(setData)).slice(2));
-    return {
-      pub_key_X: key.getPublic().getX().toString("hex"),
-      pub_key_Y: key.getPublic().getY().toString("hex"),
-      set_data: setData,
-      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
-    };
   }
 
   generateNonceMetadataParams(operation: string, privateKey: BN, nonce?: BN): NonceMetadataParams {
@@ -211,41 +105,34 @@ class Torus {
     };
   }
 
-  async setMetadata(data: MetadataParams, options: RequestInit = {}): Promise<string> {
-    try {
-      const metadataResponse = await post<{ message: string }>(`${this.metadataHost}/set`, data, options, { useAPIKey: true });
-      return metadataResponse.message; // IPFS hash
-    } catch (error) {
-      log.error("set metadata error", error);
-      return "";
-    }
-  }
-
-  /**
-   * Note: use this function only with custom auth, don't use to lookup openlogin accounts.
-   */
   async getPublicAddress(
     endpoints: string[],
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
     isExtended = false
   ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
-
-    const { keyResult, errorResult, nonceResult } = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, extendedVerifierId);
+    let keyAssignResult: KeyLookupResult;
+    keyAssignResult = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, extendedVerifierId);
+    let { errorResult, keyResult } = keyAssignResult;
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
       1. Are on the right network (Torus testnet/mainnet) \n
       2. Have setup a verifier on dashboard.web3auth.io?`);
+    } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
+      keyAssignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000, extendedVerifierId);
     } else if (errorResult) {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
     }
+    const { nonceResult } = keyAssignResult;
+    errorResult = keyAssignResult.errorResult;
+    keyResult = keyAssignResult.keyResult;
     const finalKeyResult: VerifierLookupResponse = keyResult;
 
     log.debug("> torus.js/getPublicAddress", { finalKeyResult });
 
     if (finalKeyResult?.keys) {
-      // no need of nonce for extendedVerifierId
+      // no need of nonce for extendedVerifierId (tss verifier id)
       if (!nonceResult && !extendedVerifierId) {
         throw new GetOrSetNonceError("metadata nonce is missing in share response");
       }
@@ -254,8 +141,8 @@ class Torus {
       let pubNonce: { x: string; y: string } | undefined;
       const nonce = new BN(nonceResult?.nonce || "0", 16);
 
-      if (nonceResult?.upgraded || extendedVerifierId) {
-        // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
+      if (extendedVerifierId) {
+        // for tss key no need to add pub nonce
         modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
       } else {
         modifiedPubKey = this.ec
@@ -281,35 +168,6 @@ class Torus {
       };
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
-  }
-
-  /**
-   * Internal functions for OneKey (OpenLogin v2), only call these functions if you know what you're doing
-   */
-
-  async getOrSetNonce(X: string, Y: string, privKey?: BN, getOnly = false): Promise<GetOrSetNonceResult> {
-    let data: Data;
-    const msg = getOnly ? "getNonce" : "getOrSetNonce";
-    if (privKey) {
-      data = this.generateMetadataParams(msg, privKey);
-    } else {
-      data = {
-        pub_key_X: X,
-        pub_key_Y: Y,
-        set_data: { operation: msg },
-      };
-    }
-    return post<GetOrSetNonceResult>(`${this.metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
-  }
-
-  async getNonce(X: string, Y: string, privKey?: BN): Promise<GetOrSetNonceResult> {
-    return this.getOrSetNonce(X, Y, privKey, true);
-  }
-
-  getPostboxKeyFrom1OutOf1(privKey: string, nonce: string): string {
-    const privKeyBN = new BN(privKey, 16);
-    const nonceBN = new BN(nonce, 16);
-    return privKeyBN.sub(nonceBN).umod(this.ec.curve.n).toString("hex");
   }
 
   async importPrivateKey(
@@ -347,7 +205,7 @@ class Torus {
         pub_key_y: oauthPubKey.getY().toString("hex"),
         share: shareJson.share,
         node_index: parseInt(shareJson.shareIndex, 16),
-        key_type: "secp256k1", // TODO: test for ed25519
+        key_type: "secp256k1",
         nonce_data: nonceData,
         nonce_signature: nonceParams.signature,
       };

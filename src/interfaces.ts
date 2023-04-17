@@ -1,29 +1,14 @@
 import { Ecies } from "@toruslabs/eccrypto";
-import type { INodePub } from "@toruslabs/fnd-base";
+import type { INodePub, TORUS_SAPPHIRE_NETWORK_TYPE } from "@toruslabs/fnd-base";
 import BN from "bn.js";
 
 export interface KeyIndex {
   index: string;
   service_group_id: string;
-  tag: "imported" | "generated";
+  tag: "imported" | "generated"; // we tag keys so that we can identify if generated using dkg or externally imported by user
 }
 
 export type GetOrSetNonceResult = { nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
-
-export interface MetadataResponse {
-  message: string;
-}
-
-export interface MetadataParams {
-  namespace?: string;
-  pub_key_X: string;
-  pub_key_Y: string;
-  set_data: {
-    data: "getNonce" | "getOrSetNonce" | string;
-    timestamp: string;
-  };
-  signature: string;
-}
 
 export interface SetNonceData {
   operation: string;
@@ -40,22 +25,17 @@ export interface NonceMetadataParams {
 }
 
 export interface TorusCtorOptions {
+  clientId: string;
   enableOneKey?: boolean;
   metadataHost?: string;
   serverTimeOffset?: number;
-  network?: string;
+  network: TORUS_SAPPHIRE_NETWORK_TYPE;
 }
 
 export interface TorusPublicKey extends INodePub {
   address: string;
   metadataNonce: BN;
   pubNonce?: { x: string; y: string };
-}
-
-export interface ShareResponse {
-  ethAddress: string;
-  privKey: string;
-  metadataNonce: BN;
 }
 
 export interface VerifierLookupResponse {
@@ -75,31 +55,6 @@ export interface CommitmentRequestResult {
   data: string;
   nodepubx: string;
   nodepuby: string;
-}
-
-export interface SetCustomKeyOptions {
-  privKeyHex?: string;
-  metadataNonce?: BN;
-  torusKeyHex?: string;
-  customKeyHex: BN;
-}
-
-export interface V1UserTypeAndAddress {
-  typeOfUser: "v1";
-  nonce?: BN;
-  X: string;
-  Y: string;
-  address: string;
-}
-
-export interface UserTypeAndAddress {
-  nonce?: BN;
-  pubNonce: { x: string; y: string };
-  ipfs?: string;
-  upgraded?: boolean;
-  X: string;
-  Y: string;
-  address: string;
 }
 
 export interface JRPCResponse<T> {
@@ -187,10 +142,11 @@ export interface SessionToken {
 export interface RetrieveSharesResponse {
   ethAddress: string;
   privKey: string;
-  metadataNonce: BN;
   sessionTokensData: SessionToken[];
   X: string;
   Y: string;
+  postboxPubKeyX: string;
+  postboxPubKeyY: string;
 }
 
 export interface VerifierParams {

@@ -4,7 +4,6 @@ import { ec as EC } from "elliptic";
 import { BNString } from "./interfaces";
 import Share from "./Share";
 
-// @flow
 export type ShareMap = {
   [x: string]: Share;
 };
