@@ -1,5 +1,5 @@
+import type { INodePub, TORUS_SAPPHIRE_NETWORK_TYPE } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
-import type { INodePub, TORUS_SAPPHIRE_NETWORK_TYPE } from "@toruslabs/fnd-base";
 import BN from "bn.js";
 
 export interface KeyIndex {
