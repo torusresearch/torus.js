@@ -191,8 +191,7 @@ class Torus {
     const randomNonce = new BN(generatePrivate(), "hex");
 
     const oauthKey = privKeyBn.sub(randomNonce).umod(this.ec.curve.n);
-    const oauthPubKey = this.ec.keyFromPrivate(oauthKey.toString("hex")).getPublic();
-
+    const oauthPubKey = this.ec.keyFromPrivate(oauthKey.toString("hex").padStart(64, "0")).getPublic();
     const poly = generateRandomPolynomial(this.ec, degree, oauthKey);
     const shares = poly.generateShares(shareIndexes);
     const nonceParams = this.generateNonceMetadataParams("getOrSetNonce", oauthKey, randomNonce);

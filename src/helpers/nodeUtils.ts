@@ -375,16 +375,15 @@ export function _retrieveOrImportShare(
       });
     })
     .then(async (res) => {
-      let { privateKey, sessionTokenData, thresholdNonceData } = res;
+      const { privateKey, sessionTokenData, thresholdNonceData } = res;
       if (!privateKey) throw new Error("Invalid private key returned");
-      log.debug("> torus.js/retrieveShares", { privKey: privateKey.toString(16), thresholdNonceData: JSON.stringify(thresholdNonceData || {}) });
-      // eslint-disable-next-line no-console
-      console.log("thresholdNonceData?.nonce ", thresholdNonceData?.nonce);
-      privateKey = privateKey.add(new BN(thresholdNonceData?.nonce || "0", "hex")).umod(ecCurve.curve.n);
-
-      const decryptedPubKey = getPublic(Buffer.from(privateKey.toString(16, 64), "hex")).toString("hex");
+      const oauthKey = privateKey;
+      const decryptedPubKey = getPublic(Buffer.from(oauthKey.toString(16, 64), "hex")).toString("hex");
       const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
       const decryptedPubKeyY = decryptedPubKey.slice(66);
+      const privateKeyWithNonce = oauthKey
+        .add(new BN(thresholdNonceData?.nonce ? thresholdNonceData.nonce.padStart(64, "0") : "0", "hex"))
+        .umod(ecCurve.curve.n);
 
       let modifiedPubKey: curve.base.BasePoint;
 
@@ -399,12 +398,12 @@ export function _retrieveOrImportShare(
       }
 
       const ethAddress = generateAddressFromPubKey(ecCurve, modifiedPubKey.getX(), modifiedPubKey.getY());
-      log.debug("> torus.js/retrieveShares", { ethAddress, privKey: privateKey.toString(16) });
+      log.debug("> torus.js/retrieveShares", { ethAddress });
 
       // return reconstructed private key and ethereum address
       return {
-        ethAddress, // this is eth address of user before and after updating to 2/n
-        privKey: privateKey.toString("hex", 64), // Caution: final x and y wont be derivable from this key once user upgrades to 2/n
+        ethAddress, // this address should be used only if user hasn't updated to 2/n
+        privKey: privateKeyWithNonce.toString("hex", 64).padStart(64, "0"), // Caution: final x and y wont be derivable from this key once user upgrades to 2/n
         metadataNonce: thresholdNonceData?.nonce,
         sessionTokensData: sessionTokenData,
         X: modifiedPubKey.getX().toString(), // this is final pub x of user before and after updating to 2/n
