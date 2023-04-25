@@ -1,6 +1,5 @@
 // import type { INodePub } from "@toruslabs/fetch-node-details";
 import { generatePrivate } from "@toruslabs/eccrypto";
-import { NODE_DETAILS_SAPPHIRE_MAINNET } from "@toruslabs/fnd-base";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
@@ -31,8 +30,6 @@ import log from "./loglevel";
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  public metadataHost: string;
-
   public allowHost: string;
 
   public serverTimeOffset: number;
@@ -43,17 +40,12 @@ class Torus {
 
   public clientId: string;
 
-  protected ec: EC;
+  public ec: EC;
 
-  constructor({ clientId, metadataHost, serverTimeOffset = 0, network }: TorusCtorOptions) {
+  constructor({ clientId, serverTimeOffset = 0, network }: TorusCtorOptions) {
     if (!clientId) throw Error("Please provide a valid clientId in constructor");
     if (!network) throw Error("Please provide a valid network in constructor");
     this.ec = new EC("secp256k1");
-    if (!metadataHost) {
-      this.metadataHost = `${NODE_DETAILS_SAPPHIRE_MAINNET.torusNodeEndpoints[0]}/metadata`;
-    } else {
-      this.metadataHost = metadataHost;
-    }
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.network = network;
     this.clientId = clientId;

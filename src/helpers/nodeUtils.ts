@@ -381,9 +381,8 @@ export function _retrieveOrImportShare(
       const decryptedPubKey = getPublic(Buffer.from(oauthKey.toString(16, 64), "hex")).toString("hex");
       const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
       const decryptedPubKeyY = decryptedPubKey.slice(66);
-      const privateKeyWithNonce = oauthKey
-        .add(new BN(thresholdNonceData?.nonce ? thresholdNonceData.nonce.padStart(64, "0") : "0", "hex"))
-        .umod(ecCurve.curve.n);
+      const metadataNonce = new BN(thresholdNonceData?.nonce ? thresholdNonceData.nonce.padStart(64, "0") : "0", "hex");
+      const privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
 
       let modifiedPubKey: curve.base.BasePoint;
 
@@ -404,7 +403,7 @@ export function _retrieveOrImportShare(
       return {
         ethAddress, // this address should be used only if user hasn't updated to 2/n
         privKey: privateKeyWithNonce.toString("hex", 64).padStart(64, "0"), // Caution: final x and y wont be derivable from this key once user upgrades to 2/n
-        metadataNonce: thresholdNonceData?.nonce,
+        metadataNonce,
         sessionTokensData: sessionTokenData,
         X: modifiedPubKey.getX().toString(), // this is final pub x of user before and after updating to 2/n
         Y: modifiedPubKey.getY().toString(), // this is final pub y of user before and after updating to 2/n

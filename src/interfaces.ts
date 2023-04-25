@@ -27,7 +27,6 @@ export interface NonceMetadataParams {
 export interface TorusCtorOptions {
   clientId: string;
   enableOneKey?: boolean;
-  metadataHost?: string;
   serverTimeOffset?: number;
   network: TORUS_SAPPHIRE_NETWORK_TYPE;
 }
@@ -145,6 +144,7 @@ export interface RetrieveSharesResponse {
   sessionTokensData: SessionToken[];
   X: string;
   Y: string;
+  metadataNonce: BN;
   postboxPubKeyX: string;
   postboxPubKeyY: string;
 }
