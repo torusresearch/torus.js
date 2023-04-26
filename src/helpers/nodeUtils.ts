@@ -229,6 +229,18 @@ export function _retrieveOrImportShare(
 
         const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
 
+        if (!thresholdPublicKey) {
+          throw new Error("invalid result from nodes, threshold number of public key results are not matching");
+        }
+
+        // if both thresholdNonceData and extended_verifier_id are not available
+        // then we need to throw other wise address would be incorrect.
+        if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
+          throw new Error(
+            `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
+          );
+        }
+
         // optimistically run lagrange interpolation once threshold number of shares have been received
         // this is matched against the user public key to ensure that shares are consistent
         // Note: no need of thresholdMetadataNonce for extended_verifier_id key
@@ -343,16 +355,6 @@ export function _retrieveOrImportShare(
           }
 
           return { privateKey, sessionTokenData, thresholdNonceData };
-        }
-        if (!thresholdPublicKey) {
-          throw new Error("invalid result from nodes, threshold number of public key results are not matching");
-        }
-        // if both thresholdNonceData and extended_verifier_id are not available
-        // then we need to throw other wise address would be incorrect.
-        if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
-          throw new Error(
-            `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
-          );
         }
       });
     })
