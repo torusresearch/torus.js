@@ -11,6 +11,7 @@ import {
   ImportShareRequestResult,
   JRPCResponse,
   KeyLookupResult,
+  RetrieveSharesResponse,
   SessionToken,
   ShareRequestResult,
   VerifierLookupResponse,
@@ -83,7 +84,7 @@ export const GetPubKeyOrKeyAssign = async (
   return result;
 };
 
-export function _retrieveOrImportShare(
+export function retrieveOrImportShare(
   ecCurve: ec,
   endpoints: string[],
   verifier: string,
@@ -91,7 +92,7 @@ export function _retrieveOrImportShare(
   idToken: string,
   importedShares?: ImportedShare[],
   extraParams: Record<string, unknown> = {}
-) {
+): Promise<RetrieveSharesResponse> {
   const promiseArr = [];
 
   // generate temporary private and public key that is used to secure receive shares
@@ -358,7 +359,7 @@ export function _retrieveOrImportShare(
         }
       });
     })
-    .then(async (res) => {
+    .then((res) => {
       const { privateKey, sessionTokenData, thresholdNonceData } = res;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oauthKey = privateKey;
@@ -388,7 +389,7 @@ export function _retrieveOrImportShare(
         ethAddress, // this address should be used only if user hasn't updated to 2/n
         privKey: privateKeyWithNonce.toString("hex", 64).padStart(64, "0"), // Caution: final x and y wont be derivable from this key once user upgrades to 2/n
         metadataNonce,
-        sessionTokensData: sessionTokenData,
+        sessionTokenData,
         X: modifiedPubKey.getX().toString(), // this is final pub x of user before and after updating to 2/n
         Y: modifiedPubKey.getY().toString(), // this is final pub y of user before and after updating to 2/n
         postboxPubKeyX: decryptedPubKeyX,

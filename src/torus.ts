@@ -6,12 +6,12 @@ import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 
 import {
-  _retrieveOrImportShare,
   generateAddressFromPubKey,
   generateRandomPolynomial,
   GetOrSetNonceError,
   GetPubKeyOrKeyAssign,
   keccak256,
+  retrieveOrImportShare,
 } from "./helpers";
 import {
   ImportedShare,
@@ -72,7 +72,7 @@ class Torus {
     idToken: string,
     extraParams: Record<string, unknown> = {}
   ): Promise<RetrieveSharesResponse> {
-    return _retrieveOrImportShare(this.ec, endpoints, verifier, verifierParams, idToken, undefined, extraParams);
+    return retrieveOrImportShare(this.ec, endpoints, verifier, verifierParams, idToken, undefined, extraParams);
   }
 
   generateNonceMetadataParams(operation: string, privateKey: BN, nonce?: BN): NonceMetadataParams {
@@ -194,7 +194,7 @@ class Torus {
       sharesData.push(shareData);
     }
 
-    return _retrieveOrImportShare(this.ec, endpoints, verifier, verifierParams, idToken, sharesData, extraParams);
+    return retrieveOrImportShare(this.ec, endpoints, verifier, verifierParams, idToken, sharesData, extraParams);
   }
 }
 

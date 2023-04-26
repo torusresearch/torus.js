@@ -3,7 +3,7 @@ import BN from "bn.js";
 import { ec as EC } from "elliptic";
 
 import Point from "../Point";
-import Polynomial from "../polynomial";
+import Polynomial from "../Polynomial";
 import Share from "../Share";
 
 function generatePrivateExcludingIndexes(shareIndexes: BN[]): BN {

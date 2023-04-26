@@ -142,7 +142,7 @@ export interface SessionToken {
 export interface RetrieveSharesResponse {
   ethAddress: string;
   privKey: string;
-  sessionTokensData: SessionToken[];
+  sessionTokenData: SessionToken[];
   X: string;
   Y: string;
   metadataNonce: BN;
