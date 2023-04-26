@@ -99,28 +99,27 @@ export interface KeyAssignment {
     Y: string;
   };
   threshold: number;
-  verifiers: Record<string, string>;
-  share: string;
   node_index: number;
-  metadata: {
-    [key in keyof Ecies]: string;
-  };
-  session_token_metadata: {
-    [key in keyof Ecies]: string;
-  };
-  sig_metadata: {
+  // this is encrypted ciphertext
+  share: string;
+  share_metadata: {
     [key in keyof Ecies]: string;
   };
   nonce_data?: GetOrSetNonceResult;
-  key_metadata?: { message?: string };
 }
 
 export interface ShareRequestResult {
   keys: KeyAssignment[];
   session_tokens: string[];
+  session_token_metadata: {
+    [key in keyof Ecies]: string;
+  }[];
   session_token_sigs: string[];
-  node_pubx: string[];
-  node_puby: string[];
+  session_token_sig_metadata: {
+    [key in keyof Ecies]: string;
+  }[];
+  node_pubx: string;
+  node_puby: string;
 }
 
 export interface ImportedShare {

@@ -40,7 +40,7 @@ export const GetPubKeyOrKeyAssign = async (
     ).catch((err) => log.error(`${JRPC_METHODS.GET_OR_SET_KEY} request failed`, err))
   );
 
-  let nonceResult;
+  let nonceResult: GetOrSetNonceResult | undefined;
   const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
     const lookupPubKeys = lookupResults.filter((x1) => {
       if (x1) {
@@ -81,19 +81,6 @@ export const GetPubKeyOrKeyAssign = async (
 
   return result;
 };
-
-export const waitKeyLookup = (
-  endpoints: string[],
-  verifier: string,
-  verifierId: string,
-  timeout: number,
-  extendedVerifierId?: string
-): Promise<KeyLookupResult> =>
-  new Promise((resolve, reject) => {
-    setTimeout(() => {
-      GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, extendedVerifierId).then(resolve).catch(reject);
-    }, timeout);
-  });
 
 export function _retrieveOrImportShare(
   ecCurve: ec,
@@ -165,7 +152,7 @@ export function _retrieveOrImportShare(
   })
     .then((responses) => {
       const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult>>[] = [];
-      const nodeSigs = [];
+      const nodeSigs: CommitmentRequestResult[] = [];
       for (let i = 0; i < responses.length; i += 1) {
         if (responses[i]) nodeSigs.push((responses[i] as JRPCResponse<CommitmentRequestResult>).result);
       }
@@ -177,6 +164,8 @@ export function _retrieveOrImportShare(
             generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
               encrypted: "yes",
               //   use_temp: true,
+              // todo: this is a bit insecure cause shares are not encrypted
+              // todo: the other way would be to encrypt each share using node pubkey that and then send it
               item: [
                 {
                   ...verifierParams,
@@ -202,7 +191,6 @@ export function _retrieveOrImportShare(
             endpoints[i],
             generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
               encrypted: "yes",
-              use_temp: true, // TODO: only for backward comp with trust wallet, remove it once they upgrade.
               item: [
                 {
                   ...verifierParams,
@@ -296,8 +284,8 @@ export function _retrieveOrImportShare(
                 sessionTokenData.push({
                   token: sessionToken,
                   signature: sessionSig,
-                  node_pubx: currentShareResponse.result.node_pubx[0],
-                  node_puby: currentShareResponse.result.node_puby[0],
+                  node_pubx: currentShareResponse.result.node_pubx,
+                  node_puby: currentShareResponse.result.node_puby,
                 });
               } else {
                 sessionTokenData.push(undefined);
