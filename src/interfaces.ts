@@ -92,6 +92,10 @@ export interface KeyAssignInput {
   clientId: string;
 }
 
+export type ServerEciesData = {
+  [key in keyof Ecies]: string;
+};
+
 export interface KeyAssignment {
   index: KeyIndex;
   public_key: {
@@ -102,22 +106,18 @@ export interface KeyAssignment {
   node_index: number;
   // this is encrypted ciphertext
   share: string;
-  share_metadata: {
-    [key in keyof Ecies]: string;
-  };
+  share_metadata: ServerEciesData;
   nonce_data?: GetOrSetNonceResult;
 }
 
 export interface ShareRequestResult {
   keys: KeyAssignment[];
+  // these are encrypted ciphertexts
   session_tokens: string[];
-  session_token_metadata: {
-    [key in keyof Ecies]: string;
-  }[];
+  session_token_metadata: ServerEciesData[];
+  // these are encrypted ciphertexts
   session_token_sigs: string[];
-  session_token_sig_metadata: {
-    [key in keyof Ecies]: string;
-  }[];
+  session_token_sig_metadata: ServerEciesData[];
   node_pubx: string;
   node_puby: string;
 }

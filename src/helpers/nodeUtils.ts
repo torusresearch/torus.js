@@ -1,4 +1,4 @@
-import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
+import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec } from "elliptic";
@@ -21,6 +21,7 @@ import { Some } from "../some";
 import { kCombinations, normalizeKeysResult, thresholdSame } from "./common";
 import { generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
+import { decryptNodeData } from "./metadataUtils";
 
 export const GetPubKeyOrKeyAssign = async (
   endpoints: string[],
@@ -237,89 +238,77 @@ export function _retrieveOrImportShare(
           (thresholdNonceData || verifierParams.extended_verifier_id)
         ) {
           const sharePromises: Promise<void | Buffer>[] = [];
+          const sessionTokenSigPromises: Promise<void | Buffer>[] = [];
+          const sessionTokenPromises: Promise<void | Buffer>[] = [];
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
 
           for (let i = 0; i < shareResponses.length; i += 1) {
             const currentShareResponse = shareResponses[i] as JRPCResponse<ShareRequestResult>;
+            const {
+              session_tokens: sessionTokens,
+              session_token_metadata: sessionTokenMetadata,
+              session_token_sigs: sessionTokenSigs,
+              session_token_sig_metadata: sessionTokenSigMetadata,
+              keys,
+            } = currentShareResponse.result;
 
-            if (currentShareResponse?.result?.keys?.length > 0) {
-              const latestKey = currentShareResponse.result.keys[0];
-              nodeIndexes.push(new BN(latestKey.node_index, 16));
-              const {
-                session_tokens: sessionTokens,
-                session_token_sigs: sessionSigs,
-                session_token_metadata: sessionTokenMetadata,
-                session_token_sig_metadata: sessionTokenSigMetadata,
-              } = currentShareResponse.result;
-              if (sessionTokens && sessionSigs) {
-                let sessionSig = sessionSigs[0];
-
-                // decrypt sessionSig if enc metadata is sent
-                if (sessionTokenMetadata[0].ephemPublicKey) {
-                  const metadata = {
-                    ephemPublicKey: Buffer.from(sessionTokenMetadata[0].ephemPublicKey, "hex"),
-                    iv: Buffer.from(sessionTokenMetadata[0].iv, "hex"),
-                    mac: Buffer.from(sessionTokenMetadata[0].mac, "hex"),
-                    // mode: Buffer.from(latestKey.Metadata.mode, "hex"),
-                  };
-                  const decryptedSigBuffer = await decrypt(tmpKey, {
-                    ...metadata,
-                    ciphertext: Buffer.from(sessionSig, "hex"),
-                  });
-                  sessionSig = decryptedSigBuffer.toString("hex");
-                }
-
-                let sessionToken = sessionTokens[0];
-
-                // decrypt session token if enc metadata is sent
-                if (sessionTokenSigMetadata[0]?.ephemPublicKey) {
-                  const metadata = {
-                    ephemPublicKey: Buffer.from(sessionTokenSigMetadata[0].ephemPublicKey, "hex"),
-                    iv: Buffer.from(sessionTokenSigMetadata[0].iv, "hex"),
-                    mac: Buffer.from(sessionTokenSigMetadata[0].mac, "hex"),
-                    // mode: Buffer.from(latestKey.Metadata.mode, "hex"),
-                  };
-                  const decryptedSigBuffer = await decrypt(tmpKey, {
-                    ...metadata,
-                    ciphertext: Buffer.from(sessionToken, "hex"),
-                  });
-                  sessionToken = decryptedSigBuffer.toString("hex");
-                }
-                sessionTokenData.push({
-                  token: sessionToken,
-                  signature: sessionSig,
-                  node_pubx: currentShareResponse.result.node_pubx,
-                  node_puby: currentShareResponse.result.node_puby,
-                });
-              } else {
-                sessionTokenData.push(undefined);
-              }
-
-              if (latestKey.share_metadata) {
-                const metadata = {
-                  ephemPublicKey: Buffer.from(latestKey.share_metadata.ephemPublicKey, "hex"),
-                  iv: Buffer.from(latestKey.share_metadata.iv, "hex"),
-                  mac: Buffer.from(latestKey.share_metadata.mac, "hex"),
-                  // mode: Buffer.from(latestKey.Metadata.mode, "hex"),
-                };
-
-                sharePromises.push(
-                  decrypt(tmpKey, {
-                    ...metadata,
-                    ciphertext: Buffer.from(Buffer.from(latestKey.share, "base64").toString("binary").padStart(64, "0"), "hex"),
-                  }).catch((err) => log.debug("share decryption", err))
+            if (sessionTokenSigs?.length > 0) {
+              // decrypt sessionSig if enc metadata is sent
+              if (sessionTokenMetadata[0]?.ephemPublicKey) {
+                sessionTokenSigPromises.push(
+                  decryptNodeData(sessionTokenMetadata[0], sessionTokenSigs[0], tmpKey).catch((err) => log.debug("session sig decryption", err))
                 );
-              } else {
-                sharePromises.push(Promise.resolve(Buffer.from(latestKey.share.padStart(64, "0"), "hex")));
               }
             } else {
-              sessionTokenData.push(undefined);
+              sessionTokenSigPromises.push(Promise.resolve(undefined));
+            }
+
+            if (sessionTokens?.length > 0) {
+              // decrypt session token if enc metadata is sent
+              if (sessionTokenSigMetadata[0]?.ephemPublicKey) {
+                sessionTokenPromises.push(
+                  decryptNodeData(sessionTokenSigMetadata[0], sessionTokens[0], tmpKey).catch((err) => log.debug("session token sig decryption", err))
+                );
+              }
+            } else {
+              sessionTokenPromises.push(Promise.resolve(undefined));
+            }
+
+            if (keys?.length > 0) {
+              const latestKey = currentShareResponse.result.keys[0];
+              nodeIndexes.push(new BN(latestKey.node_index, 16));
+
+              if (latestKey.share_metadata) {
+                sharePromises.push(
+                  decryptNodeData(
+                    latestKey.share_metadata,
+                    Buffer.from(latestKey.share, "base64").toString("binary").padStart(64, "0"),
+                    tmpKey
+                  ).catch((err) => log.debug("share decryption", err))
+                );
+              }
+            } else {
               nodeIndexes.push(undefined);
               sharePromises.push(Promise.resolve(undefined));
             }
           }
-          const sharesResolved = await Promise.all(sharePromises);
+          const allPromises = await Promise.all(sharePromises.concat(sessionTokenSigPromises).concat(sessionTokenPromises));
+          const sharesResolved = allPromises.slice(0, sharePromises.length);
+          const sessionSigsResolved = allPromises.slice(sharePromises.length, sharePromises.length + sessionTokenSigPromises.length);
+          const sessionTokensResolved = allPromises.slice(sharePromises.length + sessionTokenSigPromises.length, allPromises.length);
+
+          sessionTokensResolved.forEach((x, index) => {
+            if (!x) sessionTokenData.push(undefined);
+            else
+              sessionTokenData.push({
+                token: x.toString("hex"),
+                signature: (sessionSigsResolved[index] as Buffer).toString("hex"),
+                node_pubx: (shareResponses[index] as JRPCResponse<ShareRequestResult>).result.node_pubx,
+                node_puby: (shareResponses[index] as JRPCResponse<ShareRequestResult>).result.node_puby,
+              });
+          });
+
           if (sharedState.resolved) return undefined;
 
           const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
