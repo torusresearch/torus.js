@@ -35,6 +35,7 @@ export interface TorusPublicKey extends INodePub {
   address: string;
   metadataNonce: BN;
   pubNonce?: { x: string; y: string };
+  upgraded?: boolean;
 }
 
 export interface VerifierLookupResponse {
@@ -88,6 +89,7 @@ export interface KeyAssignInput {
   verifierId: string;
   signerHost: string;
   network: string;
+  clientId: string;
 }
 
 export interface KeyAssignment {

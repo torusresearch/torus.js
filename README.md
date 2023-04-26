@@ -73,7 +73,7 @@ import FetchNodeDetails from '@toruslabs/fetch-node-details'
 import TorusUtils from '@toruslabs/torus.js'
 
 const fetchNodeDetails = new FetchNodeDetails()
-const torus = new TorusUtils({ network: 'mainnet' })
+const torus = new TorusUtils({ network: 'mainnet', clientId: 'YOUR_CLIENT_ID' }) // get your Client ID from Web3Auth Dashboard
 const verifier = 'google'
 const verifierId = 'hello@tor.us'
 const { torusNodeEndpoints, torusNodePub, torusIndexes } = await fetchNodeDetails.getNodeDetails()
@@ -88,7 +88,7 @@ const FetchNodeDetails = require('@toruslabs/fetch-node-details').default
 const TorusUtils = require('@toruslabs/torus.js').default
 
 const fetchNodeDetails = new FetchNodeDetails()
-const torus = new TorusUtils({ network: 'mainnet' })
+const torus = new TorusUtils({ network: 'mainnet', clientId: 'YOUR_CLIENT_ID' }) // get your Client ID from Web3Auth Dashboard
 const verifier = 'google' // any verifier
 const verifierId = 'hello@tor.us' // any verifier id
 fetchNodeDetails

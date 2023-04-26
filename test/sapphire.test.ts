@@ -1,7 +1,6 @@
 import { TORUS_NETWORK } from "@toruslabs/constants";
 import { generatePrivate } from "@toruslabs/eccrypto";
 import NodeManager from "@toruslabs/fetch-node-details";
-import { NODE_DETAILS_SAPPHIRE_DEVNET } from "@toruslabs/fnd-base";
 import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
@@ -27,7 +26,6 @@ describe("torus utils sapphire", function () {
   beforeEach("one time execution before all tests", async function () {
     TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.SAPPHIRE_DEVNET });
     torus = new TorusUtils({
-      metadataHost: `${NODE_DETAILS_SAPPHIRE_DEVNET.torusNodeEndpoints[0]}/metadata`,
       network: TORUS_NETWORK.SAPPHIRE_DEVNET,
       clientId: "asbs",
       enableOneKey: true,

@@ -157,6 +157,7 @@ class Torus {
         Y,
         metadataNonce: nonce,
         pubNonce,
+        upgraded: (nonceResult as { upgraded?: boolean })?.upgraded || undefined,
       };
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
