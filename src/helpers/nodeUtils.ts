@@ -246,16 +246,21 @@ export function _retrieveOrImportShare(
             if (currentShareResponse?.result?.keys?.length > 0) {
               const latestKey = currentShareResponse.result.keys[0];
               nodeIndexes.push(new BN(latestKey.node_index, 16));
-              const { session_tokens: sessionTokens, session_token_sigs: sessionSigs } = currentShareResponse.result;
+              const {
+                session_tokens: sessionTokens,
+                session_token_sigs: sessionSigs,
+                session_token_metadata: sessionTokenMetadata,
+                session_token_sig_metadata: sessionTokenSigMetadata,
+              } = currentShareResponse.result;
               if (sessionTokens && sessionSigs) {
                 let sessionSig = sessionSigs[0];
 
                 // decrypt sessionSig if enc metadata is sent
-                if (latestKey.sig_metadata?.ephemPublicKey) {
+                if (sessionTokenMetadata[0].ephemPublicKey) {
                   const metadata = {
-                    ephemPublicKey: Buffer.from(latestKey.sig_metadata.ephemPublicKey, "hex"),
-                    iv: Buffer.from(latestKey.sig_metadata.iv, "hex"),
-                    mac: Buffer.from(latestKey.sig_metadata.mac, "hex"),
+                    ephemPublicKey: Buffer.from(sessionTokenMetadata[0].ephemPublicKey, "hex"),
+                    iv: Buffer.from(sessionTokenMetadata[0].iv, "hex"),
+                    mac: Buffer.from(sessionTokenMetadata[0].mac, "hex"),
                     // mode: Buffer.from(latestKey.Metadata.mode, "hex"),
                   };
                   const decryptedSigBuffer = await decrypt(tmpKey, {
@@ -268,11 +273,11 @@ export function _retrieveOrImportShare(
                 let sessionToken = sessionTokens[0];
 
                 // decrypt session token if enc metadata is sent
-                if (latestKey.session_token_metadata?.ephemPublicKey) {
+                if (sessionTokenSigMetadata[0]?.ephemPublicKey) {
                   const metadata = {
-                    ephemPublicKey: Buffer.from(latestKey.session_token_metadata.ephemPublicKey, "hex"),
-                    iv: Buffer.from(latestKey.session_token_metadata.iv, "hex"),
-                    mac: Buffer.from(latestKey.session_token_metadata.mac, "hex"),
+                    ephemPublicKey: Buffer.from(sessionTokenSigMetadata[0].ephemPublicKey, "hex"),
+                    iv: Buffer.from(sessionTokenSigMetadata[0].iv, "hex"),
+                    mac: Buffer.from(sessionTokenSigMetadata[0].mac, "hex"),
                     // mode: Buffer.from(latestKey.Metadata.mode, "hex"),
                   };
                   const decryptedSigBuffer = await decrypt(tmpKey, {
@@ -291,11 +296,11 @@ export function _retrieveOrImportShare(
                 sessionTokenData.push(undefined);
               }
 
-              if (latestKey.metadata) {
+              if (latestKey.share_metadata) {
                 const metadata = {
-                  ephemPublicKey: Buffer.from(latestKey.metadata.ephemPublicKey, "hex"),
-                  iv: Buffer.from(latestKey.metadata.iv, "hex"),
-                  mac: Buffer.from(latestKey.metadata.mac, "hex"),
+                  ephemPublicKey: Buffer.from(latestKey.share_metadata.ephemPublicKey, "hex"),
+                  iv: Buffer.from(latestKey.share_metadata.iv, "hex"),
+                  mac: Buffer.from(latestKey.share_metadata.mac, "hex"),
                   // mode: Buffer.from(latestKey.Metadata.mode, "hex"),
                 };
 
