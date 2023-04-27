@@ -1,12 +1,11 @@
+import { INodePub, SIGNER_MAP } from "@toruslabs/constants";
 import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
-import type { INodePub } from "@toruslabs/fetch-node-details";
 import { Data, generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 import { toChecksumAddress } from "web3-utils";
 
-import { SIGNER_MAP } from "./enums";
 import {
   CommitmentRequestResult,
   GetOrSetNonceResult,

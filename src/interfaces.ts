@@ -1,5 +1,5 @@
+import type { INodePub } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
-import type { INodePub } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 
 export type GetOrSetNonceResult =
