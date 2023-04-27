@@ -1,11 +1,13 @@
 // import type { INodePub } from "@toruslabs/fetch-node-details";
-import { generatePrivate } from "@toruslabs/eccrypto";
+import { INodePub } from "@toruslabs/constants";
+import { encrypt, generatePrivate } from "@toruslabs/eccrypto";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 
 import {
+  encParamsBufToHex,
   generateAddressFromPubKey,
   generateRandomPolynomial,
   GetOrSetNonceError,
@@ -155,20 +157,24 @@ class Torus {
 
   async importPrivateKey(
     endpoints: string[],
+    nodeIndexes: number[],
+    nodePubkeys: INodePub[],
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
     newPrivateKey: string,
     extraParams: Record<string, unknown> = {}
   ): Promise<RetrieveSharesResponse> {
+    if (endpoints.length !== nodeIndexes.length) {
+      throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
+    }
     const threshold = ~~(endpoints.length / 2) + 1;
     const degree = threshold - 1;
-    const shareIndexes: BN[] = [];
+    const nodeIndexesBn: BN[] = [];
 
     const key = this.ec.keyFromPrivate(newPrivateKey.padStart(64, "0"), "hex");
-    for (let i = 0; i < endpoints.length; i++) {
-      const shareIndex = new BN(i + 1, "hex");
-      shareIndexes.push(shareIndex);
+    for (const nodeIndex in nodeIndexes) {
+      nodeIndexesBn.push(new BN(nodeIndex, "hex"));
     }
     const privKeyBn = key.getPrivate();
     const randomNonce = new BN(generatePrivate());
@@ -176,16 +182,23 @@ class Torus {
     const oauthKey = privKeyBn.sub(randomNonce).umod(this.ec.curve.n);
     const oauthPubKey = this.ec.keyFromPrivate(oauthKey.toString("hex").padStart(64, "0")).getPublic();
     const poly = generateRandomPolynomial(this.ec, degree, oauthKey);
-    const shares = poly.generateShares(shareIndexes);
+    const shares = poly.generateShares(nodeIndexesBn);
     const nonceParams = this.generateNonceMetadataParams("getOrSetNonce", oauthKey, randomNonce);
     const sharesData: ImportedShare[] = [];
-    for (let i = 0; i < shareIndexes.length; i++) {
-      const shareJson = shares[shareIndexes[i].toString("hex", 64)].toJSON() as Record<string, string>;
+    for (let i = 0; i < nodeIndexesBn.length; i++) {
+      const shareJson = shares[nodeIndexesBn[i].toString("hex", 64)].toJSON() as Record<string, string>;
       const nonceData = Buffer.from(stringify(nonceParams.set_data), "utf8").toString("base64");
+      if (!nodePubkeys[i]) {
+        throw new Error(`Missing node pub key for node index: ${nodeIndexesBn[i].toString("hex", 64)}`);
+      }
+      const nodePubKey = this.ec.keyFromPublic({ x: nodePubkeys[i].X, y: nodePubkeys[i].Y });
+      const encParams = await encrypt(Buffer.from(nodePubKey.getPublic().encodeCompressed("hex"), "hex"), Buffer.from(shareJson.share, "hex"));
+      const encParamsMetadata = encParamsBufToHex(encParams);
       const shareData: ImportedShare = {
         pub_key_x: oauthPubKey.getX().toString("hex", 64),
         pub_key_y: oauthPubKey.getY().toString("hex", 64),
-        share: shareJson.share,
+        encrypted_share: encParamsMetadata.ciphertext,
+        encrypted_share_metadata: encParamsMetadata,
         node_index: Number.parseInt(shareJson.shareIndex, 16),
         key_type: "secp256k1",
         nonce_data: nonceData,

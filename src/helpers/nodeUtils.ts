@@ -147,7 +147,7 @@ export function retrieveOrImportShare(
     });
 
     if (completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
-      return Promise.resolve(resultArr);
+      return Promise.resolve(completedRequests);
     }
 
     return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
@@ -165,7 +165,7 @@ export function retrieveOrImportShare(
             endpoints[i],
             generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
               encrypted: "yes",
-              //   use_temp: true,
+              use_temp: true,
               // todo: this is a bit insecure cause shares are not encrypted
               // todo: the other way would be to encrypt each share using node pubkey that and then send it
               item: [
@@ -176,7 +176,8 @@ export function retrieveOrImportShare(
                   verifieridentifier: verifier,
                   pub_key_x: importedShare.pub_key_x,
                   pub_key_y: importedShare.pub_key_y,
-                  share: importedShare.share,
+                  encrypted_share: importedShare.encrypted_share,
+                  encrypted_share_metadata: importedShare.encrypted_share_metadata,
                   node_index: importedShare.node_index,
                   key_type: importedShare.key_type,
                   nonce_data: importedShare.nonce_data,
@@ -193,6 +194,7 @@ export function retrieveOrImportShare(
             endpoints[i],
             generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
               encrypted: "yes",
+              use_temp: true,
               item: [
                 {
                   ...verifierParams,
@@ -268,10 +270,12 @@ export function retrieveOrImportShare(
 
             if (sessionTokenSigs?.length > 0) {
               // decrypt sessionSig if enc metadata is sent
-              if (sessionTokenMetadata[0]?.ephemPublicKey) {
+              if (sessionTokenMetadata && sessionTokenMetadata[0]?.ephemPublicKey) {
                 sessionTokenSigPromises.push(
                   decryptNodeData(sessionTokenMetadata[0], sessionTokenSigs[0], tmpKey).catch((err) => log.debug("session sig decryption", err))
                 );
+              } else {
+                sessionTokenSigPromises.push(Promise.resolve(Buffer.from(sessionTokenSigs[0], "hex")));
               }
             } else {
               sessionTokenSigPromises.push(Promise.resolve(undefined));
@@ -279,10 +283,12 @@ export function retrieveOrImportShare(
 
             if (sessionTokens?.length > 0) {
               // decrypt session token if enc metadata is sent
-              if (sessionTokenSigMetadata[0]?.ephemPublicKey) {
+              if (sessionTokenSigMetadata && sessionTokenSigMetadata[0]?.ephemPublicKey) {
                 sessionTokenPromises.push(
                   decryptNodeData(sessionTokenSigMetadata[0], sessionTokens[0], tmpKey).catch((err) => log.debug("session token sig decryption", err))
                 );
+              } else {
+                sessionTokenPromises.push(Promise.resolve(Buffer.from(sessionTokens[0], "base64")));
               }
             } else {
               sessionTokenPromises.push(Promise.resolve(undefined));
@@ -315,7 +321,7 @@ export function retrieveOrImportShare(
             if (!x) sessionTokenData.push(undefined);
             else
               sessionTokenData.push({
-                token: x.toString("hex"),
+                token: x.toString("base64"),
                 signature: (sessionSigsResolved[index] as Buffer).toString("hex"),
                 node_pubx: (shareResponses[index] as JRPCResponse<ShareRequestResult>).result.node_pubx,
                 node_puby: (shareResponses[index] as JRPCResponse<ShareRequestResult>).result.node_puby,

@@ -2,6 +2,14 @@ import type { INodePub, TORUS_SAPPHIRE_NETWORK_TYPE } from "@toruslabs/constants
 import { Ecies } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 
+export type EciesHex = {
+  iv: string;
+  ephemPublicKey: string;
+  ciphertext: string;
+  mac: string;
+  mode: string;
+};
+
 export interface KeyIndex {
   index: string;
   service_group_id: string;
@@ -44,7 +52,6 @@ export interface VerifierLookupResponse {
     pub_key_Y: string;
     address: string;
     nonce_data?: GetOrSetNonceResult;
-    key_metadata?: { message?: string };
     created_at?: number;
   }[];
   is_new_key: boolean;
@@ -125,7 +132,8 @@ export interface ShareRequestResult {
 export interface ImportedShare {
   pub_key_x: string;
   pub_key_y: string;
-  share: string;
+  encrypted_share: string;
+  encrypted_share_metadata: EciesHex;
   node_index: number;
   key_type: string;
   nonce_data: string;

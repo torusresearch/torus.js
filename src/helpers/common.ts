@@ -1,6 +1,7 @@
+import { Ecies } from "@toruslabs/eccrypto";
 import JsonStringify from "json-stable-stringify";
 
-import { VerifierLookupResponse } from "../interfaces";
+import { EciesHex, VerifierLookupResponse } from "../interfaces";
 
 // this function normalizes the result from nodes before passing the result to threshold check function
 // For ex: some fields returns by nodes might be different from each other
@@ -59,3 +60,13 @@ export const thresholdSame = <T>(arr: T[], t: number): T | undefined => {
   }
   return undefined;
 };
+
+export function encParamsBufToHex(encParams: Ecies): EciesHex {
+  return {
+    iv: Buffer.from(encParams.iv).toString("hex"),
+    ephemPublicKey: Buffer.from(encParams.ephemPublicKey).toString("hex"),
+    ciphertext: Buffer.from(encParams.ciphertext).toString("hex"),
+    mac: Buffer.from(encParams.mac).toString("hex"),
+    mode: "AES256",
+  };
+}
