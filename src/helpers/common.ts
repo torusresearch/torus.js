@@ -70,3 +70,11 @@ export function encParamsBufToHex(encParams: Ecies): EciesHex {
     mode: "AES256",
   };
 }
+
+export function encParamsHexToBuf(eciesData: Omit<EciesHex, "ciphertext">): Omit<Ecies, "ciphertext"> {
+  return {
+    ephemPublicKey: Buffer.from(eciesData.ephemPublicKey, "hex"),
+    iv: Buffer.from(eciesData.iv, "hex"),
+    mac: Buffer.from(eciesData.mac, "hex"),
+  };
+}

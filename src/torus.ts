@@ -1,6 +1,6 @@
 // import type { INodePub } from "@toruslabs/fetch-node-details";
-import { INodePub } from "@toruslabs/constants";
-import { encrypt, generatePrivate } from "@toruslabs/eccrypto";
+import type { INodePub } from "@toruslabs/constants";
+import { Ecies, encrypt, generatePrivate } from "@toruslabs/eccrypto";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
@@ -184,15 +184,21 @@ class Torus {
     const poly = generateRandomPolynomial(this.ec, degree, oauthKey);
     const shares = poly.generateShares(nodeIndexesBn);
     const nonceParams = this.generateNonceMetadataParams("getOrSetNonce", oauthKey, randomNonce);
+    const nonceData = Buffer.from(stringify(nonceParams.set_data), "utf8").toString("base64");
     const sharesData: ImportedShare[] = [];
+    const encPromises: Promise<Ecies>[] = [];
     for (let i = 0; i < nodeIndexesBn.length; i++) {
       const shareJson = shares[nodeIndexesBn[i].toString("hex", 64)].toJSON() as Record<string, string>;
-      const nonceData = Buffer.from(stringify(nonceParams.set_data), "utf8").toString("base64");
       if (!nodePubkeys[i]) {
         throw new Error(`Missing node pub key for node index: ${nodeIndexesBn[i].toString("hex", 64)}`);
       }
       const nodePubKey = this.ec.keyFromPublic({ x: nodePubkeys[i].X, y: nodePubkeys[i].Y });
-      const encParams = await encrypt(Buffer.from(nodePubKey.getPublic().encodeCompressed("hex"), "hex"), Buffer.from(shareJson.share, "hex"));
+      encPromises.push(encrypt(Buffer.from(nodePubKey.getPublic().encodeCompressed("hex"), "hex"), Buffer.from(shareJson.share, "hex")));
+    }
+    const encShares = await Promise.all(encPromises);
+    for (let i = 0; i < nodeIndexesBn.length; i++) {
+      const shareJson = shares[nodeIndexesBn[i].toString("hex", 64)].toJSON() as Record<string, string>;
+      const encParams = encShares[i];
       const encParamsMetadata = encParamsBufToHex(encParams);
       const shareData: ImportedShare = {
         pub_key_x: oauthPubKey.getX().toString("hex", 64),

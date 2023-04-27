@@ -1,7 +1,8 @@
 import { decrypt } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 
-import { ServerEciesData } from "../interfaces";
+import { EciesHex } from "../interfaces";
+import { encParamsHexToBuf } from "./common";
 
 export function convertMetadataToNonce(params: { message?: string }) {
   if (!params || !params.message) {
@@ -10,13 +11,8 @@ export function convertMetadataToNonce(params: { message?: string }) {
   return new BN(params.message, 16);
 }
 
-export async function decryptNodeData(eciesData: ServerEciesData, ciphertextHex: string, privKey: Buffer): Promise<Buffer> {
-  const metadata = {
-    ephemPublicKey: Buffer.from(eciesData.ephemPublicKey, "hex"),
-    iv: Buffer.from(eciesData.iv, "hex"),
-    mac: Buffer.from(eciesData.mac, "hex"),
-    // mode: Buffer.from(latestKey.Metadata.mode, "hex"),
-  };
+export async function decryptNodeData(eciesData: EciesHex, ciphertextHex: string, privKey: Buffer): Promise<Buffer> {
+  const metadata = encParamsHexToBuf(eciesData);
   const decryptedSigBuffer = await decrypt(privKey, {
     ...metadata,
     ciphertext: Buffer.from(ciphertextHex, "hex"),

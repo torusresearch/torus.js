@@ -2,14 +2,6 @@ import type { INodePub, TORUS_SAPPHIRE_NETWORK_TYPE } from "@toruslabs/constants
 import { Ecies } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 
-export type EciesHex = {
-  iv: string;
-  ephemPublicKey: string;
-  ciphertext: string;
-  mac: string;
-  mode: string;
-};
-
 export interface KeyIndex {
   index: string;
   service_group_id: string;
@@ -99,9 +91,9 @@ export interface KeyAssignInput {
   clientId: string;
 }
 
-export type ServerEciesData = {
+export type EciesHex = {
   [key in keyof Ecies]: string;
-};
+} & { mode?: string };
 
 export interface KeyAssignment {
   index: KeyIndex;
@@ -113,7 +105,7 @@ export interface KeyAssignment {
   node_index: number;
   // this is encrypted ciphertext
   share: string;
-  share_metadata: ServerEciesData;
+  share_metadata: EciesHex;
   nonce_data?: GetOrSetNonceResult;
 }
 
@@ -121,10 +113,10 @@ export interface ShareRequestResult {
   keys: KeyAssignment[];
   // these are encrypted ciphertexts
   session_tokens: string[];
-  session_token_metadata: ServerEciesData[];
+  session_token_metadata: EciesHex[];
   // these are encrypted ciphertexts
   session_token_sigs: string[];
-  session_token_sig_metadata: ServerEciesData[];
+  session_token_sig_metadata: EciesHex[];
   node_pubx: string;
   node_puby: string;
 }

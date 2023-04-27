@@ -166,8 +166,6 @@ export function retrieveOrImportShare(
             generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
               encrypted: "yes",
               use_temp: true,
-              // todo: this is a bit insecure cause shares are not encrypted
-              // todo: the other way would be to encrypt each share using node pubkey that and then send it
               item: [
                 {
                   ...verifierParams,
