@@ -5,7 +5,7 @@ import jwt, { Algorithm } from "jsonwebtoken";
 import { JRPCResponse } from "../src";
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
-const jwtPrivateKey = `-----BEGIN PRIVATE KEY-----\nMEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCCD7oLrcKae+jVZPGx52Cb/lKhdKxpXjl9eGNa1MlY57A==\n-----END PRIVATE KEY-----`;
+const jwtPrivateKey = `-----BEGIN PRIVATE KEY-----\n${process.env.JWT_PRIVATE_KEY}\n-----END PRIVATE KEY-----`;
 export const generateIdToken = (email: string, alg: Algorithm) => {
   const iat = Math.floor(Date.now() / 1000);
   const payload = {
