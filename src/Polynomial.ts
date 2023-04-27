@@ -53,7 +53,7 @@ class Polynomial {
 
     const shares: ShareMap = {};
     for (let x = 0; x < newShareIndexes.length; x += 1) {
-      shares[newShareIndexes[x].toString("hex")] = new Share(newShareIndexes[x], this.polyEval(newShareIndexes[x]));
+      shares[newShareIndexes[x].toString("hex", 64)] = new Share(newShareIndexes[x], this.polyEval(newShareIndexes[x]));
     }
     return shares;
   }

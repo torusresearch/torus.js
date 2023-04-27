@@ -27,7 +27,7 @@ describe("torus utils sapphire", function () {
     TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.SAPPHIRE_DEVNET });
     torus = new TorusUtils({
       network: TORUS_NETWORK.SAPPHIRE_DEVNET,
-      clientId: "asbs",
+      clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
     });
   });
@@ -74,7 +74,6 @@ describe("torus utils sapphire", function () {
     const retrieveSharesResponse = await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
     expect(retrieveSharesResponse.privKey).to.be.equal("04eb166ddcf59275a210c7289dca4a026f87a33fd2d6ed22f56efae7eab4052c");
   });
-
   it("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
@@ -82,7 +81,15 @@ describe("torus utils sapphire", function () {
     const privHex = privKeyBuffer.toString("hex");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const importKeyResponse = await torus.importPrivateKey(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: email }, token, privHex);
+    const importKeyResponse = await torus.importPrivateKey(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      nodeDetails.torusNodePub,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token,
+      privHex
+    );
     expect(importKeyResponse.privKey).to.be.equal(privHex);
   });
 
@@ -98,6 +105,8 @@ describe("torus utils sapphire", function () {
     const privHex = privKeyBuffer.toString("hex");
     const importKeyResponse = await torus.importPrivateKey(
       torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      nodeDetails.torusNodePub,
       TORUS_TEST_VERIFIER,
       { verifier_id: TORUS_IMPORT_EMAIL },
       token,

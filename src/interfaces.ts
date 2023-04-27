@@ -44,7 +44,6 @@ export interface VerifierLookupResponse {
     pub_key_Y: string;
     address: string;
     nonce_data?: GetOrSetNonceResult;
-    key_metadata?: { message?: string };
     created_at?: number;
   }[];
   is_new_key: boolean;
@@ -92,6 +91,10 @@ export interface KeyAssignInput {
   clientId: string;
 }
 
+export type EciesHex = {
+  [key in keyof Ecies]: string;
+} & { mode?: string };
+
 export interface KeyAssignment {
   index: KeyIndex;
   public_key: {
@@ -99,34 +102,30 @@ export interface KeyAssignment {
     Y: string;
   };
   threshold: number;
-  verifiers: Record<string, string>;
-  share: string;
   node_index: number;
-  metadata: {
-    [key in keyof Ecies]: string;
-  };
-  session_token_metadata: {
-    [key in keyof Ecies]: string;
-  };
-  sig_metadata: {
-    [key in keyof Ecies]: string;
-  };
+  // this is encrypted ciphertext
+  share: string;
+  share_metadata: EciesHex;
   nonce_data?: GetOrSetNonceResult;
-  key_metadata?: { message?: string };
 }
 
 export interface ShareRequestResult {
   keys: KeyAssignment[];
+  // these are encrypted ciphertexts
   session_tokens: string[];
+  session_token_metadata: EciesHex[];
+  // these are encrypted ciphertexts
   session_token_sigs: string[];
-  node_pubx: string[];
-  node_puby: string[];
+  session_token_sig_metadata: EciesHex[];
+  node_pubx: string;
+  node_puby: string;
 }
 
 export interface ImportedShare {
   pub_key_x: string;
   pub_key_y: string;
-  share: string;
+  encrypted_share: string;
+  encrypted_share_metadata: EciesHex;
   node_index: number;
   key_type: string;
   nonce_data: string;
@@ -143,7 +142,7 @@ export interface SessionToken {
 export interface RetrieveSharesResponse {
   ethAddress: string;
   privKey: string;
-  sessionTokensData: SessionToken[];
+  sessionTokenData: SessionToken[];
   X: string;
   Y: string;
   metadataNonce: BN;

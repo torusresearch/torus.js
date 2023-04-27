@@ -1,4 +1,4 @@
-import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
+import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec } from "elliptic";
@@ -11,6 +11,7 @@ import {
   ImportShareRequestResult,
   JRPCResponse,
   KeyLookupResult,
+  RetrieveSharesResponse,
   SessionToken,
   ShareRequestResult,
   VerifierLookupResponse,
@@ -21,6 +22,7 @@ import { Some } from "../some";
 import { kCombinations, normalizeKeysResult, thresholdSame } from "./common";
 import { generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
+import { decryptNodeData } from "./metadataUtils";
 
 export const GetPubKeyOrKeyAssign = async (
   endpoints: string[],
@@ -40,7 +42,7 @@ export const GetPubKeyOrKeyAssign = async (
     ).catch((err) => log.error(`${JRPC_METHODS.GET_OR_SET_KEY} request failed`, err))
   );
 
-  let nonceResult;
+  let nonceResult: GetOrSetNonceResult | undefined;
   const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
     const lookupPubKeys = lookupResults.filter((x1) => {
       if (x1) {
@@ -82,20 +84,7 @@ export const GetPubKeyOrKeyAssign = async (
   return result;
 };
 
-export const waitKeyLookup = (
-  endpoints: string[],
-  verifier: string,
-  verifierId: string,
-  timeout: number,
-  extendedVerifierId?: string
-): Promise<KeyLookupResult> =>
-  new Promise((resolve, reject) => {
-    setTimeout(() => {
-      GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, extendedVerifierId).then(resolve).catch(reject);
-    }, timeout);
-  });
-
-export function _retrieveOrImportShare(
+export function retrieveOrImportShare(
   ecCurve: ec,
   endpoints: string[],
   verifier: string,
@@ -103,7 +92,7 @@ export function _retrieveOrImportShare(
   idToken: string,
   importedShares?: ImportedShare[],
   extraParams: Record<string, unknown> = {}
-) {
+): Promise<RetrieveSharesResponse> {
   const promiseArr = [];
 
   // generate temporary private and public key that is used to secure receive shares
@@ -158,14 +147,14 @@ export function _retrieveOrImportShare(
     });
 
     if (completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
-      return Promise.resolve(resultArr);
+      return Promise.resolve(completedRequests);
     }
 
     return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
   })
     .then((responses) => {
       const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult>>[] = [];
-      const nodeSigs = [];
+      const nodeSigs: CommitmentRequestResult[] = [];
       for (let i = 0; i < responses.length; i += 1) {
         if (responses[i]) nodeSigs.push((responses[i] as JRPCResponse<CommitmentRequestResult>).result);
       }
@@ -176,7 +165,7 @@ export function _retrieveOrImportShare(
             endpoints[i],
             generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
               encrypted: "yes",
-              //   use_temp: true,
+              use_temp: true,
               item: [
                 {
                   ...verifierParams,
@@ -185,7 +174,8 @@ export function _retrieveOrImportShare(
                   verifieridentifier: verifier,
                   pub_key_x: importedShare.pub_key_x,
                   pub_key_y: importedShare.pub_key_y,
-                  share: importedShare.share,
+                  encrypted_share: importedShare.encrypted_share,
+                  encrypted_share_metadata: importedShare.encrypted_share_metadata,
                   node_index: importedShare.node_index,
                   key_type: importedShare.key_type,
                   nonce_data: importedShare.nonce_data,
@@ -202,7 +192,7 @@ export function _retrieveOrImportShare(
             endpoints[i],
             generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
               encrypted: "yes",
-              use_temp: true, // TODO: only for backward comp with trust wallet, remove it once they upgrade.
+              use_temp: true,
               item: [
                 {
                   ...verifierParams,
@@ -240,6 +230,18 @@ export function _retrieveOrImportShare(
 
         const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
 
+        if (!thresholdPublicKey) {
+          throw new Error("invalid result from nodes, threshold number of public key results are not matching");
+        }
+
+        // if both thresholdNonceData and extended_verifier_id are not available
+        // then we need to throw other wise address would be incorrect.
+        if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
+          throw new Error(
+            `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
+          );
+        }
+
         // optimistically run lagrange interpolation once threshold number of shares have been received
         // this is matched against the user public key to ensure that shares are consistent
         // Note: no need of thresholdMetadataNonce for extended_verifier_id key
@@ -249,84 +251,81 @@ export function _retrieveOrImportShare(
           (thresholdNonceData || verifierParams.extended_verifier_id)
         ) {
           const sharePromises: Promise<void | Buffer>[] = [];
+          const sessionTokenSigPromises: Promise<void | Buffer>[] = [];
+          const sessionTokenPromises: Promise<void | Buffer>[] = [];
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
 
           for (let i = 0; i < shareResponses.length; i += 1) {
             const currentShareResponse = shareResponses[i] as JRPCResponse<ShareRequestResult>;
+            const {
+              session_tokens: sessionTokens,
+              session_token_metadata: sessionTokenMetadata,
+              session_token_sigs: sessionTokenSigs,
+              session_token_sig_metadata: sessionTokenSigMetadata,
+              keys,
+            } = currentShareResponse.result;
 
-            if (currentShareResponse?.result?.keys?.length > 0) {
-              const latestKey = currentShareResponse.result.keys[0];
-              nodeIndexes.push(new BN(latestKey.node_index, 16));
-              const { session_tokens: sessionTokens, session_token_sigs: sessionSigs } = currentShareResponse.result;
-              if (sessionTokens && sessionSigs) {
-                let sessionSig = sessionSigs[0];
-
-                // decrypt sessionSig if enc metadata is sent
-                if (latestKey.sig_metadata?.ephemPublicKey) {
-                  const metadata = {
-                    ephemPublicKey: Buffer.from(latestKey.sig_metadata.ephemPublicKey, "hex"),
-                    iv: Buffer.from(latestKey.sig_metadata.iv, "hex"),
-                    mac: Buffer.from(latestKey.sig_metadata.mac, "hex"),
-                    // mode: Buffer.from(latestKey.Metadata.mode, "hex"),
-                  };
-                  const decryptedSigBuffer = await decrypt(tmpKey, {
-                    ...metadata,
-                    ciphertext: Buffer.from(sessionSig, "hex"),
-                  });
-                  sessionSig = decryptedSigBuffer.toString("hex");
-                }
-
-                let sessionToken = sessionTokens[0];
-
-                // decrypt session token if enc metadata is sent
-                if (latestKey.session_token_metadata?.ephemPublicKey) {
-                  const metadata = {
-                    ephemPublicKey: Buffer.from(latestKey.session_token_metadata.ephemPublicKey, "hex"),
-                    iv: Buffer.from(latestKey.session_token_metadata.iv, "hex"),
-                    mac: Buffer.from(latestKey.session_token_metadata.mac, "hex"),
-                    // mode: Buffer.from(latestKey.Metadata.mode, "hex"),
-                  };
-                  const decryptedSigBuffer = await decrypt(tmpKey, {
-                    ...metadata,
-                    ciphertext: Buffer.from(sessionToken, "hex"),
-                  });
-                  sessionToken = decryptedSigBuffer.toString("hex");
-                }
-                sessionTokenData.push({
-                  token: sessionToken,
-                  signature: sessionSig,
-                  node_pubx: currentShareResponse.result.node_pubx[0],
-                  node_puby: currentShareResponse.result.node_puby[0],
-                });
-              } else {
-                sessionTokenData.push(undefined);
-              }
-
-              if (latestKey.metadata) {
-                const metadata = {
-                  ephemPublicKey: Buffer.from(latestKey.metadata.ephemPublicKey, "hex"),
-                  iv: Buffer.from(latestKey.metadata.iv, "hex"),
-                  mac: Buffer.from(latestKey.metadata.mac, "hex"),
-                  // mode: Buffer.from(latestKey.Metadata.mode, "hex"),
-                };
-
-                sharePromises.push(
-                  decrypt(tmpKey, {
-                    ...metadata,
-                    ciphertext: Buffer.from(Buffer.from(latestKey.share, "base64").toString("binary").padStart(64, "0"), "hex"),
-                  }).catch((err) => log.debug("share decryption", err))
+            if (sessionTokenSigs?.length > 0) {
+              // decrypt sessionSig if enc metadata is sent
+              if (sessionTokenMetadata && sessionTokenMetadata[0]?.ephemPublicKey) {
+                sessionTokenSigPromises.push(
+                  decryptNodeData(sessionTokenMetadata[0], sessionTokenSigs[0], tmpKey).catch((err) => log.debug("session sig decryption", err))
                 );
               } else {
-                sharePromises.push(Promise.resolve(Buffer.from(latestKey.share.padStart(64, "0"), "hex")));
+                sessionTokenSigPromises.push(Promise.resolve(Buffer.from(sessionTokenSigs[0], "hex")));
               }
             } else {
-              sessionTokenData.push(undefined);
+              sessionTokenSigPromises.push(Promise.resolve(undefined));
+            }
+
+            if (sessionTokens?.length > 0) {
+              // decrypt session token if enc metadata is sent
+              if (sessionTokenSigMetadata && sessionTokenSigMetadata[0]?.ephemPublicKey) {
+                sessionTokenPromises.push(
+                  decryptNodeData(sessionTokenSigMetadata[0], sessionTokens[0], tmpKey).catch((err) => log.debug("session token sig decryption", err))
+                );
+              } else {
+                sessionTokenPromises.push(Promise.resolve(Buffer.from(sessionTokens[0], "base64")));
+              }
+            } else {
+              sessionTokenPromises.push(Promise.resolve(undefined));
+            }
+
+            if (keys?.length > 0) {
+              const latestKey = currentShareResponse.result.keys[0];
+              nodeIndexes.push(new BN(latestKey.node_index, 16));
+
+              if (latestKey.share_metadata) {
+                sharePromises.push(
+                  decryptNodeData(
+                    latestKey.share_metadata,
+                    Buffer.from(latestKey.share, "base64").toString("binary").padStart(64, "0"),
+                    tmpKey
+                  ).catch((err) => log.debug("share decryption", err))
+                );
+              }
+            } else {
               nodeIndexes.push(undefined);
               sharePromises.push(Promise.resolve(undefined));
             }
           }
-          const sharesResolved = await Promise.all(sharePromises);
+          const allPromises = await Promise.all(sharePromises.concat(sessionTokenSigPromises).concat(sessionTokenPromises));
+          const sharesResolved = allPromises.slice(0, sharePromises.length);
+          const sessionSigsResolved = allPromises.slice(sharePromises.length, sharePromises.length + sessionTokenSigPromises.length);
+          const sessionTokensResolved = allPromises.slice(sharePromises.length + sessionTokenSigPromises.length, allPromises.length);
+
+          sessionTokensResolved.forEach((x, index) => {
+            if (!x) sessionTokenData.push(undefined);
+            else
+              sessionTokenData.push({
+                token: x.toString("base64"),
+                signature: (sessionSigsResolved[index] as Buffer).toString("hex"),
+                node_pubx: (shareResponses[index] as JRPCResponse<ShareRequestResult>).result.node_pubx,
+                node_puby: (shareResponses[index] as JRPCResponse<ShareRequestResult>).result.node_puby,
+              });
+          });
+
           if (sharedState.resolved) return undefined;
 
           const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
@@ -362,19 +361,9 @@ export function _retrieveOrImportShare(
 
           return { privateKey, sessionTokenData, thresholdNonceData };
         }
-        if (!thresholdPublicKey) {
-          throw new Error("invalid result from nodes, threshold number of public key results are not matching");
-        }
-        // if both thresholdNonceData and extended_verifier_id are not available
-        // then we need to throw other wise address would be incorrect.
-        if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
-          throw new Error(
-            `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
-          );
-        }
       });
     })
-    .then(async (res) => {
+    .then((res) => {
       const { privateKey, sessionTokenData, thresholdNonceData } = res;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oauthKey = privateKey;
@@ -404,7 +393,7 @@ export function _retrieveOrImportShare(
         ethAddress, // this address should be used only if user hasn't updated to 2/n
         privKey: privateKeyWithNonce.toString("hex", 64).padStart(64, "0"), // Caution: final x and y wont be derivable from this key once user upgrades to 2/n
         metadataNonce,
-        sessionTokensData: sessionTokenData,
+        sessionTokenData,
         X: modifiedPubKey.getX().toString(), // this is final pub x of user before and after updating to 2/n
         Y: modifiedPubKey.getY().toString(), // this is final pub y of user before and after updating to 2/n
         postboxPubKeyX: decryptedPubKeyX,

@@ -1,22 +1,20 @@
+import { Ecies } from "@toruslabs/eccrypto";
 import JsonStringify from "json-stable-stringify";
 
-import { VerifierLookupResponse } from "../interfaces";
+import { EciesHex, VerifierLookupResponse } from "../interfaces";
 
 // this function normalizes the result from nodes before passing the result to threshold check function
-// For ex: some fields returns by nodes might be different thn each other
+// For ex: some fields returns by nodes might be different from each other
 // like created_at field might vary and nonce_data might not be returned by all nodes because
 // of the metadata implementation in sapphire.
 export const normalizeKeysResult = (result: VerifierLookupResponse) => {
   if (result && result.keys && result.keys.length > 0) {
-    const normalizedKeys = result.keys.map((key) => {
+    result.keys.forEach((key) => {
       // created_at can different for each node
       delete key.created_at;
       // nonce_data response is not guaranteed from all nodes so not including it in threshold check.
       delete key.nonce_data;
-      return key;
     });
-    result.keys = normalizedKeys;
-    return result;
   }
   return result;
 };
@@ -62,3 +60,21 @@ export const thresholdSame = <T>(arr: T[], t: number): T | undefined => {
   }
   return undefined;
 };
+
+export function encParamsBufToHex(encParams: Ecies): EciesHex {
+  return {
+    iv: Buffer.from(encParams.iv).toString("hex"),
+    ephemPublicKey: Buffer.from(encParams.ephemPublicKey).toString("hex"),
+    ciphertext: Buffer.from(encParams.ciphertext).toString("hex"),
+    mac: Buffer.from(encParams.mac).toString("hex"),
+    mode: "AES256",
+  };
+}
+
+export function encParamsHexToBuf(eciesData: Omit<EciesHex, "ciphertext">): Omit<Ecies, "ciphertext"> {
+  return {
+    ephemPublicKey: Buffer.from(eciesData.ephemPublicKey, "hex"),
+    iv: Buffer.from(eciesData.iv, "hex"),
+    mac: Buffer.from(eciesData.mac, "hex"),
+  };
+}

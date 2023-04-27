@@ -3,10 +3,10 @@ import BN from "bn.js";
 import { ec as EC } from "elliptic";
 
 import Point from "../Point";
-import Polynomial from "../polynomial";
+import Polynomial from "../Polynomial";
 import Share from "../Share";
 
-function generatePrivateExcludingIndexes(shareIndexes: Array<BN>): BN {
+function generatePrivateExcludingIndexes(shareIndexes: BN[]): BN {
   const key = new BN(generatePrivate());
   if (shareIndexes.find((el) => el.eq(key))) {
     return generatePrivateExcludingIndexes(shareIndexes);
@@ -15,7 +15,7 @@ function generatePrivateExcludingIndexes(shareIndexes: Array<BN>): BN {
 }
 const generateEmptyBNArray = (length: number): BN[] => Array.from({ length }, () => new BN(0));
 
-const denominator = (ecCurve: EC, i: number, innerPoints: Array<Point>) => {
+const denominator = (ecCurve: EC, i: number, innerPoints: Point[]) => {
   let result = new BN(1);
   const xi = innerPoints[i].x;
   for (let j = innerPoints.length - 1; j >= 0; j -= 1) {
@@ -30,7 +30,7 @@ const denominator = (ecCurve: EC, i: number, innerPoints: Array<Point>) => {
   return result;
 };
 
-const interpolationPoly = (ecCurve: EC, i: number, innerPoints: Array<Point>): BN[] => {
+const interpolationPoly = (ecCurve: EC, i: number, innerPoints: Point[]): BN[] => {
   let coefficients = generateEmptyBNArray(innerPoints.length);
   const d = denominator(ecCurve, i, innerPoints);
   if (d.cmp(new BN(0)) === 0) {
@@ -48,13 +48,10 @@ const interpolationPoly = (ecCurve: EC, i: number, innerPoints: Array<Point>): B
       }
       j -= 1;
       for (; j >= 0; j -= 1) {
-        newCoefficients[j + 1] = newCoefficients[j + 1].add(coefficients[j]);
-        newCoefficients[j + 1] = newCoefficients[j + 1].umod(ecCurve.curve.n);
+        newCoefficients[j + 1] = newCoefficients[j + 1].add(coefficients[j]).umod(ecCurve.curve.n);
         let tmp = new BN(innerPoints[k].x);
-        tmp = tmp.mul(coefficients[j]);
-        tmp = tmp.umod(ecCurve.curve.n);
-        newCoefficients[j] = newCoefficients[j].sub(tmp);
-        newCoefficients[j] = newCoefficients[j].umod(ecCurve.curve.n);
+        tmp = tmp.mul(coefficients[j]).umod(ecCurve.curve.n);
+        newCoefficients[j] = newCoefficients[j].sub(tmp).umod(ecCurve.curve.n);
       }
       coefficients = newCoefficients;
     }
@@ -76,14 +73,13 @@ const lagrange = (ecCurve: EC, unsortedPoints: Point[]) => {
     for (let k = 0; k < sortedPoints.length; k += 1) {
       let tmp = new BN(sortedPoints[i].y);
       tmp = tmp.mul(coefficients[k]);
-      polynomial[k] = polynomial[k].add(tmp);
-      polynomial[k] = polynomial[k].umod(ecCurve.curve.n);
+      polynomial[k] = polynomial[k].add(tmp).umod(ecCurve.curve.n);
     }
   }
   return new Polynomial(polynomial, ecCurve);
 };
 
-export function lagrangeInterpolatePolynomial(ecCurve: EC, points: Array<Point>): Polynomial {
+export function lagrangeInterpolatePolynomial(ecCurve: EC, points: Point[]): Polynomial {
   return lagrange(ecCurve, points);
 }
 
@@ -112,7 +108,7 @@ export function lagrangeInterpolation(ecCurve: EC, shares: BN[], nodeIndex: BN[]
 }
 
 // generateRandomPolynomial - determinisiticShares are assumed random
-export function generateRandomPolynomial(ecCurve: EC, degree: number, secret?: BN, deterministicShares?: Array<Share>): Polynomial {
+export function generateRandomPolynomial(ecCurve: EC, degree: number, secret?: BN, deterministicShares?: Share[]): Polynomial {
   let actualS = secret;
   if (!secret) {
     actualS = generatePrivateExcludingIndexes([new BN(0)]);
@@ -132,16 +128,16 @@ export function generateRandomPolynomial(ecCurve: EC, degree: number, secret?: B
   if (deterministicShares.length > degree) {
     throw new Error("deterministicShares in generateRandomPolynomial should be less or equal than degree to ensure an element of randomness");
   }
-  const points = {};
+  const points: Record<string, Point> = {};
   deterministicShares.forEach((share) => {
-    points[share.shareIndex.toString("hex")] = new Point(share.shareIndex, share.share, ecCurve);
+    points[share.shareIndex.toString("hex", 64)] = new Point(share.shareIndex, share.share, ecCurve);
   });
   for (let i = 0; i < degree - deterministicShares.length; i += 1) {
     let shareIndex = generatePrivateExcludingIndexes([new BN(0)]);
-    while (points[shareIndex.toString("hex")] !== undefined) {
+    while (points[shareIndex.toString("hex", 64)] !== undefined) {
       shareIndex = generatePrivateExcludingIndexes([new BN(0)]);
     }
-    points[shareIndex.toString("hex")] = new Point(shareIndex, new BN(generatePrivate()), ecCurve);
+    points[shareIndex.toString("hex", 64)] = new Point(shareIndex, new BN(generatePrivate()), ecCurve);
   }
   points["0"] = new Point(new BN(0), actualS, ecCurve);
   return lagrangeInterpolatePolynomial(ecCurve, Object.values(points));
