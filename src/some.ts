@@ -15,6 +15,16 @@ export class SomeError<T> extends Error {
     this.responses = responses;
     this.predicate = predicate;
   }
+
+  get message() {
+    return `${super.message}. ${this.errors.length} errors: ${this.errors.map((x) => x.message || x).join(", ")} and ${
+      this.responses.length
+    } responses: ${JSON.stringify(this.responses)}`;
+  }
+
+  toString() {
+    return this.message;
+  }
 }
 
 export const Some = <K, T>(promises: Promise<K>[], predicate: (resultArr: K[], { resolved }: { resolved: boolean }) => Promise<T>): Promise<T> =>
