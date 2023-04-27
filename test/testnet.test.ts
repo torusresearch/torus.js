@@ -1,4 +1,5 @@
-import NodeManager, { TORUS_NETWORK } from "@toruslabs/fetch-node-details";
+import { TORUS_NETWORK } from "@toruslabs/constants";
+import NodeManager from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
@@ -18,7 +19,6 @@ describe("torus utils goerli", function () {
     torus = new TorusUtils({ network: "testnet", clientId: "YOUR_CLIENT_ID" });
     TORUS_NODE_MANAGER = new NodeManager({
       network: TORUS_NETWORK.TESTNET,
-      proxyAddress: NodeManager.PROXY_ADDRESS_TESTNET,
     });
   });
   it("should fetch public address", async function () {

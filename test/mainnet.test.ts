@@ -1,4 +1,5 @@
-import NodeManager, { TORUS_NETWORK } from "@toruslabs/fetch-node-details";
+import { TORUS_NETWORK } from "@toruslabs/constants";
+import NodeManager from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
@@ -15,10 +16,10 @@ describe("torus utils mainnet", function () {
   let TORUS_NODE_MANAGER: NodeManager;
 
   beforeEach("one time execution before all tests", async function () {
+    // TorusUtils.enableLogging(true);
     torus = new TorusUtils({ network: "mainnet", clientId: "YOUR_CLIENT_ID" });
     TORUS_NODE_MANAGER = new NodeManager({
       network: TORUS_NETWORK.MAINNET,
-      proxyAddress: NodeManager.PROXY_ADDRESS_MAINNET,
     });
   });
   it("should fetch public address", async function () {
@@ -59,12 +60,14 @@ describe("torus utils mainnet", function () {
 
   it("should be able to key assign", async function () {
     const verifier = "google"; // any verifier
+    // TorusUtils.enableLogging(true);
     const email = faker.internet.email();
     const verifierDetails = { verifier, verifierId: email };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(publicAddress).to.not.equal("");
     expect(publicAddress).to.not.equal(null);
+    // TorusUtils.enableLogging(false);
   });
 
   it("should be able to login", async function () {

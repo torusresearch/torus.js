@@ -1,4 +1,5 @@
-import NodeManager, { TORUS_NETWORK } from "@toruslabs/fetch-node-details";
+import { TORUS_NETWORK } from "@toruslabs/constants";
+import NodeManager from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 import faker from "faker";
 import { keccak256 } from "web3-utils";
@@ -21,7 +22,7 @@ describe("torus utils celeste", function () {
       network: "celeste",
       clientId: "YOUR_CLIENT_ID",
     });
-    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.CELESTE, proxyAddress: NodeManager.PROXY_ADDRESS_CELESTE });
+    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.CELESTE });
   });
   it("should fetch public address", async function () {
     const verifier = "tkey-google-celeste"; // any verifier
