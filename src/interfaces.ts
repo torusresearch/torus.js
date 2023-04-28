@@ -149,6 +149,7 @@ export interface RetrieveSharesResponse {
   metadataNonce: BN;
   postboxPubKeyX: string;
   postboxPubKeyY: string;
+  sessionAuthKey: string;
 }
 
 export interface VerifierParams {

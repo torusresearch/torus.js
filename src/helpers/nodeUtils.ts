@@ -114,8 +114,8 @@ export async function retrieveOrImportShare(
   const promiseArr = [];
 
   // generate temporary private and public key that is used to secure receive shares
-  const tmpKey = generatePrivate();
-  const pubKey = getPublic(tmpKey).toString("hex");
+  const sessionAuthKey = generatePrivate();
+  const pubKey = getPublic(sessionAuthKey).toString("hex", 64);
   const pubKeyX = pubKey.slice(2, 66);
   const pubKeyY = pubKey.slice(66);
   const tokenCommitment = keccak256(idToken);
@@ -294,7 +294,9 @@ export async function retrieveOrImportShare(
               // decrypt sessionSig if enc metadata is sent
               if (sessionTokenSigMetadata && sessionTokenSigMetadata[0]?.ephemPublicKey) {
                 sessionTokenSigPromises.push(
-                  decryptNodeData(sessionTokenSigMetadata[0], sessionTokenSigs[0], tmpKey).catch((err) => log.debug("session sig decryption", err))
+                  decryptNodeData(sessionTokenSigMetadata[0], sessionTokenSigs[0], sessionAuthKey).catch((err) =>
+                    log.debug("session sig decryption", err)
+                  )
                 );
               } else {
                 sessionTokenSigPromises.push(Promise.resolve(Buffer.from(sessionTokenSigs[0], "hex")));
@@ -307,7 +309,9 @@ export async function retrieveOrImportShare(
               // decrypt session token if enc metadata is sent
               if (sessionTokenMetadata && sessionTokenMetadata[0]?.ephemPublicKey) {
                 sessionTokenPromises.push(
-                  decryptNodeData(sessionTokenMetadata[0], sessionTokens[0], tmpKey).catch((err) => log.debug("session token sig decryption", err))
+                  decryptNodeData(sessionTokenMetadata[0], sessionTokens[0], sessionAuthKey).catch((err) =>
+                    log.debug("session token sig decryption", err)
+                  )
                 );
               } else {
                 sessionTokenPromises.push(Promise.resolve(Buffer.from(sessionTokens[0], "base64")));
@@ -325,7 +329,7 @@ export async function retrieveOrImportShare(
                   decryptNodeData(
                     latestKey.share_metadata,
                     Buffer.from(latestKey.share, "base64").toString("binary").padStart(64, "0"),
-                    tmpKey
+                    sessionAuthKey
                   ).catch((err) => log.debug("share decryption", err))
                 );
               }
@@ -443,6 +447,7 @@ export async function retrieveOrImportShare(
         Y: modifiedPubKey.getY().toString(), // this is final pub y of user before and after updating to 2/n
         postboxPubKeyX: decryptedPubKeyX,
         postboxPubKeyY: decryptedPubKeyY,
+        sessionAuthKey: sessionAuthKey.toString("hex", 64).padStart(64, "0"),
       };
     });
 }
