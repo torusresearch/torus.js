@@ -115,7 +115,7 @@ export async function retrieveOrImportShare(
 
   // generate temporary private and public key that is used to secure receive shares
   const sessionAuthKey = generatePrivate();
-  const pubKey = getPublic(sessionAuthKey).toString("hex", 64);
+  const pubKey = getPublic(sessionAuthKey).toString("hex");
   const pubKeyX = pubKey.slice(2, 66);
   const pubKeyY = pubKey.slice(66);
   const tokenCommitment = keccak256(idToken);
