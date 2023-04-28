@@ -1,6 +1,6 @@
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
+import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 import JsonStringify from "json-stable-stringify";
-import createKeccakHash from "keccak";
 
 import { JRPCResponse, KeyAssignInput, KeyLookupResult, SignerResponse, VerifierLookupResponse } from "./interfaces";
 import log from "./loglevel";
@@ -172,7 +172,29 @@ export const keyAssign = async ({
   }
 };
 
-export function keccak256(a: string | Buffer): string {
-  const hash = createKeccakHash("keccak256").update(a).digest().toString("hex");
+export function keccak256(a: Buffer): string {
+  const hash = Buffer.from(keccakHash(a)).toString("hex");
   return `0x${hash}`;
+}
+
+export function stripHexPrefix(str: string): string {
+  return str.startsWith("0x") ? str.slice(2) : str;
+}
+
+export function toChecksumAddress(hexAddress: string): string {
+  const address = stripHexPrefix(hexAddress).toLowerCase();
+
+  const buf = Buffer.from(address, "utf8");
+  const hash = Buffer.from(keccakHash(buf)).toString("hex");
+  let ret = "0x";
+
+  for (let i = 0; i < address.length; i++) {
+    if (parseInt(hash[i], 16) >= 8) {
+      ret += address[i].toUpperCase();
+    } else {
+      ret += address[i];
+    }
+  }
+
+  return ret;
 }

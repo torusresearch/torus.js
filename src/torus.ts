@@ -4,7 +4,6 @@ import { Data, generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from 
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
-import { toChecksumAddress } from "web3-utils";
 
 import {
   CommitmentRequestResult,
@@ -21,7 +20,7 @@ import {
 } from "./interfaces";
 import log from "./loglevel";
 import { Some } from "./some";
-import { GetOrSetNonceError, kCombinations, keccak256, keyAssign, keyLookup, thresholdSame, waitKeyLookup } from "./utils";
+import { GetOrSetNonceError, kCombinations, keccak256, keyAssign, keyLookup, thresholdSame, toChecksumAddress, waitKeyLookup } from "./utils";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -221,7 +220,7 @@ class Torus {
     const pubKey = getPublic(tmpKey).toString("hex");
     const pubKeyX = pubKey.slice(2, 66);
     const pubKeyY = pubKey.slice(66);
-    const tokenCommitment = keccak256(idToken);
+    const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
 
     // make commitment requests to endpoints
     for (let i = 0; i < endpoints.length; i += 1) {
@@ -433,7 +432,7 @@ class Torus {
       data: message,
       timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
     };
-    const sig = key.sign(keccak256(stringify(setData)).slice(2));
+    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
     return {
       pub_key_X: key.getPublic().getX().toString("hex"),
       pub_key_Y: key.getPublic().getY().toString("hex"),
