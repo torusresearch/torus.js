@@ -27,6 +27,7 @@ describe("torus utils sapphire", function () {
     TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.SAPPHIRE_DEVNET });
     torus = new TorusUtils({
       network: TORUS_NETWORK.SAPPHIRE_DEVNET,
+      allowHost: "https://signer.tor.us/api/allow",
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
     });

@@ -1,5 +1,5 @@
 // import type { INodePub } from "@toruslabs/fetch-node-details";
-import type { INodePub } from "@toruslabs/constants";
+import { INodePub } from "@toruslabs/constants";
 import { Ecies, encrypt, generatePrivate } from "@toruslabs/eccrypto";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -33,21 +33,20 @@ class Torus {
 
   public serverTimeOffset: number;
 
-  public signerHost: string;
-
   public network: string;
 
   public clientId: string;
 
   public ec: EC;
 
-  constructor({ clientId, serverTimeOffset = 0, network }: TorusCtorOptions) {
+  constructor({ clientId, allowHost, network, serverTimeOffset = 0 }: TorusCtorOptions) {
     if (!clientId) throw Error("Please provide a valid clientId in constructor");
     if (!network) throw Error("Please provide a valid network in constructor");
     this.ec = new EC("secp256k1");
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.network = network;
     this.clientId = clientId;
+    this.allowHost = allowHost;
   }
 
   static enableLogging(v = true): void {
@@ -74,7 +73,18 @@ class Torus {
     idToken: string,
     extraParams: Record<string, unknown> = {}
   ): Promise<RetrieveSharesResponse> {
-    return retrieveOrImportShare(this.ec, endpoints, verifier, verifierParams, idToken, undefined, extraParams);
+    return retrieveOrImportShare(
+      this.ec,
+      this.allowHost,
+      this.network,
+      this.clientId,
+      endpoints,
+      verifier,
+      verifierParams,
+      idToken,
+      undefined,
+      extraParams
+    );
   }
 
   generateNonceMetadataParams(operation: string, privateKey: BN, nonce?: BN): NonceMetadataParams {
@@ -213,7 +223,18 @@ class Torus {
       sharesData.push(shareData);
     }
 
-    return retrieveOrImportShare(this.ec, endpoints, verifier, verifierParams, idToken, sharesData, extraParams);
+    return retrieveOrImportShare(
+      this.ec,
+      this.allowHost,
+      this.network,
+      this.clientId,
+      endpoints,
+      verifier,
+      verifierParams,
+      idToken,
+      sharesData,
+      extraParams
+    );
   }
 }
 

@@ -1,5 +1,5 @@
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
-import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
+import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec } from "elliptic";
 
@@ -84,8 +84,11 @@ export const GetPubKeyOrKeyAssign = async (
   return result;
 };
 
-export function retrieveOrImportShare(
+export async function retrieveOrImportShare(
   ecCurve: ec,
+  allowHost: string,
+  network: string,
+  clientId: string,
   endpoints: string[],
   verifier: string,
   verifierParams: VerifierParams,
@@ -93,6 +96,18 @@ export function retrieveOrImportShare(
   importedShares?: ImportedShare[],
   extraParams: Record<string, unknown> = {}
 ): Promise<RetrieveSharesResponse> {
+  await get<void>(
+    allowHost,
+    {
+      headers: {
+        verifier,
+        verifierId: verifierParams.verifier_id,
+        network,
+        clientId,
+      },
+    },
+    { useAPIKey: true }
+  );
   const promiseArr = [];
 
   // generate temporary private and public key that is used to secure receive shares
