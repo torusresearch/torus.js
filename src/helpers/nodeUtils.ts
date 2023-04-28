@@ -292,9 +292,9 @@ export async function retrieveOrImportShare(
 
             if (sessionTokenSigs?.length > 0) {
               // decrypt sessionSig if enc metadata is sent
-              if (sessionTokenMetadata && sessionTokenMetadata[0]?.ephemPublicKey) {
+              if (sessionTokenSigMetadata && sessionTokenSigMetadata[0]?.ephemPublicKey) {
                 sessionTokenSigPromises.push(
-                  decryptNodeData(sessionTokenMetadata[0], sessionTokenSigs[0], tmpKey).catch((err) => log.debug("session sig decryption", err))
+                  decryptNodeData(sessionTokenSigMetadata[0], sessionTokenSigs[0], tmpKey).catch((err) => log.debug("session sig decryption", err))
                 );
               } else {
                 sessionTokenSigPromises.push(Promise.resolve(Buffer.from(sessionTokenSigs[0], "hex")));
@@ -305,9 +305,9 @@ export async function retrieveOrImportShare(
 
             if (sessionTokens?.length > 0) {
               // decrypt session token if enc metadata is sent
-              if (sessionTokenSigMetadata && sessionTokenSigMetadata[0]?.ephemPublicKey) {
+              if (sessionTokenMetadata && sessionTokenMetadata[0]?.ephemPublicKey) {
                 sessionTokenPromises.push(
-                  decryptNodeData(sessionTokenSigMetadata[0], sessionTokens[0], tmpKey).catch((err) => log.debug("session token sig decryption", err))
+                  decryptNodeData(sessionTokenMetadata[0], sessionTokens[0], tmpKey).catch((err) => log.debug("session token sig decryption", err))
                 );
               } else {
                 sessionTokenPromises.push(Promise.resolve(Buffer.from(sessionTokens[0], "base64")));
@@ -338,7 +338,28 @@ export async function retrieveOrImportShare(
           const sharesResolved = allPromises.slice(0, sharePromises.length);
           const sessionSigsResolved = allPromises.slice(sharePromises.length, sharePromises.length + sessionTokenSigPromises.length);
           const sessionTokensResolved = allPromises.slice(sharePromises.length + sessionTokenSigPromises.length, allPromises.length);
+          const validSigs = sessionSigsResolved.filter((sig) => {
+            if (sig) {
+              return true;
+            }
+            return false;
+          });
 
+          const minThresholdRequired = ~~(endpoints.length / 2) + 1;
+          if (!verifierParams.extended_verifier_id && validSigs.length < minThresholdRequired) {
+            throw new Error(`Insufficient number of signatures from nodes, required: ${minThresholdRequired}, found: ${validSigs.length}`);
+          }
+
+          const validTokens = sessionTokensResolved.filter((token) => {
+            if (token) {
+              return true;
+            }
+            return false;
+          });
+
+          if (!verifierParams.extended_verifier_id && validTokens.length < minThresholdRequired) {
+            throw new Error(`Insufficient number of session tokens from nodes, required: ${minThresholdRequired}, found: ${validTokens.length}`);
+          }
           sessionTokensResolved.forEach((x, index) => {
             if (!x) sessionTokenData.push(undefined);
             else
