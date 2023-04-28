@@ -2,10 +2,10 @@ import { TORUS_NETWORK } from "@toruslabs/constants";
 import FetchNodeDetails from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 import faker from "faker";
-import { keccak256 } from "web3-utils";
 
 import { TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
+import { keccak256 } from "../src/utils";
 import { generateIdToken } from "./helpers";
 
 const TORUS_NODE_MANAGER = new FetchNodeDetails({
@@ -51,7 +51,7 @@ describe("torus onekey", function () {
 
   it("should still aggregate account v1 user correctly", async function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
-    const hashedIdToken = keccak256(idToken);
+    const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(

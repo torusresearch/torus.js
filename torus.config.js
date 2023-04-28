@@ -1,5 +1,6 @@
 module.exports = {
   name: "torusUtils",
   cjsBundled: true,
-  bundledDeps: ["@toruslabs/eccrypto", "elliptic", "web3-utils", "bn.js"],
+  bundledDeps: ["@toruslabs/eccrypto", "elliptic", "bn.js"],
+  // analyzerMode: "static",
 };
