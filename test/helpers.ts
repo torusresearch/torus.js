@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import jwt, { Algorithm } from "jsonwebtoken";
 
 import { JRPCResponse } from "../src";
+import { config } from "../src/config";
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 const jwtPrivateKey = `-----BEGIN PRIVATE KEY-----\n${process.env.JWT_PRIVATE_KEY}\n-----END PRIVATE KEY-----`;
@@ -36,6 +37,8 @@ export const lookupVerifier = (endpoint: string, pubKeyX: string, pubKeyY: strin
     generateJsonRPCObject("KeyLookupRequest", {
       pub_key_x: pubKeyX,
       pub_key_y: pubKeyY,
-    })
+    }),
+    null,
+    { logTracingHeader: config.logRequestTracing }
   );
 };

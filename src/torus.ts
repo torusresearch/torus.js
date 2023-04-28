@@ -6,6 +6,7 @@ import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 
+import { config } from "./config";
 import {
   encParamsBufToHex,
   generateAddressFromPubKey,
@@ -50,8 +51,10 @@ class Torus {
   }
 
   static enableLogging(v = true): void {
-    if (v) log.enableAll();
-    else log.disableAll();
+    if (v) {
+      log.enableAll();
+      config.logRequestTracing = true;
+    } else log.disableAll();
   }
 
   static setAPIKey(apiKey: string): void {

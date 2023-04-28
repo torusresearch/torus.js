@@ -27,7 +27,7 @@
     "@toruslabs/constants": "^9.0.1",
     "@toruslabs/eccrypto": "^2.1.1",
     "@toruslabs/fnd-base": "^9.0.1",
-    "@toruslabs/http-helpers": "^3.3.0",
+    "@toruslabs/http-helpers": "file:toruslabs-http-helpers-3.2.0.tgz",
     "bn.js": "^5.2.1",
     "elliptic": "^6.5.4",
     "json-stable-stringify": "^1.0.2",

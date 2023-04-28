@@ -31,6 +31,7 @@ describe("torus utils sapphire", function () {
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
     });
+    TorusUtils.enableLogging(true);
   });
 
   it("should fetch public address", async function () {

@@ -3,6 +3,7 @@ import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec } from "elliptic";
 
+import { config } from "../config";
 import { JRPC_METHODS } from "../constants";
 import {
   CommitmentRequestResult,
@@ -38,7 +39,9 @@ export const GetPubKeyOrKeyAssign = async (
         verifier_id: verifierId.toString(),
         extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
-      })
+      }),
+      null,
+      { logTracingHeader: config.logRequestTracing }
     ).catch((err) => log.error(`${JRPC_METHODS.GET_OR_SET_KEY} request failed`, err))
   );
 
@@ -143,7 +146,9 @@ export async function retrieveOrImportShare(
         temppubx: pubKeyX,
         temppuby: pubKeyY,
         verifieridentifier: verifier,
-      })
+      }),
+      null,
+      { logTracingHeader: config.logRequestTracing }
     ).catch((err) => {
       log.error("commitment error", err);
     });
@@ -199,7 +204,9 @@ export async function retrieveOrImportShare(
                 },
               ],
               one_key_flow: true,
-            })
+            }),
+            null,
+            { logTracingHeader: config.logRequestTracing }
           ).catch((err) => log.error("share req", err));
           promiseArrRequest.push(p);
         } else {
@@ -218,7 +225,9 @@ export async function retrieveOrImportShare(
                 },
               ],
               one_key_flow: true,
-            })
+            }),
+            null,
+            { logTracingHeader: config.logRequestTracing }
           ).catch((err) => log.error("share req", err));
           promiseArrRequest.push(p);
         }
