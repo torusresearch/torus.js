@@ -3,9 +3,8 @@ import { generatePrivate } from "@toruslabs/eccrypto";
 import NodeManager from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 import faker from "faker";
-import { keccak256 } from "web3-utils";
 
-import { TorusPublicKey } from "../src";
+import { keccak256, TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
 
@@ -201,7 +200,7 @@ describe("torus utils sapphire", function () {
   it.skip("should be able to aggregate login", async function () {
     const email = faker.internet.email();
     const idToken = generateIdToken(email, "ES256");
-    const hashedIdToken = keccak256(idToken);
+    const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
 
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);

@@ -100,7 +100,7 @@ class Torus {
     if (nonce) {
       setData.data = nonce.toString("hex", 64);
     }
-    const sig = key.sign(keccak256(stringify(setData)).slice(2));
+    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
     return {
       pub_key_X: key.getPublic().getX().toString("hex", 64),
       pub_key_Y: key.getPublic().getY().toString("hex", 64),

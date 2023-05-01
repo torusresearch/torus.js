@@ -118,7 +118,7 @@ export async function retrieveOrImportShare(
   const pubKey = getPublic(sessionAuthKey).toString("hex");
   const pubKeyX = pubKey.slice(2, 66);
   const pubKeyY = pubKey.slice(66);
-  const tokenCommitment = keccak256(idToken);
+  const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
   let isImportShareReq = false;
   if (importedShares && importedShares.length > 0) {
     if (importedShares.length !== endpoints.length) {
