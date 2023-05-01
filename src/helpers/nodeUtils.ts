@@ -447,7 +447,7 @@ export async function retrieveOrImportShare(
         Y: modifiedPubKey.getY().toString(), // this is final pub y of user before and after updating to 2/n
         postboxPubKeyX: decryptedPubKeyX,
         postboxPubKeyY: decryptedPubKeyY,
-        sessionAuthKey: sessionAuthKey.toString("hex", 64).padStart(64, "0"),
+        sessionAuthKey: sessionAuthKey.toString("hex").padStart(64, "0"),
       };
     });
 }
