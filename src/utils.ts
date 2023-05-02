@@ -150,6 +150,7 @@ export const keyAssign = async ({
     ];
     if (
       error?.status === 502 ||
+      error?.status === 401 ||
       acceptedErrorMsgs.includes(error.message) ||
       (error.message && error.message.includes("reason: getaddrinfo EAI_AGAIN"))
     )
