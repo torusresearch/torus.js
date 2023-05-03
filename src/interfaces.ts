@@ -27,9 +27,9 @@ export interface NonceMetadataParams {
 export interface TorusCtorOptions {
   clientId: string;
   network: TORUS_SAPPHIRE_NETWORK_TYPE;
-  allowHost: string;
   enableOneKey?: boolean;
   serverTimeOffset?: number;
+  allowHost?: string;
 }
 
 export interface TorusPublicKey extends INodePub {
