@@ -164,7 +164,7 @@ class Torus {
       Y,
       metadataNonce: nonce,
       pubNonce,
-      upgraded: nonceResult.upgraded,
+      upgraded: nonceResult?.upgraded,
     };
   }
 
