@@ -1,6 +1,6 @@
 {
   "name": "@toruslabs/torus.js",
-  "version": "7.1.0",
+  "version": "8.0.0",
   "description": "Handle communication with torus nodes",
   "main": "dist/torusUtils.cjs.js",
   "module": "dist/torusUtils.esm.js",
@@ -24,10 +24,10 @@
     "@babel/runtime": "7.x"
   },
   "dependencies": {
-    "@toruslabs/constants": "^9.0.1",
-    "@toruslabs/eccrypto": "^2.1.1",
     "@toruslabs/fnd-base": "^9.0.1",
-    "@toruslabs/http-helpers": "^3.4.0",
+    "@toruslabs/constants": "^10.0.0",
+    "@toruslabs/eccrypto": "^3.0.0",
+    "@toruslabs/http-helpers": "^4.0.0",
     "bn.js": "^5.2.1",
     "elliptic": "^6.5.4",
     "ethereum-cryptography": "^2.0.0",
@@ -36,17 +36,17 @@
   },
   "devDependencies": {
     "@babel/register": "^7.21.0",
-    "@babel/runtime": "^7.21.0",
-    "@toruslabs/eslint-config-typescript": "^1.4.3",
-    "@toruslabs/fetch-node-details": "^9.0.1",
-    "@toruslabs/torus-scripts": "^3.0.8",
-    "@types/chai": "^4.3.4",
+    "@babel/runtime": "^7.21.5",
+    "@toruslabs/eslint-config-typescript": "^2.0.0",
+    "@toruslabs/fetch-node-details": "^10.0.0",
+    "@toruslabs/torus-scripts": "^4.0.0",
+    "@types/chai": "^4.3.5",
     "@types/elliptic": "^6.4.14",
     "@types/faker": "^5.5.3",
     "@types/json-stable-stringify": "^1.0.34",
     "@types/mocha": "^10.0.1",
-    "@typescript-eslint/eslint-plugin": "^5.59.1",
-    "@typescript-eslint/parser": "^5.59.1",
+    "@typescript-eslint/eslint-plugin": "^5.59.2",
+    "@typescript-eslint/parser": "^5.59.2",
     "chai": "^4.3.7",
     "cross-env": "^7.0.3",
     "dotenv": "^16.0.3",
@@ -101,7 +101,7 @@
     ]
   },
   "engines": {
-    "node": ">=14.17.0",
-    "npm": ">=6.x"
+    "node": ">=16.18.1",
+    "npm": ">=8.x"
   }
 }
