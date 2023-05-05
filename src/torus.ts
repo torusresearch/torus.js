@@ -116,7 +116,7 @@ class Torus {
   ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
     const keyAssignResult = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, extendedVerifierId);
-    const { errorResult, keyResult, nonceResult } = keyAssignResult;
+    const { errorResult, keyResult, nodeIndexes = [], nonceResult } = keyAssignResult;
     if (errorResult && JSON.stringify(errorResult).toLowerCase().includes("verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
@@ -165,6 +165,7 @@ class Torus {
       metadataNonce: nonce,
       pubNonce,
       upgraded: nonceResult?.upgraded,
+      nodeIndexes,
     };
   }
 

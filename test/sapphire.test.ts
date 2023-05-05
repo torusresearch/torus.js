@@ -54,7 +54,9 @@ describe("torus utils sapphire", function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const { address } = (await torus.getPublicAddress(torusNodeEndpoints, verifierDetails, true)) as TorusPublicKey;
+    const { address, nodeIndexes } = (await torus.getPublicAddress(torusNodeEndpoints, verifierDetails, true)) as TorusPublicKey;
+    // eslint-disable-next-line no-console
+    console.log("retrieveSharesResponse", nodeIndexes);
     expect(address).to.equal("0x4924F91F5d6701dDd41042D94832bB17B76F316F");
   });
 

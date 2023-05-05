@@ -37,6 +37,7 @@ export interface TorusPublicKey extends INodePub {
   metadataNonce: BN;
   pubNonce?: { x: string; y: string };
   upgraded?: boolean;
+  nodeIndexes?: number[];
 }
 
 export interface VerifierLookupResponse {
@@ -48,6 +49,7 @@ export interface VerifierLookupResponse {
     created_at?: number;
   }[];
   is_new_key: boolean;
+  node_index: number;
 }
 
 export interface CommitmentRequestResult {
@@ -70,6 +72,7 @@ export interface JRPCResponse<T> {
 
 export interface KeyLookupResult {
   keyResult: VerifierLookupResponse;
+  nodeIndexes: number[];
   errorResult: JRPCResponse<VerifierLookupResponse>["error"];
   nonceResult?: GetOrSetNonceResult;
 }
@@ -150,6 +153,7 @@ export interface RetrieveSharesResponse {
   postboxPubKeyX: string;
   postboxPubKeyY: string;
   sessionAuthKey: string;
+  nodeIndexes: number[];
 }
 
 export interface VerifierParams {

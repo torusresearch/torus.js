@@ -46,6 +46,7 @@ export const GetPubKeyOrKeyAssign = async (
   );
 
   let nonceResult: GetOrSetNonceResult | undefined;
+  const nodeIndexes = [];
   const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
     const lookupPubKeys = lookupResults.filter((x1) => {
       if (x1) {
@@ -71,9 +72,13 @@ export const GetPubKeyOrKeyAssign = async (
       ~~(endpoints.length / 2) + 1
     );
 
+    if (keyResult && keyResult.node_index) {
+      nodeIndexes.push(keyResult.node_index);
+    }
+
     // nonceResult must exist except for extendedVerifierId along with keyResult
     if ((keyResult && (nonceResult || extendedVerifierId)) || errorResult) {
-      return Promise.resolve({ keyResult, errorResult, nonceResult });
+      return Promise.resolve({ keyResult, nodeIndexes, errorResult, nonceResult });
     }
     return Promise.reject(
       new Error(
@@ -235,7 +240,7 @@ export async function retrieveOrImportShare(
       let thresholdNonceData: GetOrSetNonceResult;
       return Some<
         void | JRPCResponse<ShareRequestResult>,
-        { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult } | undefined
+        { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult; nodeIndexes: BN[] } | undefined
       >(promiseArrRequest, async (shareResponses, sharedState) => {
         // check if threshold number of nodes have returned the same user public key
         const completedRequests = shareResponses.filter((x) => x);
@@ -408,12 +413,12 @@ export async function retrieveOrImportShare(
             throw new Error("could not derive private key");
           }
 
-          return { privateKey, sessionTokenData, thresholdNonceData };
+          return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes };
         }
       });
     })
     .then((res) => {
-      const { privateKey, sessionTokenData, thresholdNonceData } = res;
+      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes } = res;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oauthKey = privateKey;
       const decryptedPubKey = getPublic(Buffer.from(oauthKey.toString(16, 64), "hex")).toString("hex");
@@ -448,6 +453,7 @@ export async function retrieveOrImportShare(
         postboxPubKeyX: decryptedPubKeyX,
         postboxPubKeyY: decryptedPubKeyY,
         sessionAuthKey: sessionAuthKey.toString("hex").padStart(64, "0"),
+        nodeIndexes: nodeIndexes.map((x) => x.toNumber()),
       };
     });
 }
