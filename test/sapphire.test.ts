@@ -54,9 +54,7 @@ describe("torus utils sapphire", function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const { address, nodeIndexes } = (await torus.getPublicAddress(torusNodeEndpoints, verifierDetails, true)) as TorusPublicKey;
-    // eslint-disable-next-line no-console
-    console.log("retrieveSharesResponse", nodeIndexes);
+    const { address } = (await torus.getPublicAddress(torusNodeEndpoints, verifierDetails, true)) as TorusPublicKey;
     expect(address).to.equal("0x4924F91F5d6701dDd41042D94832bB17B76F316F");
   });
 
@@ -168,11 +166,11 @@ describe("torus utils sapphire", function () {
 
   // to do: update pub keys
   it.skip("should lookup return hash when verifierID hash enabled", async function () {
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: "test", verifierId: "test" });
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: HashEnabledVerifier, verifierId: TORUS_TEST_VERIFIER });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     for (const endpoint of torusNodeEndpoints) {
-      const pubKeyX = "90a86084f0e07973382ed5a20bf1b6b6634f75c46e5351891a3d3ff4155666b3";
-      const pubKeyY = "644724e80f17c57f87d9c6e43db2bfc054c347691bdd79c62c30bebabd185cf2";
+      const pubKeyX = "21cd0ae3168d60402edb8bd65c58ff4b3e0217127d5bb5214f03f84a76f24d8a";
+      const pubKeyY = "575b7a4d0ef9921b3b1b84f30d412e87bc69b4eab83f6706e247cceb9e985a1e";
       const response = await lookupVerifier(endpoint, pubKeyX, pubKeyY);
       const verifierID = response.result.verifiers[HashEnabledVerifier][0];
       expect(verifierID).to.equal("086c23ab78578f2fce9a1da11c0071ec7c2225adb1bf499ffaee98675bee29b7");
@@ -184,8 +182,6 @@ describe("torus utils sapphire", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const { address } = (await torus.getPublicAddress(torusNodeEndpoints, verifierDetails, true)) as TorusPublicKey;
-    // eslint-disable-next-line no-console
-    console.log("address", address);
     expect(address).to.equal("0xF79b5ffA48463eba839ee9C97D61c6063a96DA03");
   });
   it("should be able to login when verifierID hash enabled", async function () {

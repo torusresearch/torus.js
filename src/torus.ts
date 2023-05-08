@@ -187,8 +187,8 @@ class Torus {
     const nodeIndexesBn: BN[] = [];
 
     const key = this.ec.keyFromPrivate(newPrivateKey.padStart(64, "0"), "hex");
-    for (const nodeIndex in nodeIndexes) {
-      nodeIndexesBn.push(new BN(nodeIndex, "hex"));
+    for (const nodeIndex of nodeIndexes) {
+      nodeIndexesBn.push(new BN(nodeIndex));
     }
     const privKeyBn = key.getPrivate();
     const randomNonce = new BN(generatePrivate());

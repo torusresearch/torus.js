@@ -46,7 +46,7 @@ export const GetPubKeyOrKeyAssign = async (
   );
 
   let nonceResult: GetOrSetNonceResult | undefined;
-  const nodeIndexes = [];
+  const nodeIndexes: number[] = [];
   const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
     const lookupPubKeys = lookupResults.filter((x1) => {
       if (x1) {
@@ -327,7 +327,7 @@ export async function retrieveOrImportShare(
 
             if (keys?.length > 0) {
               const latestKey = currentShareResponse.result.keys[0];
-              nodeIndexes.push(new BN(latestKey.node_index, 16));
+              nodeIndexes.push(new BN(latestKey.node_index));
 
               if (latestKey.share_metadata) {
                 sharePromises.push(
