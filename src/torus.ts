@@ -40,7 +40,7 @@ class Torus {
 
   public ec: EC;
 
-  constructor({ clientId, network, serverTimeOffset = 0, allowHost = "https://key-assign.web3auth.com/api/allow" }: TorusCtorOptions) {
+  constructor({ clientId, network, serverTimeOffset = 0, allowHost = "https://signer.tor.us/api/allow" }: TorusCtorOptions) {
     if (!clientId) throw Error("Please provide a valid clientId in constructor");
     if (!network) throw Error("Please provide a valid network in constructor");
     this.ec = new EC("secp256k1");
