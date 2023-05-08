@@ -195,7 +195,7 @@ describe("torus utils sapphire", function () {
     expect(retrieveSharesResponse.privKey).to.be.equal("066270dfa345d3d0415c8223e045f366b238b50870de7e9658e3c6608a7e2d32");
   });
 
-  it.skip("should be able to aggregate login", async function () {
+  it("should be able to aggregate login", async function () {
     const email = faker.internet.email();
     const idToken = generateIdToken(email, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
