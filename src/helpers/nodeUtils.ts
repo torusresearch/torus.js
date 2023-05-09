@@ -39,6 +39,7 @@ export const GetPubKeyOrKeyAssign = async (
         verifier_id: verifierId.toString(),
         extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
+        fetch_node_index: true,
       }),
       null,
       { logTracingHeader: config.logRequestTracing }
@@ -67,17 +68,21 @@ export const GetPubKeyOrKeyAssign = async (
       lookupPubKeys.map((x2) => x2 && x2.error),
       ~~(endpoints.length / 2) + 1
     );
+
     const keyResult = thresholdSame(
       lookupPubKeys.map((x3) => x3 && normalizeKeysResult(x3.result)),
       ~~(endpoints.length / 2) + 1
     );
 
-    if (keyResult && keyResult.node_index) {
-      nodeIndexes.push(keyResult.node_index);
-    }
-
     // nonceResult must exist except for extendedVerifierId along with keyResult
     if ((keyResult && (nonceResult || extendedVerifierId)) || errorResult) {
+      if (keyResult) {
+        lookupResults.forEach((x1) => {
+          if (x1 && x1.result?.node_index) {
+            nodeIndexes.push(x1.result.node_index);
+          }
+        });
+      }
       return Promise.resolve({ keyResult, nodeIndexes, errorResult, nonceResult });
     }
     return Promise.reject(
