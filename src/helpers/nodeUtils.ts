@@ -248,7 +248,15 @@ export async function retrieveOrImportShare(
         { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult; nodeIndexes: BN[] } | undefined
       >(promiseArrRequest, async (shareResponses, sharedState) => {
         // check if threshold number of nodes have returned the same user public key
-        const completedRequests = shareResponses.filter((x) => x);
+        const completedRequests = shareResponses.filter((x) => {
+          if (!x || typeof x !== "object") {
+            return false;
+          }
+          if (x.error) {
+            return false;
+          }
+          return true;
+        });
         const pubkeys = shareResponses.map((x) => {
           if (x && x.result && x.result.keys[0].public_key) {
             if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
