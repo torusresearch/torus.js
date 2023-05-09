@@ -75,6 +75,15 @@ describe("torus utils sapphire", function () {
     const retrieveSharesResponse = await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
     expect(retrieveSharesResponse.privKey).to.be.equal("04eb166ddcf59275a210c7289dca4a026f87a33fd2d6ed22f56efae7eab4052c");
   });
+
+  it("should be able to login even when node is down", async function () {
+    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    torusNodeEndpoints[1] = "https://example.com";
+    const retrieveSharesResponse = await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    expect(retrieveSharesResponse.privKey).to.be.equal("04eb166ddcf59275a210c7289dca4a026f87a33fd2d6ed22f56efae7eab4052c");
+  });
   it("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");

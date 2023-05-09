@@ -290,8 +290,8 @@ export async function retrieveOrImportShare(
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
 
-          for (let i = 0; i < shareResponses.length; i += 1) {
-            const currentShareResponse = shareResponses[i] as JRPCResponse<ShareRequestResult>;
+          for (let i = 0; i < completedRequests.length; i += 1) {
+            const currentShareResponse = completedRequests[i] as JRPCResponse<ShareRequestResult>;
             const {
               session_tokens: sessionTokens,
               session_token_metadata: sessionTokenMetadata,
@@ -380,8 +380,8 @@ export async function retrieveOrImportShare(
               sessionTokenData.push({
                 token: x.toString("base64"),
                 signature: (sessionSigsResolved[index] as Buffer).toString("hex"),
-                node_pubx: (shareResponses[index] as JRPCResponse<ShareRequestResult>).result.node_pubx,
-                node_puby: (shareResponses[index] as JRPCResponse<ShareRequestResult>).result.node_puby,
+                node_pubx: (completedRequests[index] as JRPCResponse<ShareRequestResult>).result.node_pubx,
+                node_puby: (completedRequests[index] as JRPCResponse<ShareRequestResult>).result.node_puby,
               });
           });
 
