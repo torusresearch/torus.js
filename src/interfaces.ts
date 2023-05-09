@@ -71,7 +71,7 @@ export interface JRPCResponse<T> {
 }
 
 export interface KeyLookupResult {
-  keyResult: VerifierLookupResponse;
+  keyResult: Pick<VerifierLookupResponse, "keys">;
   nodeIndexes: number[];
   errorResult: JRPCResponse<VerifierLookupResponse>["error"];
   nonceResult?: GetOrSetNonceResult;

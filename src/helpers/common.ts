@@ -8,15 +8,19 @@ import { EciesHex, VerifierLookupResponse } from "../interfaces";
 // like created_at field might vary and nonce_data might not be returned by all nodes because
 // of the metadata implementation in sapphire.
 export const normalizeKeysResult = (result: VerifierLookupResponse) => {
+  const finalResult: Pick<VerifierLookupResponse, "keys"> = {
+    keys: [],
+  };
   if (result && result.keys && result.keys.length > 0) {
-    result.keys.forEach((key) => {
-      // created_at can different for each node
-      delete key.created_at;
-      // nonce_data response is not guaranteed from all nodes so not including it in threshold check.
-      delete key.nonce_data;
+    finalResult.keys = result.keys.map((key) => {
+      return {
+        pub_key_X: key.pub_key_X,
+        pub_key_Y: key.pub_key_Y,
+        address: key.address,
+      };
     });
   }
-  return result;
+  return finalResult;
 };
 
 export const kCombinations = (s: number | number[], k: number): number[][] => {
