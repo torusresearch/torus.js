@@ -248,7 +248,15 @@ export async function retrieveOrImportShare(
         { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult; nodeIndexes: BN[] } | undefined
       >(promiseArrRequest, async (shareResponses, sharedState) => {
         // check if threshold number of nodes have returned the same user public key
-        const completedRequests = shareResponses.filter((x) => x);
+        const completedRequests = shareResponses.filter((x) => {
+          if (!x || typeof x !== "object") {
+            return false;
+          }
+          if (x.error) {
+            return false;
+          }
+          return true;
+        });
         const pubkeys = shareResponses.map((x) => {
           if (x && x.result && x.result.keys[0].public_key) {
             if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
@@ -290,8 +298,8 @@ export async function retrieveOrImportShare(
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
 
-          for (let i = 0; i < shareResponses.length; i += 1) {
-            const currentShareResponse = shareResponses[i] as JRPCResponse<ShareRequestResult>;
+          for (let i = 0; i < completedRequests.length; i += 1) {
+            const currentShareResponse = completedRequests[i] as JRPCResponse<ShareRequestResult>;
             const {
               session_tokens: sessionTokens,
               session_token_metadata: sessionTokenMetadata,
@@ -380,8 +388,8 @@ export async function retrieveOrImportShare(
               sessionTokenData.push({
                 token: x.toString("base64"),
                 signature: (sessionSigsResolved[index] as Buffer).toString("hex"),
-                node_pubx: (shareResponses[index] as JRPCResponse<ShareRequestResult>).result.node_pubx,
-                node_puby: (shareResponses[index] as JRPCResponse<ShareRequestResult>).result.node_puby,
+                node_pubx: (completedRequests[index] as JRPCResponse<ShareRequestResult>).result.node_pubx,
+                node_puby: (completedRequests[index] as JRPCResponse<ShareRequestResult>).result.node_puby,
               });
           });
 
