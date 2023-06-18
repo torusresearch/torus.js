@@ -249,6 +249,7 @@ export async function retrieveOrImportShare(
             generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
               encrypted: "yes",
               use_temp: true,
+              legacy_network: TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network] || "",
               item: [
                 {
                   ...verifierParams,
@@ -471,13 +472,28 @@ export async function retrieveOrImportShare(
         modifiedPubKey = ecCurve.keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY }).getPublic();
       } else if (TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network]) {
         if (enableOneKey) {
-          const { nonce } = await getNonce(ecCurve, serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, privateKey);
-          metadataNonce = new BN(nonce || "0", 16);
+          const nonceResult = await getNonce(ecCurve, serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, oauthKey);
+          // eslint-disable-next-line no-console
+          console.log("nonceResult", nonceResult);
+          metadataNonce = new BN(nonceResult.nonce || "0", 16);
         } else {
           metadataNonce = await getMetadata({ pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY });
         }
 
         privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
+        if (thresholdNonceData.typeOfUser === "v1") {
+          // TODO: make sure if this pub key is always final pub key for a v1 user.
+          modifiedPubKey = ecCurve.keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY }).getPublic();
+        } else {
+          modifiedPubKey = ecCurve
+            .keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY })
+            .getPublic()
+            .add(
+              ecCurve
+                .keyFromPublic({ x: (thresholdNonceData as v2NonceResultType).pubNonce.x, y: (thresholdNonceData as v2NonceResultType).pubNonce.y })
+                .getPublic()
+            );
+        }
       } else {
         modifiedPubKey = ecCurve
           .keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY })
