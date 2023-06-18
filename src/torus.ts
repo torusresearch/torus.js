@@ -1,5 +1,6 @@
+/* eslint-disable no-console */
 // import type { INodePub } from "@toruslabs/fetch-node-details";
-import { INodePub, TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import { INodePub, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { Ecies, encrypt, generatePrivate } from "@toruslabs/eccrypto";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -29,6 +30,23 @@ import {
   VerifierParams,
 } from "./interfaces";
 import log from "./loglevel";
+
+export const LEGACY_MAINNET = "legacy_mainnet";
+export const LEGACY_TESTNET = "legacy_testnet";
+export const LEGACY_CYAN = "legacy_cyan";
+export const LEGACY_AQUA = "legacy_aqua";
+export const LEGACY_CELESTE = "legacy_celeste";
+export const SAPPHIRE_DEVNET = "sapphire_devnet";
+export const SAPPHIRE_TESTNET = "sapphire_testnet";
+export const SAPPHIRE_MAINNET = "sapphire_mainnet";
+
+export const TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS = {
+  [LEGACY_MAINNET]: "legacy_mainnet",
+  [LEGACY_TESTNET]: "legacy_testnet",
+  [LEGACY_CYAN]: "legacy_cyan",
+  [LEGACY_AQUA]: "legacy_aqua",
+  [LEGACY_CELESTE]: "legacy_celeste",
+} as const;
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -105,7 +123,8 @@ class Torus {
   ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
     const keyAssignResult = await GetPubKeyOrKeyAssign(endpoints, this.network, verifier, verifierId, extendedVerifierId);
-    const { errorResult, keyResult, nodeIndexes = [], nonceResult } = keyAssignResult;
+    const { errorResult, keyResult, nodeIndexes = [] } = keyAssignResult;
+    let { nonceResult } = keyAssignResult;
     if (errorResult && JSON.stringify(errorResult).toLowerCase().includes("verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
@@ -130,6 +149,7 @@ class Torus {
     let pubNonce: { x: string; y: string } | undefined;
     let nonce = new BN(nonceResult?.nonce || "0", 16);
 
+    console.log("TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[this.network]", this.network, TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[this.network]);
     if (extendedVerifierId) {
       // for tss key no need to add pub nonce
       modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
@@ -138,8 +158,10 @@ class Torus {
       // on legacy networks
       if (this.enableOneKey) {
         try {
-          const _nonceResult = await getOrSetNonce(this.ec, this.serverTimeOffset, X, Y, undefined, !keyResult.is_new_key);
-          nonce = new BN(_nonceResult.nonce || "0", 16);
+          nonceResult = await getOrSetNonce(this.ec, this.serverTimeOffset, X, Y, undefined, !keyResult.is_new_key);
+          nonce = new BN(nonceResult.nonce || "0", 16);
+
+          console.log("nonceResult", nonceResult, keyResult.is_new_key);
           typeOfUser = nonceResult.typeOfUser;
         } catch {
           throw new GetOrSetNonceError();

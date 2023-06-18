@@ -23,14 +23,44 @@ describe("torus utils sapphire", function () {
   let TORUS_NODE_MANAGER: NodeManager;
 
   beforeEach("one time execution before all tests", async function () {
-    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.SAPPHIRE_DEVNET });
+    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.SAPPHIRE_DEVNET, fndServerEndpoint: "http://localhost:8060/node-details" });
     torus = new TorusUtils({
       network: TORUS_NETWORK.SAPPHIRE_DEVNET,
       allowHost: "https://signer.tor.us/api/allow",
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
     });
-    TorusUtils.enableLogging(true);
+    TorusUtils.enableLogging(false);
+  });
+
+  it.only("should fetch public address of a legacy v1 user", async function () {
+    const verifier = "google-lrc"; // any verifier
+    const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
+      network: TORUS_NETWORK.LEGACY_TESTNET,
+      fndServerEndpoint: "http://localhost:8060/node-details",
+    });
+
+    const verifierDetails = { verifier, verifierId: "hello@tor.us" };
+    const legacyTorus = new TorusUtils({
+      network: TORUS_NETWORK.LEGACY_TESTNET,
+      allowHost: "https://signer.tor.us/api/allow",
+      clientId: "YOUR_CLIENT_ID",
+      enableOneKey: true,
+    });
+    const { torusNodeSSSEndpoints: torusNodeEndpoints } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const publicAddress = (await legacyTorus.getPublicAddress(torusNodeEndpoints, verifierDetails, true)) as TorusPublicKey;
+    // eslint-disable-next-line no-console
+    console.log("publicAddress", publicAddress);
+    expect(publicAddress.typeOfUser).to.equal("v1");
+    expect(publicAddress.address).to.equal("0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70");
+  });
+
+  it.skip("should fetch public address of a legacy v2 user", async function () {
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
+    expect(publicAddress).to.equal("0x4924F91F5d6701dDd41042D94832bB17B76F316F");
   });
 
   it("should fetch public address", async function () {
