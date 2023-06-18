@@ -1,4 +1,4 @@
-import type { INodePub, TORUS_SAPPHIRE_NETWORK_TYPE } from "@toruslabs/constants";
+import type { INodePub, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 
@@ -8,7 +8,10 @@ export interface KeyIndex {
   tag: "imported" | "generated"; // we tag keys so that we can identify if generated using dkg or externally imported by user
 }
 
-export type GetOrSetNonceResult = { nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
+export type v2NonceResultType = { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
+
+export type v1NonceResultType = { typeOfUser: "v1"; nonce?: string };
+export type GetOrSetNonceResult = v2NonceResultType | v1NonceResultType;
 
 export interface SetNonceData {
   operation: string;
@@ -26,7 +29,7 @@ export interface NonceMetadataParams {
 
 export interface TorusCtorOptions {
   clientId: string;
-  network: TORUS_SAPPHIRE_NETWORK_TYPE;
+  network: TORUS_NETWORK_TYPE;
   enableOneKey?: boolean;
   serverTimeOffset?: number;
   allowHost?: string;
@@ -38,6 +41,7 @@ export interface TorusPublicKey extends INodePub {
   pubNonce?: { x: string; y: string };
   upgraded?: boolean;
   nodeIndexes?: number[];
+  typeOfUser: "v1" | "v2";
 }
 
 export interface VerifierLookupResponse {
@@ -71,7 +75,7 @@ export interface JRPCResponse<T> {
 }
 
 export interface KeyLookupResult {
-  keyResult: Pick<VerifierLookupResponse, "keys">;
+  keyResult: Pick<VerifierLookupResponse, "keys" | "is_new_key">;
   nodeIndexes: number[];
   errorResult: JRPCResponse<VerifierLookupResponse>["error"];
   nonceResult?: GetOrSetNonceResult;
@@ -165,3 +169,18 @@ export interface VerifierParams {
 export type BNString = string | BN;
 
 export type StringifiedType = Record<string, unknown>;
+
+export interface MetadataResponse {
+  message: string;
+}
+
+export interface MetadataParams {
+  namespace?: string;
+  pub_key_X: string;
+  pub_key_Y: string;
+  set_data: {
+    data: "getNonce" | "getOrSetNonce" | string;
+    timestamp: string;
+  };
+  signature: string;
+}

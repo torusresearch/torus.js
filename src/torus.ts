@@ -1,5 +1,5 @@
 // import type { INodePub } from "@toruslabs/fetch-node-details";
-import { INodePub } from "@toruslabs/constants";
+import { INodePub, TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { Ecies, encrypt, generatePrivate } from "@toruslabs/eccrypto";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -11,6 +11,8 @@ import {
   encParamsBufToHex,
   generateAddressFromPubKey,
   generateRandomPolynomial,
+  getMetadata,
+  getOrSetNonce,
   GetOrSetNonceError,
   GetPubKeyOrKeyAssign,
   keccak256,
@@ -23,6 +25,7 @@ import {
   SetNonceData,
   TorusCtorOptions,
   TorusPublicKey,
+  v2NonceResultType,
   VerifierParams,
 } from "./interfaces";
 import log from "./loglevel";
@@ -34,13 +37,15 @@ class Torus {
 
   public serverTimeOffset: number;
 
-  public network: string;
+  public network: TORUS_NETWORK_TYPE;
 
   public clientId: string;
 
   public ec: EC;
 
-  constructor({ clientId, network, serverTimeOffset = 0, allowHost = "https://signer.tor.us/api/allow" }: TorusCtorOptions) {
+  public enableOneKey: boolean;
+
+  constructor({ enableOneKey = false, clientId, network, serverTimeOffset = 0, allowHost = "https://signer.tor.us/api/allow" }: TorusCtorOptions) {
     if (!clientId) throw Error("Please provide a valid clientId in constructor");
     if (!network) throw Error("Please provide a valid network in constructor");
     this.ec = new EC("secp256k1");
@@ -48,6 +53,7 @@ class Torus {
     this.network = network;
     this.clientId = clientId;
     this.allowHost = allowHost;
+    this.enableOneKey = enableOneKey;
   }
 
   static enableLogging(v = true): void {
@@ -77,6 +83,8 @@ class Torus {
     extraParams: Record<string, unknown> = {}
   ): Promise<RetrieveSharesResponse> {
     return retrieveOrImportShare(
+      this.serverTimeOffset,
+      this.enableOneKey,
       this.ec,
       this.allowHost,
       this.network,
@@ -90,32 +98,13 @@ class Torus {
     );
   }
 
-  generateNonceMetadataParams(operation: string, privateKey: BN, nonce?: BN): NonceMetadataParams {
-    const key = this.ec.keyFromPrivate(privateKey.toString("hex", 64));
-    const setData: Partial<SetNonceData> = {
-      operation,
-      timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
-    };
-
-    if (nonce) {
-      setData.data = nonce.toString("hex", 64);
-    }
-    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
-    return {
-      pub_key_X: key.getPublic().getX().toString("hex", 64),
-      pub_key_Y: key.getPublic().getY().toString("hex", 64),
-      set_data: setData,
-      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
-    };
-  }
-
   async getPublicAddress(
     endpoints: string[],
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
     isExtended = false
   ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
-    const keyAssignResult = await GetPubKeyOrKeyAssign(endpoints, verifier, verifierId, extendedVerifierId);
+    const keyAssignResult = await GetPubKeyOrKeyAssign(endpoints, this.network, verifier, verifierId, extendedVerifierId);
     const { errorResult, keyResult, nodeIndexes = [], nonceResult } = keyAssignResult;
     if (errorResult && JSON.stringify(errorResult).toLowerCase().includes("verifier not supported")) {
       // change error msg
@@ -132,23 +121,63 @@ class Torus {
     }
 
     // no need of nonce for extendedVerifierId (tss verifier id)
-    if (!nonceResult && !extendedVerifierId) {
+    if (!nonceResult && !extendedVerifierId && !TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[this.network]) {
       throw new GetOrSetNonceError("metadata nonce is missing in share response");
     }
+    let typeOfUser: "v1" | "v2" = "v2";
     let { pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0];
     let modifiedPubKey: curve.base.BasePoint;
     let pubNonce: { x: string; y: string } | undefined;
-    const nonce = new BN(nonceResult?.nonce || "0", 16);
+    let nonce = new BN(nonceResult?.nonce || "0", 16);
 
     if (extendedVerifierId) {
       // for tss key no need to add pub nonce
       modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
+    } else if (TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[this.network]) {
+      // this block is entirely for legacy verifier users which were originally created
+      // on legacy networks
+      if (this.enableOneKey) {
+        try {
+          const _nonceResult = await getOrSetNonce(this.ec, this.serverTimeOffset, X, Y, undefined, !keyResult.is_new_key);
+          nonce = new BN(_nonceResult.nonce || "0", 16);
+          typeOfUser = nonceResult.typeOfUser;
+        } catch {
+          throw new GetOrSetNonceError();
+        }
+        if (nonceResult.typeOfUser === "v1") {
+          modifiedPubKey = this.ec
+            .keyFromPublic({ x: X, y: Y })
+            .getPublic()
+            .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
+        } else if (nonceResult.typeOfUser === "v2") {
+          if (nonceResult.upgraded) {
+            // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
+            modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
+          } else {
+            modifiedPubKey = this.ec
+              .keyFromPublic({ x: X, y: Y })
+              .getPublic()
+              .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
+            pubNonce = nonceResult.pubNonce;
+          }
+        } else {
+          throw new Error("getOrSetNonce should always return typeOfUser.");
+        }
+      } else {
+        typeOfUser = "v1";
+        nonce = await getMetadata({ pub_key_X: X, pub_key_Y: Y });
+        modifiedPubKey = this.ec
+          .keyFromPublic({ x: X, y: Y })
+          .getPublic()
+          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
+      }
     } else {
+      const v2NonceResult = nonceResult as v2NonceResultType;
       modifiedPubKey = this.ec
         .keyFromPublic({ x: X, y: Y })
         .getPublic()
-        .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
-      pubNonce = nonceResult.pubNonce;
+        .add(this.ec.keyFromPublic({ x: v2NonceResult.pubNonce.x, y: v2NonceResult.pubNonce.y }).getPublic());
+      pubNonce = v2NonceResult.pubNonce;
     }
 
     X = modifiedPubKey.getX().toString(16, 64);
@@ -164,8 +193,9 @@ class Torus {
       Y,
       metadataNonce: nonce,
       pubNonce,
-      upgraded: nonceResult?.upgraded,
+      upgraded: (nonceResult as v2NonceResultType)?.upgraded || false,
       nodeIndexes,
+      typeOfUser,
     };
   }
 
@@ -228,6 +258,8 @@ class Torus {
     }
 
     return retrieveOrImportShare(
+      this.serverTimeOffset,
+      this.enableOneKey,
       this.ec,
       this.allowHost,
       this.network,
@@ -239,6 +271,25 @@ class Torus {
       sharesData,
       extraParams
     );
+  }
+
+  private generateNonceMetadataParams(operation: string, privateKey: BN, nonce?: BN): NonceMetadataParams {
+    const key = this.ec.keyFromPrivate(privateKey.toString("hex", 64));
+    const setData: Partial<SetNonceData> = {
+      operation,
+      timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
+    };
+
+    if (nonce) {
+      setData.data = nonce.toString("hex", 64);
+    }
+    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+    return {
+      pub_key_X: key.getPublic().getX().toString("hex", 64),
+      pub_key_Y: key.getPublic().getY().toString("hex", 64),
+      set_data: setData,
+      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
+    };
   }
 }
 

@@ -1,3 +1,4 @@
+import { TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -15,6 +16,7 @@ import {
   RetrieveSharesResponse,
   SessionToken,
   ShareRequestResult,
+  v2NonceResultType,
   VerifierLookupResponse,
   VerifierParams,
 } from "../interfaces";
@@ -23,10 +25,11 @@ import { Some } from "../some";
 import { kCombinations, normalizeKeysResult, thresholdSame } from "./common";
 import { generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
-import { decryptNodeData } from "./metadataUtils";
+import { decryptNodeData, getMetadata, getNonce } from "./metadataUtils";
 
 export const GetPubKeyOrKeyAssign = async (
   endpoints: string[],
+  network: TORUS_NETWORK_TYPE,
   verifier: string,
   verifierId: string,
   extendedVerifierId?: string
@@ -40,6 +43,7 @@ export const GetPubKeyOrKeyAssign = async (
         extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
         fetch_node_index: true,
+        legacy_network: TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network] || "",
       }),
       null,
       { logTracingHeader: config.logRequestTracing }
@@ -55,7 +59,7 @@ export const GetPubKeyOrKeyAssign = async (
           // currently only one node returns metadata nonce
           // other nodes returns empty object
           // pubNonce must be available to derive the public key
-          const pubNonceX = x1.result?.keys[0].nonce_data?.pubNonce?.x;
+          const pubNonceX = (x1.result?.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
           if (pubNonceX) {
             nonceResult = x1.result.keys[0].nonce_data;
           }
@@ -74,8 +78,8 @@ export const GetPubKeyOrKeyAssign = async (
       ~~(endpoints.length / 2) + 1
     );
 
-    // nonceResult must exist except for extendedVerifierId along with keyResult
-    if ((keyResult && (nonceResult || extendedVerifierId)) || errorResult) {
+    // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
+    if ((keyResult && (nonceResult || extendedVerifierId || TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network])) || errorResult) {
       if (keyResult) {
         lookupResults.forEach((x1) => {
           if (x1 && x1.result?.node_index) {
@@ -98,6 +102,8 @@ export const GetPubKeyOrKeyAssign = async (
 };
 
 export async function retrieveOrImportShare(
+  serverTimeOffset: number,
+  enableOneKey: boolean,
   ecCurve: ec,
   allowHost: string,
   network: string,
@@ -196,6 +202,7 @@ export async function retrieveOrImportShare(
             generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
               encrypted: "yes",
               use_temp: true,
+              legacy_network: TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network] || "",
               item: [
                 {
                   ...verifierParams,
@@ -260,7 +267,7 @@ export async function retrieveOrImportShare(
         const pubkeys = shareResponses.map((x) => {
           if (x && x.result && x.result.keys[0].public_key) {
             if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
-              const pubNonce = x.result.keys[0].nonce_data?.pubNonce?.x;
+              const pubNonce = (x.result.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
               if (pubNonce) {
                 thresholdNonceData = x.result.keys[0].nonce_data;
               }
@@ -278,7 +285,7 @@ export async function retrieveOrImportShare(
 
         // if both thresholdNonceData and extended_verifier_id are not available
         // then we need to throw other wise address would be incorrect.
-        if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
+        if (!thresholdNonceData && !verifierParams.extended_verifier_id && !TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network]) {
           throw new Error(
             `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
           );
@@ -290,7 +297,7 @@ export async function retrieveOrImportShare(
         if (
           completedRequests.length >= ~~(endpoints.length / 2) + 1 &&
           thresholdPublicKey &&
-          (thresholdNonceData || verifierParams.extended_verifier_id)
+          (thresholdNonceData || verifierParams.extended_verifier_id || !TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network])
         ) {
           const sharePromises: Promise<void | Buffer>[] = [];
           const sessionTokenSigPromises: Promise<void | Buffer>[] = [];
@@ -430,26 +437,39 @@ export async function retrieveOrImportShare(
         }
       });
     })
-    .then((res) => {
+    .then(async (res) => {
       const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes } = res;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oauthKey = privateKey;
       const decryptedPubKey = getPublic(Buffer.from(oauthKey.toString(16, 64), "hex")).toString("hex");
       const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
       const decryptedPubKeyY = decryptedPubKey.slice(66);
-      const metadataNonce = new BN(thresholdNonceData?.nonce ? thresholdNonceData.nonce.padStart(64, "0") : "0", "hex");
-      const privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
+      let metadataNonce = new BN(thresholdNonceData?.nonce ? thresholdNonceData.nonce.padStart(64, "0") : "0", "hex");
+      let privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
 
       let modifiedPubKey: curve.base.BasePoint;
 
       if (verifierParams.extended_verifier_id) {
         // for tss key no need to add pub nonce
         modifiedPubKey = ecCurve.keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY }).getPublic();
+      } else if (TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network]) {
+        if (enableOneKey) {
+          const { nonce } = await getNonce(ecCurve, serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, privateKey);
+          metadataNonce = new BN(nonce || "0", 16);
+        } else {
+          metadataNonce = await getMetadata({ pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY });
+        }
+
+        privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
       } else {
         modifiedPubKey = ecCurve
           .keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY })
           .getPublic()
-          .add(ecCurve.keyFromPublic({ x: thresholdNonceData.pubNonce.x, y: thresholdNonceData.pubNonce.y }).getPublic());
+          .add(
+            ecCurve
+              .keyFromPublic({ x: (thresholdNonceData as v2NonceResultType).pubNonce.x, y: (thresholdNonceData as v2NonceResultType).pubNonce.y })
+              .getPublic()
+          );
       }
 
       const ethAddress = generateAddressFromPubKey(ecCurve, modifiedPubKey.getX(), modifiedPubKey.getY());
@@ -457,7 +477,7 @@ export async function retrieveOrImportShare(
 
       // return reconstructed private key and ethereum address
       return {
-        ethAddress, // this address should be used only if user hasn't updated to 2/n
+        ethAddress,
         privKey: privateKeyWithNonce.toString("hex", 64).padStart(64, "0"), // Caution: final x and y wont be derivable from this key once user upgrades to 2/n
         metadataNonce,
         sessionTokenData,
