@@ -33,14 +33,14 @@ describe("torus utils sapphire", function () {
     TorusUtils.enableLogging(false);
   });
 
-  it.only("should fetch public address of a legacy v1 user", async function () {
+  it("should fetch public address of a legacy v1 user", async function () {
     const verifier = "google-lrc"; // any verifier
     const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
       network: TORUS_NETWORK.LEGACY_TESTNET,
       fndServerEndpoint: "http://localhost:8060/node-details",
     });
 
-    const verifierDetails = { verifier, verifierId: "hello@tor.us" };
+    const verifierDetails = { verifier, verifierId: "himanshu@tor.us" };
     const legacyTorus = new TorusUtils({
       network: TORUS_NETWORK.LEGACY_TESTNET,
       allowHost: "https://signer.tor.us/api/allow",
@@ -49,10 +49,8 @@ describe("torus utils sapphire", function () {
     });
     const { torusNodeSSSEndpoints: torusNodeEndpoints } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = (await legacyTorus.getPublicAddress(torusNodeEndpoints, verifierDetails, true)) as TorusPublicKey;
-    // eslint-disable-next-line no-console
-    console.log("publicAddress", publicAddress);
     expect(publicAddress.typeOfUser).to.equal("v1");
-    expect(publicAddress.address).to.equal("0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70");
+    expect(publicAddress.address).to.equal("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
   });
 
   it.skip("should fetch public address of a legacy v2 user", async function () {
