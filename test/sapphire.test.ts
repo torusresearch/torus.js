@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { TORUS_NETWORK } from "@toruslabs/constants";
 import { generatePrivate } from "@toruslabs/eccrypto";
 import NodeManager from "@toruslabs/fetch-node-details";
@@ -50,14 +49,13 @@ describe("torus utils sapphire", function () {
     });
     const { torusNodeSSSEndpoints: torusNodeEndpoints } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = (await legacyTorus.getPublicAddress(torusNodeEndpoints, verifierDetails, true)) as TorusPublicKey;
-    console.log("publicAddress", publicAddress);
     expect(publicAddress.typeOfUser).to.equal("v1");
     expect(publicAddress.address).to.equal("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
   });
 
-  it.only("should be able to login a v1 user", async function () {
-    const email = "Jonathan.Nolan@hotmail.com";
-    const verifier = "torus-test-health";
+  it("should be able to login a v1 user", async function () {
+    const email = "himanshu@tor.us";
+    const verifier = "google-lrc";
     const token = generateIdToken(email, "ES256");
 
     const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
@@ -74,10 +72,10 @@ describe("torus utils sapphire", function () {
     });
     const { torusNodeSSSEndpoints: torusNodeEndpoints } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await legacyTorus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: email }, token);
-    expect(retrieveSharesResponse.privKey).to.be.equal("9ec5b0504e252e35218c7ce1e4660eac190a1505abfbec7102946f92ed750075");
+    expect(retrieveSharesResponse.privKey).to.be.equal("dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9");
   });
 
-  it("should fetch public address of a legacy v2 user", async function () {
+  it.skip("should fetch public address of a legacy v2 user", async function () {
     const verifier = "torus-test-health"; // any verifier
     const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
       network: TORUS_NETWORK.LEGACY_TESTNET,

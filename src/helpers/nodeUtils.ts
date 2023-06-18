@@ -315,7 +315,7 @@ export async function retrieveOrImportShare(
         if (
           completedRequests.length >= ~~(endpoints.length / 2) + 1 &&
           thresholdPublicKey &&
-          (thresholdNonceData || verifierParams.extended_verifier_id || !TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network])
+          (thresholdNonceData || verifierParams.extended_verifier_id || TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network])
         ) {
           const sharePromises: Promise<void | Buffer>[] = [];
           const sessionTokenSigPromises: Promise<void | Buffer>[] = [];
@@ -457,13 +457,13 @@ export async function retrieveOrImportShare(
     })
     .then(async (res) => {
       const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes } = res;
+      let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oauthKey = privateKey;
       const decryptedPubKey = getPublic(Buffer.from(oauthKey.toString(16, 64), "hex")).toString("hex");
       const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
       const decryptedPubKeyY = decryptedPubKey.slice(66);
-      let metadataNonce = new BN(thresholdNonceData?.nonce ? thresholdNonceData.nonce.padStart(64, "0") : "0", "hex");
-      let privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
+      let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
 
       let modifiedPubKey: curve.base.BasePoint;
 
@@ -472,37 +472,37 @@ export async function retrieveOrImportShare(
         modifiedPubKey = ecCurve.keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY }).getPublic();
       } else if (TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network]) {
         if (enableOneKey) {
-          const nonceResult = await getNonce(ecCurve, serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, oauthKey);
+          nonceResult = await getNonce(ecCurve, serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, oauthKey);
           // eslint-disable-next-line no-console
           console.log("nonceResult", nonceResult);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
+          if (nonceResult.typeOfUser === "v2") {
+            modifiedPubKey = ecCurve
+              .keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY })
+              .getPublic()
+              .add(
+                ecCurve
+                  .keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y })
+                  .getPublic()
+              );
+          }
         } else {
+          // for imported keys in legacy networks
           metadataNonce = await getMetadata({ pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY });
-        }
-
-        privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
-        if (thresholdNonceData.typeOfUser === "v1") {
-          // TODO: make sure if this pub key is always final pub key for a v1 user.
-          modifiedPubKey = ecCurve.keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY }).getPublic();
-        } else {
-          modifiedPubKey = ecCurve
-            .keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY })
-            .getPublic()
-            .add(
-              ecCurve
-                .keyFromPublic({ x: (thresholdNonceData as v2NonceResultType).pubNonce.x, y: (thresholdNonceData as v2NonceResultType).pubNonce.y })
-                .getPublic()
-            );
         }
       } else {
         modifiedPubKey = ecCurve
           .keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY })
           .getPublic()
           .add(
-            ecCurve
-              .keyFromPublic({ x: (thresholdNonceData as v2NonceResultType).pubNonce.x, y: (thresholdNonceData as v2NonceResultType).pubNonce.y })
-              .getPublic()
+            ecCurve.keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y }).getPublic()
           );
+      }
+
+      const privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
+      // for v1, pub key can be derived directly from priv since it remains same.
+      if (!modifiedPubKey) {
+        modifiedPubKey = ecCurve.keyFromPrivate(privateKeyWithNonce.toString()).getPublic();
       }
 
       const ethAddress = generateAddressFromPubKey(ecCurve, modifiedPubKey.getX(), modifiedPubKey.getY());
@@ -514,8 +514,8 @@ export async function retrieveOrImportShare(
         privKey: privateKeyWithNonce.toString("hex", 64).padStart(64, "0"), // Caution: final x and y wont be derivable from this key once user upgrades to 2/n
         metadataNonce,
         sessionTokenData,
-        X: modifiedPubKey.getX().toString(), // this is final pub x of user before and after updating to 2/n
-        Y: modifiedPubKey.getY().toString(), // this is final pub y of user before and after updating to 2/n
+        X: modifiedPubKey.getX().toString(), // this is final pub x user before and after updating to 2/n
+        Y: modifiedPubKey.getY().toString(), // this is final pub y user before and after updating to 2/n
         postboxPubKeyX: decryptedPubKeyX,
         postboxPubKeyY: decryptedPubKeyY,
         sessionAuthKey: sessionAuthKey.toString("hex").padStart(64, "0"),
