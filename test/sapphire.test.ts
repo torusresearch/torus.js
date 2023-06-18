@@ -75,14 +75,16 @@ describe("torus utils sapphire", function () {
     expect(retrieveSharesResponse.privKey).to.be.equal("dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9");
   });
 
-  it.skip("should fetch public address of a legacy v2 user", async function () {
-    const verifier = "torus-test-health"; // any verifier
+  it.only("should fetch user type and public address of legacy v2 user", async function () {
     const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
       network: TORUS_NETWORK.LEGACY_TESTNET,
       fndServerEndpoint: "http://localhost:8060/node-details",
     });
+    const v2Verifier = "tkey-google-lrc";
+    // 1/1 user
+    const v2TestEmail = "somev2user@gmail.com";
+    const verifierDetails = { verifier: v2Verifier, verifierId: v2TestEmail };
 
-    const verifierDetails = { verifier, verifierId: "Jonathan.Nolan@hotmail.com" };
     const legacyTorus = new TorusUtils({
       network: TORUS_NETWORK.LEGACY_TESTNET,
       allowHost: "https://signer.tor.us/api/allow",
@@ -90,8 +92,33 @@ describe("torus utils sapphire", function () {
       enableOneKey: true,
     });
     const { torusNodeSSSEndpoints: torusNodeEndpoints } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const publicAddress = await legacyTorus.getPublicAddress(torusNodeEndpoints, verifierDetails);
-    expect(publicAddress).to.equal("0x2876820fd9536BD5dd874189A85d71eE8bDf64c2");
+
+    // eslint-disable-next-line no-console
+    console.log("getting pub address");
+
+    const { address: v2Address, typeOfUser: v2UserType } = (await legacyTorus.getPublicAddress(
+      torusNodeEndpoints,
+      {
+        verifier: v2Verifier,
+        verifierId: v2TestEmail,
+      },
+      true
+    )) as TorusPublicKey;
+    expect(v2Address).to.equal("0xE91200d82029603d73d6E307DbCbd9A7D0129d8D");
+    expect(v2UserType).to.equal("v2");
+
+    // 2/n user
+    const v2nTestEmail = "caspertorus@gmail.com";
+    const { address: v2nAddress, typeOfUser: v2nUserType } = (await legacyTorus.getPublicAddress(
+      torusNodeEndpoints,
+      {
+        verifier: v2Verifier,
+        verifierId: v2nTestEmail,
+      },
+      true
+    )) as TorusPublicKey;
+    expect(v2nAddress).to.equal("0x1016DA7c47A04C76036637Ea02AcF1d29c64a456");
+    expect(v2nUserType).to.equal("v2");
   });
 
   it("should fetch public address", async function () {
