@@ -1,6 +1,5 @@
-/* eslint-disable no-console */
 // import type { INodePub } from "@toruslabs/fetch-node-details";
-import { INodePub, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import { INodePub, TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { Ecies, encrypt, generatePrivate } from "@toruslabs/eccrypto";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -30,23 +29,6 @@ import {
   VerifierParams,
 } from "./interfaces";
 import log from "./loglevel";
-
-export const LEGACY_MAINNET = "legacy_mainnet";
-export const LEGACY_TESTNET = "legacy_testnet";
-export const LEGACY_CYAN = "legacy_cyan";
-export const LEGACY_AQUA = "legacy_aqua";
-export const LEGACY_CELESTE = "legacy_celeste";
-export const SAPPHIRE_DEVNET = "sapphire_devnet";
-export const SAPPHIRE_TESTNET = "sapphire_testnet";
-export const SAPPHIRE_MAINNET = "sapphire_mainnet";
-
-export const TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS = {
-  [LEGACY_MAINNET]: "legacy_mainnet",
-  [LEGACY_TESTNET]: "legacy_testnet",
-  [LEGACY_CYAN]: "legacy_cyan",
-  [LEGACY_AQUA]: "legacy_aqua",
-  [LEGACY_CELESTE]: "legacy_celeste",
-} as const;
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -148,8 +130,6 @@ class Torus {
     let modifiedPubKey: curve.base.BasePoint;
     let pubNonce: { x: string; y: string } | undefined;
     let nonce = new BN(nonceResult?.nonce || "0", 16);
-
-    console.log("TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[this.network]", this.network, TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[this.network]);
     if (extendedVerifierId) {
       // for tss key no need to add pub nonce
       modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
@@ -160,8 +140,6 @@ class Torus {
         try {
           nonceResult = await getOrSetNonce(this.ec, this.serverTimeOffset, X, Y, undefined, !keyResult.is_new_key);
           nonce = new BN(nonceResult.nonce || "0", 16);
-
-          console.log("nonceResult", nonceResult, keyResult.is_new_key);
           typeOfUser = nonceResult.typeOfUser;
         } catch {
           throw new GetOrSetNonceError();
@@ -172,16 +150,11 @@ class Torus {
             .getPublic()
             .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
         } else if (nonceResult.typeOfUser === "v2") {
-          if (nonceResult.upgraded) {
-            // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
-            modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
-          } else {
-            modifiedPubKey = this.ec
-              .keyFromPublic({ x: X, y: Y })
-              .getPublic()
-              .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
-            pubNonce = nonceResult.pubNonce;
-          }
+          modifiedPubKey = this.ec
+            .keyFromPublic({ x: X, y: Y })
+            .getPublic()
+            .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
+          pubNonce = nonceResult.pubNonce;
         } else {
           throw new Error("getOrSetNonce should always return typeOfUser.");
         }
@@ -199,6 +172,7 @@ class Torus {
         .keyFromPublic({ x: X, y: Y })
         .getPublic()
         .add(this.ec.keyFromPublic({ x: v2NonceResult.pubNonce.x, y: v2NonceResult.pubNonce.y }).getPublic());
+
       pubNonce = v2NonceResult.pubNonce;
     }
 

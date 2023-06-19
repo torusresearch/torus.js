@@ -1,4 +1,4 @@
-import { TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import { TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -27,23 +27,6 @@ import { generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getNonce } from "./metadataUtils";
 
-export const LEGACY_MAINNET = "legacy_mainnet";
-export const LEGACY_TESTNET = "legacy_testnet";
-export const LEGACY_CYAN = "legacy_cyan";
-export const LEGACY_AQUA = "legacy_aqua";
-export const LEGACY_CELESTE = "legacy_celeste";
-export const SAPPHIRE_DEVNET = "sapphire_devnet";
-export const SAPPHIRE_TESTNET = "sapphire_testnet";
-export const SAPPHIRE_MAINNET = "sapphire_mainnet";
-
-export const TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS = {
-  [LEGACY_MAINNET]: "legacy_mainnet",
-  [LEGACY_TESTNET]: "legacy_testnet",
-  [LEGACY_CYAN]: "legacy_cyan",
-  [LEGACY_AQUA]: "legacy_aqua",
-  [LEGACY_CELESTE]: "legacy_celeste",
-} as const;
-
 export const GetPubKeyOrKeyAssign = async (
   endpoints: string[],
   network: TORUS_NETWORK_TYPE,
@@ -71,7 +54,7 @@ export const GetPubKeyOrKeyAssign = async (
   const nodeIndexes: number[] = [];
   const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
     const lookupPubKeys = lookupResults.filter((x1) => {
-      if (x1) {
+      if (x1 && !x1.error) {
         if (!nonceResult) {
           // currently only one node returns metadata nonce
           // other nodes returns empty object
@@ -473,8 +456,6 @@ export async function retrieveOrImportShare(
       } else if (TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network]) {
         if (enableOneKey) {
           nonceResult = await getNonce(ecCurve, serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, oauthKey);
-          // eslint-disable-next-line no-console
-          console.log("nonceResult", nonceResult);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           if (nonceResult.typeOfUser === "v2") {
             modifiedPubKey = ecCurve

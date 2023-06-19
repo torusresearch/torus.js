@@ -75,7 +75,7 @@ describe("torus utils sapphire", function () {
     expect(retrieveSharesResponse.privKey).to.be.equal("dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9");
   });
 
-  it.only("should fetch user type and public address of legacy v2 user", async function () {
+  it("should fetch user type and public address of legacy v2 user", async function () {
     const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
       network: TORUS_NETWORK.LEGACY_TESTNET,
       fndServerEndpoint: "http://localhost:8060/node-details",
@@ -92,9 +92,6 @@ describe("torus utils sapphire", function () {
       enableOneKey: true,
     });
     const { torusNodeSSSEndpoints: torusNodeEndpoints } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-
-    // eslint-disable-next-line no-console
-    console.log("getting pub address");
 
     const { address: v2Address, typeOfUser: v2UserType } = (await legacyTorus.getPublicAddress(
       torusNodeEndpoints,
@@ -117,12 +114,12 @@ describe("torus utils sapphire", function () {
       },
       true
     )) as TorusPublicKey;
-    expect(v2nAddress).to.equal("0x1016DA7c47A04C76036637Ea02AcF1d29c64a456");
     expect(v2nUserType).to.equal("v2");
+    expect(v2nAddress).to.equal("0x1016DA7c47A04C76036637Ea02AcF1d29c64a456");
   });
 
   it("should fetch public address", async function () {
-    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
+    const verifierDetails = { verifier: "tkey-google-lrc", verifierId: TORUS_TEST_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
