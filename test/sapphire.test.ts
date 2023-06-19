@@ -119,7 +119,7 @@ describe("torus utils sapphire", function () {
   });
 
   it("should fetch public address", async function () {
-    const verifierDetails = { verifier: "tkey-google-lrc", verifierId: TORUS_TEST_EMAIL };
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);

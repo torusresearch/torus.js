@@ -1,5 +1,5 @@
 // import type { INodePub } from "@toruslabs/fetch-node-details";
-import { INodePub, TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import { INodePub, LEGACY_NETWORKS_ROUTE_MAP, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { Ecies, encrypt, generatePrivate } from "@toruslabs/eccrypto";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -122,7 +122,7 @@ class Torus {
     }
 
     // no need of nonce for extendedVerifierId (tss verifier id)
-    if (!nonceResult && !extendedVerifierId && !TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[this.network]) {
+    if (!nonceResult && !extendedVerifierId && !LEGACY_NETWORKS_ROUTE_MAP[this.network]) {
       throw new GetOrSetNonceError("metadata nonce is missing in share response");
     }
     let typeOfUser: "v1" | "v2" = "v2";
@@ -133,7 +133,7 @@ class Torus {
     if (extendedVerifierId) {
       // for tss key no need to add pub nonce
       modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
-    } else if (TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[this.network]) {
+    } else if (LEGACY_NETWORKS_ROUTE_MAP[this.network]) {
       // this block is entirely for legacy verifier users which were originally created
       // on legacy networks
       if (this.enableOneKey) {

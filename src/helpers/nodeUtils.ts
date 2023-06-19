@@ -1,4 +1,4 @@
-import { TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import { LEGACY_NETWORKS_ROUTE_MAP, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -43,7 +43,6 @@ export const GetPubKeyOrKeyAssign = async (
         extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
         fetch_node_index: true,
-        legacy_network: TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network] || "",
       }),
       null,
       { logTracingHeader: config.logRequestTracing }
@@ -79,7 +78,7 @@ export const GetPubKeyOrKeyAssign = async (
     );
 
     // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
-    if ((keyResult && (nonceResult || extendedVerifierId || TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network])) || errorResult) {
+    if ((keyResult && (nonceResult || extendedVerifierId || LEGACY_NETWORKS_ROUTE_MAP[network])) || errorResult) {
       if (keyResult) {
         lookupResults.forEach((x1) => {
           if (x1 && x1.result?.node_index) {
@@ -202,7 +201,6 @@ export async function retrieveOrImportShare(
             generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
               encrypted: "yes",
               use_temp: true,
-              legacy_network: TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network] || "",
               item: [
                 {
                   ...verifierParams,
@@ -232,7 +230,6 @@ export async function retrieveOrImportShare(
             generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
               encrypted: "yes",
               use_temp: true,
-              legacy_network: TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network] || "",
               item: [
                 {
                   ...verifierParams,
@@ -286,7 +283,7 @@ export async function retrieveOrImportShare(
 
         // if both thresholdNonceData and extended_verifier_id are not available
         // then we need to throw other wise address would be incorrect.
-        if (!thresholdNonceData && !verifierParams.extended_verifier_id && !TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network]) {
+        if (!thresholdNonceData && !verifierParams.extended_verifier_id && !LEGACY_NETWORKS_ROUTE_MAP[network]) {
           throw new Error(
             `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
           );
@@ -298,7 +295,7 @@ export async function retrieveOrImportShare(
         if (
           completedRequests.length >= ~~(endpoints.length / 2) + 1 &&
           thresholdPublicKey &&
-          (thresholdNonceData || verifierParams.extended_verifier_id || TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network])
+          (thresholdNonceData || verifierParams.extended_verifier_id || LEGACY_NETWORKS_ROUTE_MAP[network])
         ) {
           const sharePromises: Promise<void | Buffer>[] = [];
           const sessionTokenSigPromises: Promise<void | Buffer>[] = [];
@@ -453,7 +450,7 @@ export async function retrieveOrImportShare(
       if (verifierParams.extended_verifier_id) {
         // for tss key no need to add pub nonce
         modifiedPubKey = ecCurve.keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY }).getPublic();
-      } else if (TORUS_LEGACY_NETWORK_SAPPHIRE_ALIAS[network]) {
+      } else if (LEGACY_NETWORKS_ROUTE_MAP[network]) {
         if (enableOneKey) {
           nonceResult = await getNonce(ecCurve, serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, oauthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
