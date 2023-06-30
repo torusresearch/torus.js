@@ -18,7 +18,6 @@ export const normalizeKeysResult = (result: VerifierLookupResponse) => {
         pub_key_X: key.pub_key_X,
         pub_key_Y: key.pub_key_Y,
         address: key.address,
-        key_index: key.key_index,
       };
     });
   }

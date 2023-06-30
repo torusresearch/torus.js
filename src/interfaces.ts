@@ -59,7 +59,7 @@ export interface TorusPublicKey {
 }
 
 export interface LegacyVerifierLookupResponse {
-  keys: { pub_key_X: string; pub_key_Y: string; address: string; key_index: string }[];
+  keys: { pub_key_X: string; pub_key_Y: string; address: string }[];
 }
 
 export interface VerifierLookupResponse {
@@ -67,7 +67,6 @@ export interface VerifierLookupResponse {
     pub_key_X: string;
     pub_key_Y: string;
     address: string;
-    key_index: string;
     nonce_data?: GetOrSetNonceResult;
     created_at?: number;
   }[];
