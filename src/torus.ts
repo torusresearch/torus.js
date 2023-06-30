@@ -117,21 +117,21 @@ class Torus {
     extraParams: Record<string, unknown> = {}
   ): Promise<RetrieveSharesResponse | LegacyRetrieveSharesResponse> {
     if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams);
-    return retrieveOrImportShare(
-      this.legacyMetadataHost,
-      this.serverTimeOffset,
-      this.enableOneKey,
-      this.ec,
-      this.allowHost,
-      this.network,
-      this.clientId,
+    return retrieveOrImportShare({
+      legacyMetadataHost: this.legacyMetadataHost,
+      serverTimeOffset: this.serverTimeOffset,
+      enableOneKey: this.enableOneKey,
+      ecCurve: this.ec,
+      allowHost: this.allowHost,
+      network: this.network,
+      clientId: this.clientId,
       endpoints,
       verifier,
       verifierParams,
       idToken,
-      undefined,
-      extraParams
-    );
+      importedShares: [],
+      extraParams,
+    });
   }
 
   async getPublicAddress(
@@ -203,21 +203,21 @@ class Torus {
       sharesData.push(shareData);
     }
 
-    return retrieveOrImportShare(
-      this.legacyMetadataHost,
-      this.serverTimeOffset,
-      this.enableOneKey,
-      this.ec,
-      this.allowHost,
-      this.network,
-      this.clientId,
+    return retrieveOrImportShare({
+      legacyMetadataHost: this.legacyMetadataHost,
+      serverTimeOffset: this.serverTimeOffset,
+      enableOneKey: this.enableOneKey,
+      ecCurve: this.ec,
+      allowHost: this.allowHost,
+      network: this.network,
+      clientId: this.clientId,
       endpoints,
       verifier,
       verifierParams,
       idToken,
-      sharesData,
-      extraParams
-    );
+      importedShares: sharesData,
+      extraParams,
+    });
   }
 
   /**
@@ -671,7 +671,7 @@ class Torus {
     isExtended = false
   ): Promise<string | TorusPublicKey> {
     log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
-    const keyAssignResult = await GetPubKeyOrKeyAssign(endpoints, this.network, verifier, verifierId, extendedVerifierId);
+    const keyAssignResult = await GetPubKeyOrKeyAssign({ endpoints, network: this.network, verifier, verifierId, extendedVerifierId });
     const { errorResult, keyResult, nodeIndexes = [] } = keyAssignResult;
     let { nonceResult } = keyAssignResult;
     if (errorResult && JSON.stringify(errorResult).toLowerCase().includes("verifier not supported")) {

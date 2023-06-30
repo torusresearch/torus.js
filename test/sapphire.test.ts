@@ -9,7 +9,7 @@ import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
 
 const TORUS_TEST_EMAIL = "saasas@tr.us";
-const TORUS_IMPORT_EMAIL = "importeduser2@tor.us";
+const TORUS_IMPORT_EMAIL = "importeduser3@tor.us";
 
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
 
@@ -208,7 +208,6 @@ describe("torus utils sapphire", function () {
     expect(importKeyResponse.privKey).to.be.equal(privHex);
   });
 
-  // todo: fix this test case
   it("should be able to import a key for a existing user", async function () {
     let verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);

@@ -31,13 +31,14 @@ import { generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getNonce } from "./metadataUtils";
 
-export const GetPubKeyOrKeyAssign = async (
-  endpoints: string[],
-  network: TORUS_NETWORK_TYPE,
-  verifier: string,
-  verifierId: string,
-  extendedVerifierId?: string
-): Promise<KeyLookupResult> => {
+export const GetPubKeyOrKeyAssign = async (params: {
+  endpoints: string[];
+  network: TORUS_NETWORK_TYPE;
+  verifier: string;
+  verifierId: string;
+  extendedVerifierId?: string;
+}): Promise<KeyLookupResult> => {
+  const { endpoints, network, verifier, verifierId, extendedVerifierId } = params;
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
@@ -104,21 +105,36 @@ export const GetPubKeyOrKeyAssign = async (
   return result;
 };
 
-export async function retrieveOrImportShare(
-  legacyMetadataHost: string,
-  serverTimeOffset: number,
-  enableOneKey: boolean,
-  ecCurve: ec,
-  allowHost: string,
-  network: string,
-  clientId: string,
-  endpoints: string[],
-  verifier: string,
-  verifierParams: VerifierParams,
-  idToken: string,
-  importedShares?: ImportedShare[],
-  extraParams: Record<string, unknown> = {}
-): Promise<RetrieveSharesResponse> {
+export async function retrieveOrImportShare(params: {
+  legacyMetadataHost: string;
+  serverTimeOffset: number;
+  enableOneKey: boolean;
+  ecCurve: ec;
+  allowHost: string;
+  network: string;
+  clientId: string;
+  endpoints: string[];
+  verifier: string;
+  verifierParams: VerifierParams;
+  idToken: string;
+  importedShares?: ImportedShare[];
+  extraParams: Record<string, unknown>;
+}): Promise<RetrieveSharesResponse> {
+  const {
+    legacyMetadataHost,
+    serverTimeOffset,
+    enableOneKey,
+    ecCurve,
+    allowHost,
+    network,
+    clientId,
+    endpoints,
+    verifier,
+    verifierParams,
+    idToken,
+    importedShares,
+    extraParams,
+  } = params;
   await get<void>(
     allowHost,
     {
