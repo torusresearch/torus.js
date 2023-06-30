@@ -506,7 +506,7 @@ export async function retrieveOrImportShare(
     });
 }
 
-export const keyLookup = async (endpoints: string[], verifier: string, verifierId: string): Promise<LegacyKeyLookupResult> => {
+export const legacyKeyLookup = async (endpoints: string[], verifier: string, verifierId: string): Promise<LegacyKeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<LegacyVerifierLookupResponse>>(
       x,
@@ -533,7 +533,7 @@ export const keyLookup = async (endpoints: string[], verifier: string, verifierI
   });
 };
 
-export const keyAssign = async ({
+export const legacyKeyAssign = async ({
   endpoints,
   torusNodePubs,
   lastPoint,
@@ -603,7 +603,7 @@ export const keyAssign = async ({
       acceptedErrorMsgs.includes(error.message) ||
       (error.message && error.message.includes("reason: getaddrinfo EAI_AGAIN"))
     )
-      return keyAssign({
+      return legacyKeyAssign({
         endpoints,
         torusNodePubs,
         lastPoint: nodeNum + 1,
@@ -622,9 +622,9 @@ export const keyAssign = async ({
   }
 };
 
-export const waitKeyLookup = (endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<LegacyKeyLookupResult> =>
+export const legacyWaitKeyLookup = (endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<LegacyKeyLookupResult> =>
   new Promise((resolve, reject) => {
     setTimeout(() => {
-      keyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject);
+      legacyKeyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject);
     }, timeout);
   });

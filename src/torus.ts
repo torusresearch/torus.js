@@ -19,12 +19,12 @@ import {
   GetPubKeyOrKeyAssign,
   kCombinations,
   keccak256,
-  keyAssign,
-  keyLookup,
   lagrangeInterpolation,
+  legacyKeyAssign,
+  legacyKeyLookup,
+  legacyWaitKeyLookup,
   retrieveOrImportShare,
   thresholdSame,
-  waitKeyLookup,
 } from "./helpers";
 import {
   CommitmentRequestResult,
@@ -526,14 +526,14 @@ class Torus {
     let finalKeyResult: LegacyVerifierLookupResponse | undefined;
     let isNewKey = false;
 
-    const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
+    const { keyResult, errorResult } = (await legacyKeyLookup(endpoints, verifier, verifierId)) || {};
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
       1. Are on the right network (Torus testnet/mainnet) \n
       2. Have setup a verifier on dashboard.web3auth.io?`);
     } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
-      await keyAssign({
+      await legacyKeyAssign({
         endpoints,
         torusNodePubs,
         lastPoint: undefined,
@@ -544,7 +544,7 @@ class Torus {
         network: this.network,
         clientId: this.clientId,
       });
-      const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
+      const assignResult = await legacyWaitKeyLookup(endpoints, verifier, verifierId, 1000);
       finalKeyResult = assignResult?.keyResult;
       isNewKey = true;
     } else if (keyResult) {
@@ -626,7 +626,7 @@ class Torus {
     { verifier, verifierId }: { verifier: string; verifierId: string },
     doesKeyAssign = false
   ): Promise<TorusPublicKey> {
-    const { keyResult, errorResult } = (await keyLookup(endpoints, verifier, verifierId)) || {};
+    const { keyResult, errorResult } = (await legacyKeyLookup(endpoints, verifier, verifierId)) || {};
     let isNewKey = false;
     let finalKeyResult: LegacyVerifierLookupResponse;
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
@@ -638,7 +638,7 @@ class Torus {
       if (!doesKeyAssign) {
         throw new Error("Verifier + VerifierID has not yet been assigned");
       }
-      await keyAssign({
+      await legacyKeyAssign({
         endpoints,
         torusNodePubs,
         lastPoint: undefined,
@@ -649,7 +649,7 @@ class Torus {
         network: this.network,
         clientId: this.clientId,
       });
-      const assignResult = await waitKeyLookup(endpoints, verifier, verifierId, 1000);
+      const assignResult = await legacyWaitKeyLookup(endpoints, verifier, verifierId, 1000);
       finalKeyResult = assignResult?.keyResult;
       isNewKey = true;
     } else if (keyResult) {

@@ -11,7 +11,7 @@ const TORUS_TEST_EMAIL = "test1@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe.only("torus utils goerli", function () {
+describe("torus utils goerli", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
