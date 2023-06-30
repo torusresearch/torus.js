@@ -27,7 +27,7 @@ import {
 import log from "../loglevel";
 import { Some } from "../some";
 import { kCombinations, normalizeKeysResult, thresholdSame } from "./common";
-import { generateAddressFromPubKey, keccak256 } from "./keyUtils";
+import { generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getNonce } from "./metadataUtils";
 
@@ -461,23 +461,26 @@ export async function retrieveOrImportShare(params: {
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oauthKey = privateKey;
-      const decryptedPubKey = getPublic(Buffer.from(oauthKey.toString(16, 64), "hex")).toString("hex");
-      const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-      const decryptedPubKeyY = decryptedPubKey.slice(66);
+      const oauthPubkey = getPublic(Buffer.from(oauthKey.toString(16, 64), "hex")).toString("hex");
+      const oauthPubkeyX = oauthPubkey.slice(2, 66);
+      const oauthPubkeyY = oauthPubkey.slice(66);
       let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
-
-      let modifiedPubKey: curve.base.BasePoint;
-
+      let finalPubKey: curve.base.BasePoint;
+      let typeOfUser = "v1";
+      // extended_verifier_id is only exception for torus-test-health verifier
+      // otherwise extended verifier id should not even return shares.
       if (verifierParams.extended_verifier_id) {
+        typeOfUser = "v2";
         // for tss key no need to add pub nonce
-        modifiedPubKey = ecCurve.keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY }).getPublic();
+        finalPubKey = ecCurve.keyFromPublic({ x: oauthPubkeyX, y: oauthPubkeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network]) {
         if (enableOneKey) {
-          nonceResult = await getNonce(legacyMetadataHost, ecCurve, serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, oauthKey);
+          nonceResult = await getNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oauthPubkeyX, oauthPubkeyY, oauthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           if (nonceResult.typeOfUser === "v2") {
-            modifiedPubKey = ecCurve
-              .keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY })
+            typeOfUser = "v2";
+            finalPubKey = ecCurve
+              .keyFromPublic({ x: oauthPubkeyX, y: oauthPubkeyY })
               .getPublic()
               .add(
                 ecCurve
@@ -487,38 +490,55 @@ export async function retrieveOrImportShare(params: {
           }
         } else {
           // for imported keys in legacy networks
-          metadataNonce = await getMetadata(legacyMetadataHost, { pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY });
+          metadataNonce = await getMetadata(legacyMetadataHost, { pub_key_X: oauthPubkeyX, pub_key_Y: oauthPubkeyY });
+          const privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
+          finalPubKey = ecCurve.keyFromPrivate(privateKeyWithNonce.toString()).getPublic();
         }
       } else {
-        modifiedPubKey = ecCurve
-          .keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY })
+        finalPubKey = ecCurve
+          .keyFromPublic({ x: oauthPubkeyX, y: oauthPubkeyY })
           .getPublic()
           .add(
             ecCurve.keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y }).getPublic()
           );
       }
 
-      const privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
-      // for v1, pub key can be derived directly from priv since it remains same.
-      if (!modifiedPubKey) {
-        modifiedPubKey = ecCurve.keyFromPrivate(privateKeyWithNonce.toString()).getPublic();
-      }
+      const oauthKeyAddress = generateAddressFromPrivKey(ecCurve, oauthKey);
 
-      const ethAddress = generateAddressFromPubKey(ecCurve, modifiedPubKey.getX(), modifiedPubKey.getY());
-      log.debug("> torus.js/retrieveShares", { ethAddress });
+      // deriving address from pub key coz pubkey is always available
+      // but finalPrivKey won't be available for  v2 user upgraded to 2/n
+      const finalevmAddress = generateAddressFromPubKey(ecCurve, finalPubKey.getX(), finalPubKey.getY());
+      log.debug("> torus.js/retrieveShares", { finalevmAddress });
+      let finalPrivKey = ""; // it is empty for v2 user upgraded to 2/n
+      if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
+        const privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
+        finalPrivKey = privateKeyWithNonce.toString("hex", 64).padStart(64, "0");
+      }
 
       // return reconstructed private key and ethereum address
       return {
-        ethAddress,
-        privKey: privateKeyWithNonce.toString("hex", 64).padStart(64, "0"), // Caution: final x and y wont be derivable from this key once user upgrades to 2/n
-        metadataNonce,
-        sessionTokenData,
-        X: modifiedPubKey.getX().toString(), // this is final pub x user before and after updating to 2/n
-        Y: modifiedPubKey.getY().toString(), // this is final pub y user before and after updating to 2/n
-        postboxPubKeyX: decryptedPubKeyX,
-        postboxPubKeyY: decryptedPubKeyY,
-        sessionAuthKey: sessionAuthKey.toString("hex").padStart(64, "0"),
-        nodeIndexes: nodeIndexes.map((x) => x.toNumber()),
+        finalKeyData: {
+          evmAddress: finalevmAddress,
+          X: finalPubKey.getX().toString(), // this is final pub x user before and after updating to 2/n
+          Y: finalPubKey.getY().toString(), // this is final pub y user before and after updating to 2/n
+          privKey: finalPrivKey,
+        },
+        oauthKeyData: {
+          evmAddress: oauthKeyAddress,
+          X: oauthPubkeyX,
+          Y: oauthPubkeyY,
+          privKey: oauthKey.toString("hex", 64).padStart(64, "0"),
+        },
+        sessionData: {
+          sessionTokenData,
+          sessionAuthKey: sessionAuthKey.toString("hex").padStart(64, "0"),
+        },
+        metadata: {
+          metadataNonce,
+        },
+        nodesData: {
+          nodeIndexes: nodeIndexes.map((x) => x.toNumber()),
+        },
       };
     });
 }

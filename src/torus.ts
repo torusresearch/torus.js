@@ -30,7 +30,6 @@ import {
   CommitmentRequestResult,
   GetOrSetNonceResult,
   ImportedShare,
-  LegacyRetrieveSharesResponse,
   LegacyShareRequestResult,
   LegacyVerifierLookupResponse,
   NonceMetadataParams,
@@ -115,7 +114,7 @@ class Torus {
     verifierParams: VerifierParams,
     idToken: string,
     extraParams: Record<string, unknown> = {}
-  ): Promise<RetrieveSharesResponse | LegacyRetrieveSharesResponse> {
+  ): Promise<RetrieveSharesResponse> {
     if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams);
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
@@ -137,11 +136,10 @@ class Torus {
   async getPublicAddress(
     endpoints: string[],
     torusNodePubs: INodePub[],
-    { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
-    isExtended = false
-  ): Promise<string | TorusPublicKey> {
-    if (this.isLegacyNetwork) return this.getLegacyPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended);
-    return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, this.enableOneKey, isExtended);
+    { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string }
+  ): Promise<TorusPublicKey> {
+    if (this.isLegacyNetwork) return this.getLegacyPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, this.enableOneKey);
+    return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, this.enableOneKey);
   }
 
   async importPrivateKey(
@@ -227,91 +225,11 @@ class Torus {
   async getUserTypeAndAddress(
     endpoints: string[],
     torusNodePubs: INodePub[],
-    { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
-    doesKeyAssign = false
+    { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string }
   ): Promise<TorusPublicKey> {
     if (!this.isLegacyNetwork)
-      return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, true, true) as Promise<TorusPublicKey>;
-
-    const { keyResult, errorResult } = (await legacyKeyLookup(endpoints, verifier, verifierId)) || {};
-    let isNewKey = false;
-    let finalKeyResult: LegacyVerifierLookupResponse;
-    if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
-      // change error msg
-      throw new Error(`Verifier not supported. Check if you: \n
-      1. Are on the right network (Torus testnet/mainnet) \n
-      2. Have setup a verifier on dashboard.web3auth.io?`);
-    } else if (errorResult && JSON.stringify(errorResult).includes("Verifier + VerifierID has not yet been assigned")) {
-      if (!doesKeyAssign) {
-        throw new Error("Verifier + VerifierID has not yet been assigned");
-      }
-      await legacyKeyAssign({
-        endpoints,
-        torusNodePubs,
-        lastPoint: undefined,
-        firstPoint: undefined,
-        verifier,
-        verifierId,
-        signerHost: this.signerHost,
-        network: this.network,
-        clientId: this.clientId,
-      });
-      const assignResult = await legacyWaitKeyLookup(endpoints, verifier, verifierId, 1000);
-      finalKeyResult = assignResult?.keyResult;
-      isNewKey = true;
-    } else if (keyResult) {
-      finalKeyResult = keyResult;
-    } else {
-      throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
-    }
-    log.debug("> torus.js/getUserTypeAndAddress", { finalKeyResult, isNewKey });
-
-    if (finalKeyResult) {
-      const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
-      let nonceResult: GetOrSetNonceResult;
-      let nonce: BN;
-      let modifiedPubKey: curve.base.BasePoint;
-      let typeOfUser: GetOrSetNonceResult["typeOfUser"];
-      let pubNonce: { x: string; y: string } | undefined;
-
-      try {
-        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, X, Y, undefined, !isNewKey);
-        nonce = new BN(nonceResult.nonce || "0", 16);
-        typeOfUser = nonceResult.typeOfUser;
-      } catch {
-        throw new GetOrSetNonceError();
-      }
-      if (nonceResult.typeOfUser === "v1") {
-        modifiedPubKey = this.ec
-          .keyFromPublic({ x: X, y: Y })
-          .getPublic()
-          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
-      } else if (nonceResult.typeOfUser === "v2") {
-        // pubNonce is never deleted, so we can use it to always get the tkey
-        modifiedPubKey = this.ec
-          .keyFromPublic({ x: X, y: Y })
-          .getPublic()
-          .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
-        pubNonce = nonceResult.pubNonce;
-      } else {
-        throw new Error("getOrSetNonce should always return typeOfUser.");
-      }
-
-      const finalX = modifiedPubKey.getX().toString(16);
-      const finalY = modifiedPubKey.getY().toString(16);
-      const address = generateAddressFromPubKey(this.ec, modifiedPubKey.getX(), modifiedPubKey.getY());
-      log.debug("> torus.js/getUserTypeAndAddress", { X, Y, address, typeOfUser, nonce: nonce?.toString(16), pubNonce });
-      return {
-        typeOfUser,
-        address,
-        X: finalX,
-        Y: finalY,
-        metadataNonce: nonce,
-        pubNonce,
-        upgraded: (nonceResult as { upgraded?: boolean })?.upgraded || undefined,
-      };
-    }
-    throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
+      return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, true) as Promise<TorusPublicKey>;
+    return this.getLegacyPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, true);
   }
 
   private async legacyRetrieveShares(
@@ -321,7 +239,7 @@ class Torus {
     verifierParams: VerifierParams,
     idToken: string,
     extraParams: Record<string, unknown> = {}
-  ): Promise<LegacyRetrieveSharesResponse> {
+  ): Promise<RetrieveSharesResponse> {
     const promiseArr = [];
     await get<void>(
       this.allowHost,
@@ -515,30 +433,70 @@ class Torus {
         });
       })
       .then(async (returnedKey) => {
-        let privateKey = returnedKey;
-        if (!privateKey) throw new Error("Invalid private key returned");
-        const decryptedPubKey = getPublic(Buffer.from(privateKey.toString(16, 64), "hex")).toString("hex");
-        const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-        const decryptedPubKeyY = decryptedPubKey.slice(66);
+        const oauthKey = returnedKey;
+        if (!oauthKey) throw new Error("Invalid private key returned");
+        const oauthPubKey = getPublic(Buffer.from(oauthKey.toString(16, 64), "hex")).toString("hex");
+        const oauthKeyX = oauthPubKey.slice(2, 66);
+        const oauthKeyY = oauthPubKey.slice(66);
         let metadataNonce: BN;
+        let finalPubKey: curve.base.BasePoint;
+        let typeOfUser = "v1";
         if (this.enableOneKey) {
-          const { nonce } = await getNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, privateKey);
-          metadataNonce = new BN(nonce || "0", 16);
+          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, oauthKeyX, oauthKeyY, oauthKey);
+          metadataNonce = new BN(nonceResult.nonce || "0", 16);
+          typeOfUser = nonceResult.typeOfUser;
+          if (nonceResult.typeOfUser === "v2") {
+            finalPubKey = this.ec
+              .keyFromPublic({ x: oauthKeyX, y: oauthKeyY })
+              .getPublic()
+              .add(
+                this.ec
+                  .keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y })
+                  .getPublic()
+              );
+          }
         } else {
-          metadataNonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY });
+          // for imported keys in legacy networks
+          metadataNonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: oauthKeyX, pub_key_Y: oauthKeyY });
+          const privateKeyWithNonce = oauthKey.add(metadataNonce).umod(this.ec.curve.n);
+          finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString()).getPublic();
         }
-        log.debug("> torus.js/retrieveShares", { privKey: privateKey.toString(16), metadataNonce: metadataNonce.toString(16) });
 
-        privateKey = privateKey.add(metadataNonce).umod(this.ec.curve.n);
+        const oauthKeyAddress = generateAddressFromPrivKey(this.ec, oauthKey);
 
-        const ethAddress = generateAddressFromPrivKey(this.ec, privateKey);
-        log.debug("> torus.js/retrieveShares", { ethAddress, privKey: privateKey.toString(16) });
+        // deriving address from pub key coz pubkey is always available
+        // but finalPrivKey won't be available for  v2 user upgraded to 2/n
+        const finalevmAddress = generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY());
+        log.debug("> torus.js/retrieveShares", { finalevmAddress });
+        let finalPrivKey = ""; // it is empty for v2 user upgraded to 2/n
+        if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
+          const privateKeyWithNonce = oauthKey.add(metadataNonce).umod(this.ec.curve.n);
+          finalPrivKey = privateKeyWithNonce.toString("hex", 64).padStart(64, "0");
+        }
 
-        // return reconstructed private key and ethereum address
         return {
-          ethAddress,
-          privKey: privateKey.toString("hex", 64),
-          metadataNonce,
+          finalKeyData: {
+            evmAddress: finalevmAddress,
+            X: finalPubKey ? finalPubKey.getX().toString() : "", // this is final pub x user before and after updating to 2/n
+            Y: finalPubKey ? finalPubKey.getY().toString() : "", // this is final pub y user before and after updating to 2/n
+            privKey: finalPrivKey,
+          },
+          oauthKeyData: {
+            evmAddress: oauthKeyAddress,
+            X: oauthKeyX,
+            Y: oauthKeyY,
+            privKey: oauthKey.toString("hex", 64).padStart(64, "0"),
+          },
+          sessionData: {
+            sessionTokenData: [],
+            sessionAuthKey: "",
+          },
+          metadata: {
+            metadataNonce,
+          },
+          nodesData: {
+            nodeIndexes: [],
+          },
         };
       });
   }
@@ -547,9 +505,9 @@ class Torus {
     endpoints: string[],
     torusNodePubs: INodePub[],
     { verifier, verifierId }: { verifier: string; verifierId: string },
-    isExtended = false
-  ): Promise<string | TorusPublicKey> {
-    log.debug("> torus.js/getPublicAddress", { endpoints, torusNodePubs, verifier, verifierId, isExtended });
+    enableOneKey: boolean
+  ): Promise<TorusPublicKey> {
+    log.debug("> torus.js/getPublicAddress", { endpoints, torusNodePubs, verifier, verifierId });
 
     let finalKeyResult: LegacyVerifierLookupResponse | undefined;
     let isNewKey = false;
@@ -583,64 +541,11 @@ class Torus {
     log.debug("> torus.js/getPublicAddress", { finalKeyResult, isNewKey });
 
     if (finalKeyResult) {
-      let { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
-      let nonceResult: GetOrSetNonceResult;
-      let nonce: BN;
-      let modifiedPubKey: curve.base.BasePoint;
-      let typeOfUser: GetOrSetNonceResult["typeOfUser"];
-      let pubNonce: { x: string; y: string } | undefined;
-      if (this.enableOneKey) {
-        try {
-          nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, X, Y, undefined, !isNewKey);
-          nonce = new BN(nonceResult.nonce || "0", 16);
-          typeOfUser = nonceResult.typeOfUser;
-        } catch {
-          throw new GetOrSetNonceError();
-        }
-        if (nonceResult.typeOfUser === "v1") {
-          modifiedPubKey = this.ec
-            .keyFromPublic({ x: X, y: Y })
-            .getPublic()
-            .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
-        } else if (nonceResult.typeOfUser === "v2") {
-          if (nonceResult.upgraded) {
-            // OneKey is upgraded to 2/n, returned address is address of Torus key (postbox key), not tKey
-            modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
-          } else {
-            modifiedPubKey = this.ec
-              .keyFromPublic({ x: X, y: Y })
-              .getPublic()
-              .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
-            pubNonce = nonceResult.pubNonce;
-          }
-        } else {
-          throw new Error("getOrSetNonce should always return typeOfUser.");
-        }
-      } else {
-        typeOfUser = "v1";
-        nonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: X, pub_key_Y: Y });
-        modifiedPubKey = this.ec
-          .keyFromPublic({ x: X, y: Y })
-          .getPublic()
-          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
-      }
-
-      X = modifiedPubKey.getX().toString(16);
-      Y = modifiedPubKey.getY().toString(16);
-
-      const address = generateAddressFromPubKey(this.ec, modifiedPubKey.getX(), modifiedPubKey.getY());
-      log.debug("> torus.js/getPublicAddress", { X, Y, address, typeOfUser, nonce: nonce?.toString(16), pubNonce });
-
-      if (!isExtended) return address;
-      return {
-        typeOfUser,
-        address,
-        X,
-        Y,
-        metadataNonce: nonce,
-        pubNonce,
-        upgraded: (nonceResult as { upgraded?: boolean })?.upgraded || undefined,
-      };
+      return this.formatLegacyPublicKeyData({
+        finalKeyResult,
+        isNewKey,
+        enableOneKey,
+      });
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
   }
@@ -667,13 +572,18 @@ class Torus {
   private async getNewPublicAddress(
     endpoints: string[],
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
-    enableOneKey: boolean,
-    isExtended = false
-  ): Promise<string | TorusPublicKey> {
-    log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
-    const keyAssignResult = await GetPubKeyOrKeyAssign({ endpoints, network: this.network, verifier, verifierId, extendedVerifierId });
+    enableOneKey: boolean
+  ): Promise<TorusPublicKey> {
+    log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId });
+    const keyAssignResult = await GetPubKeyOrKeyAssign({
+      endpoints,
+      network: this.network,
+      verifier,
+      verifierId,
+      extendedVerifierId,
+    });
     const { errorResult, keyResult, nodeIndexes = [] } = keyAssignResult;
-    let { nonceResult } = keyAssignResult;
+    const { nonceResult } = keyAssignResult;
     if (errorResult && JSON.stringify(errorResult).toLowerCase().includes("verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
@@ -692,50 +602,27 @@ class Torus {
     if (!nonceResult && !extendedVerifierId && !LEGACY_NETWORKS_ROUTE_MAP[this.network]) {
       throw new GetOrSetNonceError("metadata nonce is missing in share response");
     }
-    let typeOfUser: "v1" | "v2" = "v2";
-    let { pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0];
-    let modifiedPubKey: curve.base.BasePoint;
+    const { pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0];
     let pubNonce: { x: string; y: string } | undefined;
-    let nonce = new BN(nonceResult?.nonce || "0", 16);
+    const nonce = new BN(nonceResult?.nonce || "0", 16);
+    let oauthPubKey: curve.base.BasePoint;
+    let finalPubKey: curve.base.BasePoint;
     if (extendedVerifierId) {
       // for tss key no need to add pub nonce
-      modifiedPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
+      finalPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
+      oauthPubKey = finalPubKey;
     } else if (LEGACY_NETWORKS_ROUTE_MAP[this.network]) {
-      // this block is entirely for legacy verifier users which were originally created
-      // on legacy networks
-      if (enableOneKey) {
-        try {
-          nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, X, Y, undefined, !keyResult.is_new_key);
-          nonce = new BN(nonceResult.nonce || "0", 16);
-          typeOfUser = nonceResult.typeOfUser;
-        } catch {
-          throw new GetOrSetNonceError();
-        }
-        if (nonceResult.typeOfUser === "v1") {
-          modifiedPubKey = this.ec
-            .keyFromPublic({ x: X, y: Y })
-            .getPublic()
-            .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
-        } else if (nonceResult.typeOfUser === "v2") {
-          modifiedPubKey = this.ec
-            .keyFromPublic({ x: X, y: Y })
-            .getPublic()
-            .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
-          pubNonce = nonceResult.pubNonce;
-        } else {
-          throw new Error("getOrSetNonce should always return typeOfUser.");
-        }
-      } else {
-        typeOfUser = "v1";
-        nonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: X, pub_key_Y: Y });
-        modifiedPubKey = this.ec
-          .keyFromPublic({ x: X, y: Y })
-          .getPublic()
-          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
-      }
+      return this.formatLegacyPublicKeyData({
+        isNewKey: keyResult.is_new_key,
+        enableOneKey,
+        finalKeyResult: {
+          keys: keyResult.keys,
+        },
+      });
     } else {
       const v2NonceResult = nonceResult as v2NonceResultType;
-      modifiedPubKey = this.ec
+      oauthPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
+      finalPubKey = this.ec
         .keyFromPublic({ x: X, y: Y })
         .getPublic()
         .add(this.ec.keyFromPublic({ x: v2NonceResult.pubNonce.x, y: v2NonceResult.pubNonce.y }).getPublic());
@@ -743,22 +630,123 @@ class Torus {
       pubNonce = v2NonceResult.pubNonce;
     }
 
-    X = modifiedPubKey.getX().toString(16, 64);
-    Y = modifiedPubKey.getY().toString(16, 64);
+    if (!oauthPubKey) {
+      throw new Error("Unable to derive oauthPubKey");
+    }
+    const oauthX = oauthPubKey.getX().toString(16, 64);
+    const oauthY = oauthPubKey.getY().toString(16, 64);
+    const oauthAddress = generateAddressFromPubKey(this.ec, oauthPubKey.getX(), oauthPubKey.getY());
+    log.debug("> torus.js/getPublicAddress, oauthPubKeyData", { X: oauthX, Y: oauthY, oauthAddress, nonce: nonce?.toString(16), pubNonce });
 
-    const address = generateAddressFromPubKey(this.ec, modifiedPubKey.getX(), modifiedPubKey.getY());
-    log.debug("> torus.js/getPublicAddress", { X, Y, address, nonce: nonce?.toString(16), pubNonce });
-
-    if (!isExtended) return address;
+    if (!finalPubKey) {
+      throw new Error("Unable to derive finalPubKey");
+    }
+    const finalX = finalPubKey ? finalPubKey.getX().toString(16, 64) : "";
+    const finalY = finalPubKey ? finalPubKey.getY().toString(16, 64) : "";
+    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY()) : "";
     return {
-      address,
-      X,
-      Y,
-      metadataNonce: nonce,
-      pubNonce,
-      upgraded: (nonceResult as v2NonceResultType)?.upgraded || false,
-      nodeIndexes,
-      typeOfUser,
+      oauthPubKeyData: {
+        evmAddress: oauthAddress,
+        x: oauthX,
+        y: oauthY,
+      },
+      finalPubKeyData: {
+        evmAddress: finalAddress,
+        x: finalX,
+        y: finalY,
+      },
+      metadata: {
+        pubNonce,
+        nonce,
+        upgraded: (nonceResult as v2NonceResultType)?.upgraded || false,
+        typeOfUser: "v2",
+      },
+      nodesData: {
+        nodeIndexes,
+      },
+    };
+  }
+
+  private async formatLegacyPublicKeyData(params: {
+    finalKeyResult: LegacyVerifierLookupResponse;
+    enableOneKey: boolean;
+    isNewKey: boolean;
+  }): Promise<TorusPublicKey> {
+    const { finalKeyResult, enableOneKey, isNewKey } = params;
+    const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
+    let nonceResult: GetOrSetNonceResult;
+    let nonce: BN;
+    let finalPubKey: curve.base.BasePoint;
+    let typeOfUser: GetOrSetNonceResult["typeOfUser"];
+    let pubNonce: { x: string; y: string } | undefined;
+
+    const oauthPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
+
+    if (enableOneKey) {
+      try {
+        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, X, Y, undefined, !isNewKey);
+        nonce = new BN(nonceResult.nonce || "0", 16);
+        typeOfUser = nonceResult.typeOfUser;
+      } catch {
+        throw new GetOrSetNonceError();
+      }
+      if (nonceResult.typeOfUser === "v1") {
+        finalPubKey = this.ec
+          .keyFromPublic({ x: X, y: Y })
+          .getPublic()
+          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
+      } else if (nonceResult.typeOfUser === "v2") {
+        finalPubKey = this.ec
+          .keyFromPublic({ x: X, y: Y })
+          .getPublic()
+          .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
+        pubNonce = nonceResult.pubNonce;
+      } else {
+        throw new Error("getOrSetNonce should always return typeOfUser.");
+      }
+    } else {
+      typeOfUser = "v1";
+      nonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: X, pub_key_Y: Y });
+      finalPubKey = this.ec
+        .keyFromPublic({ x: X, y: Y })
+        .getPublic()
+        .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
+    }
+
+    if (!oauthPubKey) {
+      throw new Error("Unable to derive oauthPubKey");
+    }
+    const oauthX = oauthPubKey.getX().toString(16, 64);
+    const oauthY = oauthPubKey.getY().toString(16, 64);
+    const oauthAddress = generateAddressFromPubKey(this.ec, oauthPubKey.getX(), oauthPubKey.getY());
+    log.debug("> torus.js/getPublicAddress, oauthPubKeyData", { X: oauthX, Y: oauthY, oauthAddress, nonce: nonce?.toString(16), pubNonce });
+
+    if (typeOfUser === "v2" && !finalPubKey) {
+      throw new Error("Unable to derive finalPubKey");
+    }
+    const finalX = finalPubKey ? finalPubKey.getX().toString(16, 64) : "";
+    const finalY = finalPubKey ? finalPubKey.getY().toString(16, 64) : "";
+    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY()) : "";
+    return {
+      oauthPubKeyData: {
+        evmAddress: oauthAddress,
+        x: oauthX,
+        y: oauthY,
+      },
+      finalPubKeyData: {
+        evmAddress: finalAddress,
+        x: finalX,
+        y: finalY,
+      },
+      metadata: {
+        pubNonce,
+        nonce,
+        upgraded: (nonceResult as v2NonceResultType)?.upgraded || false,
+        typeOfUser,
+      },
+      nodesData: {
+        nodeIndexes: [],
+      },
     };
   }
 }

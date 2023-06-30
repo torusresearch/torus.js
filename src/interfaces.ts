@@ -36,17 +36,30 @@ export interface TorusCtorOptions {
   legacyMetadataHost?: string;
 }
 
-export interface TorusPublicKey extends INodePub {
-  address: string;
-  metadataNonce: BN;
-  pubNonce?: { x: string; y: string };
-  upgraded?: boolean;
-  nodeIndexes?: number[];
-  typeOfUser: "v1" | "v2";
+export interface TorusPublicKey {
+  oauthPubKeyData: {
+    evmAddress: string;
+    x: string;
+    y: string;
+  };
+  finalPubKeyData: {
+    evmAddress: string;
+    x: string;
+    y: string;
+  };
+  metadata: {
+    pubNonce?: { x: string; y: string };
+    nonce?: BN;
+    upgraded: boolean;
+    typeOfUser: "v1" | "v2";
+  };
+  nodesData: {
+    nodeIndexes: number[];
+  };
 }
 
 export interface LegacyVerifierLookupResponse {
-  keys: { pub_key_X: string; pub_key_Y: string; key_index: string; address: string }[];
+  keys: { pub_key_X: string; pub_key_Y: string; address: string; key_index: string }[];
 }
 
 export interface VerifierLookupResponse {
@@ -54,6 +67,7 @@ export interface VerifierLookupResponse {
     pub_key_X: string;
     pub_key_Y: string;
     address: string;
+    key_index: string;
     nonce_data?: GetOrSetNonceResult;
     created_at?: number;
   }[];
@@ -80,7 +94,7 @@ export interface JRPCResponse<T> {
 }
 
 export interface LegacyKeyLookupResult {
-  keyResult: LegacyVerifierLookupResponse;
+  keyResult: Pick<LegacyVerifierLookupResponse, "keys">;
   errorResult: JRPCResponse<LegacyVerifierLookupResponse>["error"];
 }
 
@@ -174,22 +188,29 @@ export interface SessionToken {
   node_puby: string;
 }
 
-export interface LegacyRetrieveSharesResponse {
-  ethAddress: string;
-  privKey: string;
-  metadataNonce: BN;
-}
 export interface RetrieveSharesResponse {
-  ethAddress: string;
-  privKey: string;
-  sessionTokenData: SessionToken[];
-  X: string;
-  Y: string;
-  metadataNonce: BN;
-  postboxPubKeyX: string;
-  postboxPubKeyY: string;
-  sessionAuthKey: string;
-  nodeIndexes: number[];
+  finalKeyData: {
+    evmAddress: string;
+    X: string; // this is final pub x user before and after updating to 2/n
+    Y: string; // this is final pub y user before and after updating to 2/n
+    privKey?: string;
+  };
+  oauthKeyData: {
+    evmAddress: string;
+    X: string;
+    Y: string;
+    privKey: string;
+  };
+  sessionData: {
+    sessionTokenData: SessionToken[];
+    sessionAuthKey: string;
+  };
+  metadata: {
+    metadataNonce: BN;
+  };
+  nodesData: {
+    nodeIndexes: number[];
+  };
 }
 
 export interface VerifierParams {
