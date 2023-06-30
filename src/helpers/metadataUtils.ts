@@ -34,8 +34,8 @@ export function generateMetadataParams(ecCurve: ec, serverTimeOffset: number, me
   };
   const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
   return {
-    pub_key_X: key.getPublic().getX().toString("hex"),
-    pub_key_Y: key.getPublic().getY().toString("hex"),
+    pub_key_X: key.getPublic().getX().toString("hex", 64),
+    pub_key_Y: key.getPublic().getY().toString("hex", 64),
     set_data: setData,
     signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
   };

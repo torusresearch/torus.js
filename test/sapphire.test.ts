@@ -18,7 +18,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe.only("torus utils sapphire", function () {
+describe("torus utils sapphire", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
