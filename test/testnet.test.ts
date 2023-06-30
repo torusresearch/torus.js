@@ -7,11 +7,11 @@ import { keccak256, TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
 
-const TORUS_TEST_EMAIL = "hello@tor.us";
+const TORUS_TEST_EMAIL = "test1@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe("torus utils goerli", function () {
+describe.only("torus utils goerli", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -26,21 +26,21 @@ describe("torus utils goerli", function () {
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
-    expect(publicAddress).to.equal("0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70");
+    expect(publicAddress).to.equal("0x3894D3b9bC3cEca97E86E438CDf42E38FF821f99");
   });
 
   it("should fetch user type and public address", async function () {
     const verifier = "google-lrc"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const { address, typeOfUser } = (await torus.getPublicAddress(torusNodeEndpoints, verifierDetails)) as TorusPublicKey;
-    expect(address).to.equal("0xFf5aDad69F4e97AF4D4567e7C333C12df6836a70");
+    const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { address, typeOfUser } = (await torus.getLegacyUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
+    expect(address).to.equal("0x3894D3b9bC3cEca97E86E438CDf42E38FF821f99");
     expect(typeOfUser).to.equal("v1");
 
     const v2Verifier = "tkey-google-lrc";
     // 1/1 user
     const v2TestEmail = "somev2user@gmail.com";
-    const { address: v2Address, typeOfUser: v2UserType } = (await torus.getPublicAddress(torusNodeEndpoints, {
+    const { address: v2Address, typeOfUser: v2UserType } = (await torus.getLegacyUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     })) as TorusPublicKey;
@@ -49,7 +49,7 @@ describe("torus utils goerli", function () {
 
     // 2/n user
     const v2nTestEmail = "caspertorus@gmail.com";
-    const { address: v2nAddress, typeOfUser: v2nUserType } = (await torus.getPublicAddress(torusNodeEndpoints, {
+    const { address: v2nAddress, typeOfUser: v2nUserType } = (await torus.getLegacyUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     })) as TorusPublicKey;
@@ -72,7 +72,7 @@ describe("torus utils goerli", function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
-    expect(retrieveSharesResponse.privKey).to.be.equal("068ee4f97468ef1ae95d18554458d372e31968190ae38e377be59d8b3c9f7a25");
+    expect(retrieveSharesResponse.privKey).to.be.equal("abca829ab2e5369b2f29737e19e3e29e5ee5e3dcdd9e14412f9a88f46263ed65");
   });
 
   it("should be able to aggregate login", async function () {
@@ -90,6 +90,6 @@ describe("torus utils goerli", function () {
       },
       hashedIdToken.substring(2)
     );
-    expect(retrieveSharesResponse.ethAddress).to.be.equal("0x5a165d2Ed4976BD104caDE1b2948a93B72FA91D2");
+    expect(retrieveSharesResponse.ethAddress).to.be.equal("0xA89937F914Dd9401e3a0c7Ab6fC7a15e1CfCcDc4");
   });
 });
