@@ -5,7 +5,6 @@ import { ec } from "elliptic";
 import stringify from "json-stable-stringify";
 import log from "loglevel";
 
-import { LEGACY_METADATA_HOST } from "../constants";
 import { EciesHex, GetOrSetNonceResult, MetadataParams } from "../interfaces";
 import { encParamsHexToBuf } from "./common";
 import { keccak256 } from "./keyUtils";
@@ -41,9 +40,13 @@ export function generateMetadataParams(ecCurve: ec, serverTimeOffset: number, me
   };
 }
 
-export async function getMetadata(data: Omit<MetadataParams, "set_data" | "signature">, options: RequestInit = {}): Promise<BN> {
+export async function getMetadata(
+  legacyMetadataHost: string,
+  data: Omit<MetadataParams, "set_data" | "signature">,
+  options: RequestInit = {}
+): Promise<BN> {
   try {
-    const metadataResponse = await post<{ message?: string }>(`${LEGACY_METADATA_HOST}/get`, data, options, { useAPIKey: true });
+    const metadataResponse = await post<{ message?: string }>(`${legacyMetadataHost}/get`, data, options, { useAPIKey: true });
     if (!metadataResponse || !metadataResponse.message) {
       return new BN(0);
     }
@@ -55,6 +58,7 @@ export async function getMetadata(data: Omit<MetadataParams, "set_data" | "signa
 }
 
 export async function getOrSetNonce(
+  legacyMetadataHost: string,
   ecCurve: ec,
   serverTimeOffset: number,
   X: string,
@@ -73,9 +77,16 @@ export async function getOrSetNonce(
       set_data: { data: msg },
     };
   }
-  return post<GetOrSetNonceResult>(`${LEGACY_METADATA_HOST}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
+  return post<GetOrSetNonceResult>(`${legacyMetadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
 }
 
-export async function getNonce(ecCurve: ec, serverTimeOffset: number, X: string, Y: string, privKey?: BN): Promise<GetOrSetNonceResult> {
-  return getOrSetNonce(ecCurve, serverTimeOffset, X, Y, privKey, true);
+export async function getNonce(
+  legacyMetadataHost: string,
+  ecCurve: ec,
+  serverTimeOffset: number,
+  X: string,
+  Y: string,
+  privKey?: BN
+): Promise<GetOrSetNonceResult> {
+  return getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, X, Y, privKey, true);
 }

@@ -105,6 +105,7 @@ export const GetPubKeyOrKeyAssign = async (
 };
 
 export async function retrieveOrImportShare(
+  legacyMetadataHost: string,
   serverTimeOffset: number,
   enableOneKey: boolean,
   ecCurve: ec,
@@ -456,7 +457,7 @@ export async function retrieveOrImportShare(
         modifiedPubKey = ecCurve.keyFromPublic({ x: decryptedPubKeyX, y: decryptedPubKeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network]) {
         if (enableOneKey) {
-          nonceResult = await getNonce(ecCurve, serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, oauthKey);
+          nonceResult = await getNonce(legacyMetadataHost, ecCurve, serverTimeOffset, decryptedPubKeyX, decryptedPubKeyY, oauthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           if (nonceResult.typeOfUser === "v2") {
             modifiedPubKey = ecCurve
@@ -470,7 +471,7 @@ export async function retrieveOrImportShare(
           }
         } else {
           // for imported keys in legacy networks
-          metadataNonce = await getMetadata({ pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY });
+          metadataNonce = await getMetadata(legacyMetadataHost, { pub_key_X: decryptedPubKeyX, pub_key_Y: decryptedPubKeyY });
         }
       } else {
         modifiedPubKey = ecCurve

@@ -33,6 +33,7 @@ export interface TorusCtorOptions {
   enableOneKey?: boolean;
   serverTimeOffset?: number;
   allowHost?: string;
+  legacyMetadataHost?: string;
 }
 
 export interface TorusPublicKey extends INodePub {
