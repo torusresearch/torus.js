@@ -73,6 +73,12 @@ class Torus {
     this.signerHost = `${SIGNER_MAP[network]}/api/sign`;
   }
 
+  private get isLegacyNetwork(): boolean {
+    const legacyNetwork = LEGACY_NETWORKS_ROUTE_MAP[this.network];
+    if (legacyNetwork && !legacyNetwork.migrationCompleted) return true;
+    return false;
+  }
+
   static enableLogging(v = true): void {
     if (v) {
       log.enableAll();
@@ -100,8 +106,7 @@ class Torus {
     idToken: string,
     extraParams: Record<string, unknown> = {}
   ): Promise<RetrieveSharesResponse | LegacyRetrieveSharesResponse> {
-    const isLegacyNetwork = this.isLegacyNetwork(this.network);
-    if (isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams);
+    if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams);
     return retrieveOrImportShare(
       this.serverTimeOffset,
       this.enableOneKey,
@@ -124,8 +129,7 @@ class Torus {
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
     isExtended = false
   ): Promise<string | TorusPublicKey> {
-    const isLegacyNetwork = this.isLegacyNetwork(this.network);
-    if (isLegacyNetwork) return this.getLegacyPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended);
+    if (this.isLegacyNetwork) return this.getLegacyPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, isExtended);
 
     log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId, isExtended });
     const keyAssignResult = await GetPubKeyOrKeyAssign(endpoints, this.network, verifier, verifierId, extendedVerifierId);
@@ -732,12 +736,6 @@ class Torus {
       set_data: setData,
       signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
     };
-  }
-
-  private isLegacyNetwork(network: TORUS_NETWORK_TYPE) {
-    const legacyNetwork = LEGACY_NETWORKS_ROUTE_MAP[network];
-    if (legacyNetwork && !legacyNetwork.migrationCompleted) return true;
-    return false;
   }
 }
 
