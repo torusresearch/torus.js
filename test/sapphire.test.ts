@@ -1,4 +1,4 @@
-import { TORUS_NETWORK } from "@toruslabs/constants";
+import { TORUS_LEGACY_NETWORK, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { generatePrivate } from "@toruslabs/eccrypto";
 import NodeManager from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
@@ -18,14 +18,14 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe("torus utils sapphire", function () {
+describe.only("torus utils sapphire", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
   beforeEach("one time execution before all tests", async function () {
-    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_NETWORK.SAPPHIRE_DEVNET });
+    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET });
     torus = new TorusUtils({
-      network: TORUS_NETWORK.SAPPHIRE_DEVNET,
+      network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET,
       allowHost: "https://signer.tor.us/api/allow",
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
@@ -36,13 +36,13 @@ describe("torus utils sapphire", function () {
   it("should fetch public address of a legacy v1 user", async function () {
     const verifier = "google-lrc"; // any verifier
     const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
-      network: TORUS_NETWORK.LEGACY_TESTNET,
-      fndServerEndpoint: "http://localhost:8060/node-details",
+      network: TORUS_LEGACY_NETWORK.TESTNET,
+      // fndServerEndpoint: "http://localhost:8060/node-details",
     });
 
     const verifierDetails = { verifier, verifierId: "himanshu@tor.us" };
     const legacyTorus = new TorusUtils({
-      network: TORUS_NETWORK.LEGACY_TESTNET,
+      network: TORUS_LEGACY_NETWORK.TESTNET,
       allowHost: "https://signer.tor.us/api/allow",
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
@@ -59,13 +59,13 @@ describe("torus utils sapphire", function () {
     const token = generateIdToken(email, "ES256");
 
     const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
-      network: TORUS_NETWORK.LEGACY_TESTNET,
-      fndServerEndpoint: "http://localhost:8060/node-details",
+      network: TORUS_LEGACY_NETWORK.TESTNET,
+      // fndServerEndpoint: "http://localhost:8060/node-details",
     });
 
     const verifierDetails = { verifier, verifierId: email };
     const legacyTorus = new TorusUtils({
-      network: TORUS_NETWORK.LEGACY_TESTNET,
+      network: TORUS_LEGACY_NETWORK.TESTNET,
       allowHost: "https://signer.tor.us/api/allow",
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
@@ -77,8 +77,8 @@ describe("torus utils sapphire", function () {
 
   it("should fetch user type and public address of legacy v2 user", async function () {
     const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
-      network: TORUS_NETWORK.LEGACY_TESTNET,
-      fndServerEndpoint: "http://localhost:8060/node-details",
+      network: TORUS_LEGACY_NETWORK.TESTNET,
+      // fndServerEndpoint: "http://localhost:8060/node-details",
     });
     const v2Verifier = "tkey-google-lrc";
     // 1/1 user
@@ -86,7 +86,7 @@ describe("torus utils sapphire", function () {
     const verifierDetails = { verifier: v2Verifier, verifierId: v2TestEmail };
 
     const legacyTorus = new TorusUtils({
-      network: TORUS_NETWORK.LEGACY_TESTNET,
+      network: TORUS_LEGACY_NETWORK.TESTNET,
       allowHost: "https://signer.tor.us/api/allow",
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,

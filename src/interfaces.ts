@@ -44,6 +44,10 @@ export interface TorusPublicKey extends INodePub {
   typeOfUser: "v1" | "v2";
 }
 
+export interface LegacyVerifierLookupResponse {
+  keys: { pub_key_X: string; pub_key_Y: string; key_index: string; address: string }[];
+}
+
 export interface VerifierLookupResponse {
   keys: {
     pub_key_X: string;
@@ -74,6 +78,11 @@ export interface JRPCResponse<T> {
   };
 }
 
+export interface LegacyKeyLookupResult {
+  keyResult: LegacyVerifierLookupResponse;
+  errorResult: JRPCResponse<LegacyVerifierLookupResponse>["error"];
+}
+
 export interface KeyLookupResult {
   keyResult: Pick<VerifierLookupResponse, "keys" | "is_new_key">;
   nodeIndexes: number[];
@@ -86,7 +95,6 @@ export interface SignerResponse {
   "torus-nonce": string;
   "torus-signature": string;
 }
-
 export interface KeyAssignInput {
   endpoints: string[];
   torusNodePubs: INodePub[];
@@ -103,6 +111,19 @@ export type EciesHex = {
   [key in keyof Ecies]: string;
 } & { mode?: string };
 
+export interface LegacyKeyAssignment {
+  Index: string;
+  PublicKey: {
+    X: string;
+    Y: string;
+  };
+  Threshold: number;
+  Verifiers: Record<string, string>;
+  Share: string;
+  Metadata: {
+    [key in keyof Ecies]: string;
+  };
+}
 export interface KeyAssignment {
   index: KeyIndex;
   public_key: {
@@ -115,6 +136,10 @@ export interface KeyAssignment {
   share: string;
   share_metadata: EciesHex;
   nonce_data?: GetOrSetNonceResult;
+}
+
+export interface LegacyShareRequestResult {
+  keys: LegacyKeyAssignment[];
 }
 
 export interface ShareRequestResult {
@@ -146,6 +171,12 @@ export interface SessionToken {
   signature: string;
   node_pubx: string;
   node_puby: string;
+}
+
+export interface LegacyRetrieveSharesResponse {
+  ethAddress: string;
+  privKey: string;
+  metadataNonce: BN;
 }
 export interface RetrieveSharesResponse {
   ethAddress: string;
