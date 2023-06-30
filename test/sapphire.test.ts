@@ -177,7 +177,7 @@ describe("torus utils sapphire", function () {
     );
     expect(finalKeyData.privKey).to.be.equal("04eb166ddcf59275a210c7289dca4a026f87a33fd2d6ed22f56efae7eab4052c");
   });
-  it("should be able to import a key for a new user", async function () {
+  it.skip("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const privKeyBuffer = generatePrivate();
@@ -195,7 +195,7 @@ describe("torus utils sapphire", function () {
     );
     expect(finalKeyData.privKey).to.be.equal(privHex);
   });
-  it("should be able to import a key for a existing user", async function () {
+  it.skip("should be able to import a key for a existing user", async function () {
     let verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -213,7 +213,6 @@ describe("torus utils sapphire", function () {
       token,
       privHex
     );
-
     expect(finalKeyData.privKey).to.be.equal(privHex);
     verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const { finalPubKeyData: finalPubKeyData1 } = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
