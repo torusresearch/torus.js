@@ -28,7 +28,7 @@ describe("torus utils aqua", function () {
     const verifier = "tkey-google-aqua"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const publicAddress = await torus.getLegacyPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
+    const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(publicAddress).to.equal("0xDfA967285AC699A70DA340F60d00DB19A272639d");
   });
 
@@ -36,14 +36,14 @@ describe("torus utils aqua", function () {
     const verifier = "tkey-google-aqua"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const { address, typeOfUser } = (await torus.getLegacyUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
+    const { address, typeOfUser } = (await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
     expect(address).to.equal("0xDfA967285AC699A70DA340F60d00DB19A272639d");
     expect(typeOfUser).to.equal("v1");
 
     const v2Verifier = "tkey-google-aqua";
     // 1/1 user
     const v2TestEmail = "somev2user@gmail.com";
-    const { address: v2Address, typeOfUser: v2UserType } = (await torus.getLegacyUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
+    const { address: v2Address, typeOfUser: v2UserType } = (await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     })) as TorusPublicKey;
@@ -52,7 +52,7 @@ describe("torus utils aqua", function () {
 
     // 2/n user
     const v2nTestEmail = "caspertorus@gmail.com";
-    const { address: v2nAddress, typeOfUser: v2nUserType } = (await torus.getLegacyUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
+    const { address: v2nAddress, typeOfUser: v2nUserType } = (await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     })) as TorusPublicKey;
@@ -65,7 +65,7 @@ describe("torus utils aqua", function () {
     const email = faker.internet.email();
     const verifierDetails = { verifier, verifierId: email };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const publicAddress = await torus.getLegacyPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
+    const publicAddress = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(publicAddress).to.not.equal("");
     expect(publicAddress).to.not.equal(null);
   });
@@ -74,7 +74,7 @@ describe("torus utils aqua", function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const retrieveSharesResponse = await torus.legacyRetrieveShares(
+    const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_VERIFIER,
@@ -89,7 +89,7 @@ describe("torus utils aqua", function () {
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const retrieveSharesResponse = await torus.legacyRetrieveShares(
+    const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_AGGREGATE_VERIFIER,
