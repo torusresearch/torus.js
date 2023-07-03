@@ -37,7 +37,7 @@ export interface TorusCtorOptions {
 }
 
 export interface TorusPublicKey {
-  oauthPubKeyData: {
+  oAuthPubKeyData: {
     evmAddress: string;
     x: string;
     y: string;
@@ -194,7 +194,7 @@ export interface RetrieveSharesResponse {
     Y: string; // this is final pub y user before and after updating to 2/n
     privKey?: string;
   };
-  oauthKeyData: {
+  oAuthKeyData: {
     evmAddress: string;
     X: string;
     Y: string;
@@ -206,6 +206,7 @@ export interface RetrieveSharesResponse {
   };
   metadata: {
     metadataNonce: BN;
+    // TODO: return upgraded or not here
   };
   nodesData: {
     nodeIndexes: number[];

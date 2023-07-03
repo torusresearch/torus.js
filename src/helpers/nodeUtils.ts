@@ -460,10 +460,10 @@ export async function retrieveOrImportShare(params: {
       const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes } = res;
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
-      const oauthKey = privateKey;
-      const oauthPubkey = getPublic(Buffer.from(oauthKey.toString(16, 64), "hex")).toString("hex");
-      const oauthPubkeyX = oauthPubkey.slice(2, 66);
-      const oauthPubkeyY = oauthPubkey.slice(66);
+      const oAuthKey = privateKey;
+      const oAuthPubKey = getPublic(Buffer.from(oAuthKey.toString(16, 64), "hex")).toString("hex");
+      const oAuthPubkeyX = oAuthPubKey.slice(2, 66);
+      const oAuthPubkeyY = oAuthPubKey.slice(66);
       let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
       let finalPubKey: curve.base.BasePoint;
       let typeOfUser = "v1";
@@ -472,15 +472,15 @@ export async function retrieveOrImportShare(params: {
       if (verifierParams.extended_verifier_id) {
         typeOfUser = "v2";
         // for tss key no need to add pub nonce
-        finalPubKey = ecCurve.keyFromPublic({ x: oauthPubkeyX, y: oauthPubkeyY }).getPublic();
+        finalPubKey = ecCurve.keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network]) {
         if (enableOneKey) {
-          nonceResult = await getNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oauthPubkeyX, oauthPubkeyY, oauthKey);
+          nonceResult = await getNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           if (nonceResult.typeOfUser === "v2") {
             typeOfUser = "v2";
             finalPubKey = ecCurve
-              .keyFromPublic({ x: oauthPubkeyX, y: oauthPubkeyY })
+              .keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY })
               .getPublic()
               .add(
                 ecCurve
@@ -490,44 +490,45 @@ export async function retrieveOrImportShare(params: {
           }
         } else {
           // for imported keys in legacy networks
-          metadataNonce = await getMetadata(legacyMetadataHost, { pub_key_X: oauthPubkeyX, pub_key_Y: oauthPubkeyY });
-          const privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
-          finalPubKey = ecCurve.keyFromPrivate(privateKeyWithNonce.toString()).getPublic();
+          metadataNonce = await getMetadata(legacyMetadataHost, { pub_key_X: oAuthPubkeyX, pub_key_Y: oAuthPubkeyY });
+          const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
+          finalPubKey = ecCurve.keyFromPrivate(privateKeyWithNonce.toString(16, 64), "hex").getPublic();
         }
       } else {
+        // TODO: What is the typeofuser here?
         finalPubKey = ecCurve
-          .keyFromPublic({ x: oauthPubkeyX, y: oauthPubkeyY })
+          .keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY })
           .getPublic()
           .add(
             ecCurve.keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y }).getPublic()
           );
       }
 
-      const oauthKeyAddress = generateAddressFromPrivKey(ecCurve, oauthKey);
+      const oAuthKeyAddress = generateAddressFromPrivKey(ecCurve, oAuthKey);
 
       // deriving address from pub key coz pubkey is always available
       // but finalPrivKey won't be available for  v2 user upgraded to 2/n
-      const finalevmAddress = generateAddressFromPubKey(ecCurve, finalPubKey.getX(), finalPubKey.getY());
-      log.debug("> torus.js/retrieveShares", { finalevmAddress });
+      const finalEvmAddress = generateAddressFromPubKey(ecCurve, finalPubKey.getX(), finalPubKey.getY());
+      log.debug("> torus.js/retrieveShares", { finalEvmAddress });
       let finalPrivKey = ""; // it is empty for v2 user upgraded to 2/n
       if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
-        const privateKeyWithNonce = oauthKey.add(metadataNonce).umod(ecCurve.curve.n);
-        finalPrivKey = privateKeyWithNonce.toString("hex", 64).padStart(64, "0");
+        const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
+        finalPrivKey = privateKeyWithNonce.toString("hex", 64);
       }
 
       // return reconstructed private key and ethereum address
       return {
         finalKeyData: {
-          evmAddress: finalevmAddress,
+          evmAddress: finalEvmAddress,
           X: finalPubKey.getX().toString(), // this is final pub x user before and after updating to 2/n
           Y: finalPubKey.getY().toString(), // this is final pub y user before and after updating to 2/n
           privKey: finalPrivKey,
         },
-        oauthKeyData: {
-          evmAddress: oauthKeyAddress,
-          X: oauthPubkeyX,
-          Y: oauthPubkeyY,
-          privKey: oauthKey.toString("hex", 64).padStart(64, "0"),
+        oAuthKeyData: {
+          evmAddress: oAuthKeyAddress,
+          X: oAuthPubkeyX,
+          Y: oAuthPubkeyY,
+          privKey: oAuthKey.toString("hex", 64).padStart(64, "0"),
         },
         sessionData: {
           sessionTokenData,
@@ -539,7 +540,7 @@ export async function retrieveOrImportShare(params: {
         nodesData: {
           nodeIndexes: nodeIndexes.map((x) => x.toNumber()),
         },
-      };
+      } as RetrieveSharesResponse;
     });
 }
 

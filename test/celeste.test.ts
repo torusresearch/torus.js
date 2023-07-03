@@ -89,7 +89,7 @@ describe("torus utils celeste", function () {
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const { finalKeyData, oauthKeyData } = await torus.retrieveShares(
+    const { finalKeyData, oAuthKeyData } = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_AGGREGATE_VERIFIER,
@@ -100,7 +100,7 @@ describe("torus utils celeste", function () {
       },
       hashedIdToken.substring(2)
     );
-    expect(oauthKeyData.evmAddress).to.be.equal("0x535Eb1AefFAc6f699A2a1A5846482d7b5b2BD564");
+    expect(oAuthKeyData.evmAddress).to.be.equal("0x535Eb1AefFAc6f699A2a1A5846482d7b5b2BD564");
     expect(finalKeyData.evmAddress).to.be.equal("0x451AF9da3f9F85C033308DE0097A8BCbC96386db");
   });
 });

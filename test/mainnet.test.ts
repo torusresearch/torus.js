@@ -74,14 +74,14 @@ describe("torus utils mainnet", function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const { finalKeyData, oauthKeyData } = await torus.retrieveShares(
+    const { finalKeyData, oAuthKeyData } = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: TORUS_TEST_EMAIL },
       token
     );
-    expect(oauthKeyData.evmAddress).to.be.equal("0x90A926b698047b4A87265ba1E9D8b512E8489067");
+    expect(oAuthKeyData.evmAddress).to.be.equal("0x90A926b698047b4A87265ba1E9D8b512E8489067");
     expect(finalKeyData.privKey).to.be.equal("0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44");
     expect(finalKeyData.evmAddress).to.be.equal("0xB4d9D085AA7f28dC60De88e343A32363079b4A59");
   });
@@ -91,7 +91,7 @@ describe("torus utils mainnet", function () {
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const { finalKeyData, oauthKeyData } = await torus.retrieveShares(
+    const { finalKeyData, oAuthKeyData } = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_AGGREGATE_VERIFIER,
@@ -103,7 +103,7 @@ describe("torus utils mainnet", function () {
       hashedIdToken.substring(2)
     );
 
-    expect(oauthKeyData.evmAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
+    expect(oAuthKeyData.evmAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
 
     expect(finalKeyData.evmAddress).to.be.equal("0xA5F7751515b8561Ec7aF1Fba589ac4eeAE008578");
   });
