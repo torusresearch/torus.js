@@ -7,6 +7,7 @@ export interface KeyIndex {
   service_group_id: string;
   tag: "imported" | "generated"; // we tag keys so that we can identify if generated using dkg or externally imported by user
 }
+
 export type UserType = "v1" | "v2";
 export type v2NonceResultType = { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
 
@@ -51,7 +52,7 @@ export interface TorusPublicKey {
     pubNonce?: { x: string; y: string };
     nonce?: BN;
     upgraded: boolean;
-    typeOfUser: "v1" | "v2";
+    typeOfUser: UserType;
   };
   nodesData: {
     nodeIndexes: number[];

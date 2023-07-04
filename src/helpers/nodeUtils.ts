@@ -20,6 +20,7 @@ import {
   SessionToken,
   ShareRequestResult,
   SignerResponse,
+  UserType,
   v2NonceResultType,
   VerifierLookupResponse,
   VerifierParams,
@@ -494,7 +495,7 @@ export async function retrieveOrImportShare(params: {
       const oAuthPubkeyY = oAuthPubKey.slice(66);
       let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
       let finalPubKey: curve.base.BasePoint;
-      let typeOfUser = "v1";
+      let typeOfUser: UserType = "v1";
       // extended_verifier_id is only exception for torus-test-health verifier
       // otherwise extended verifier id should not even return shares.
       if (verifierParams.extended_verifier_id) {
