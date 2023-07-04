@@ -37,6 +37,7 @@ import {
   SetNonceData,
   TorusCtorOptions,
   TorusPublicKey,
+  UserType,
   v2NonceResultType,
   VerifierParams,
 } from "./interfaces";
@@ -474,6 +475,12 @@ class Torus {
           finalPrivKey = privateKeyWithNonce.toString("hex", 64).padStart(64, "0");
         }
 
+        let isUpgraded: boolean | null = false;
+        if (typeOfUser === "v1") {
+          isUpgraded = null;
+        } else if (typeOfUser === "v2") {
+          isUpgraded = metadataNonce.eq(new BN("0"));
+        }
         return {
           finalKeyData: {
             evmAddress: finalEvmAddress,
@@ -493,6 +500,8 @@ class Torus {
           },
           metadata: {
             metadataNonce,
+            typeOfUser: typeOfUser as UserType,
+            upgraded: isUpgraded,
           },
           nodesData: {
             nodeIndexes: [],

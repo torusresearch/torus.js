@@ -7,7 +7,7 @@ export interface KeyIndex {
   service_group_id: string;
   tag: "imported" | "generated"; // we tag keys so that we can identify if generated using dkg or externally imported by user
 }
-
+export type UserType = "v1" | "v2";
 export type v2NonceResultType = { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
 
 export type v1NonceResultType = { typeOfUser: "v1"; nonce?: string };
@@ -79,6 +79,7 @@ export interface CommitmentRequestResult {
   data: string;
   nodepubx: string;
   nodepuby: string;
+  nodeindex: number;
 }
 
 export interface JRPCResponse<T> {
@@ -206,7 +207,8 @@ export interface RetrieveSharesResponse {
   };
   metadata: {
     metadataNonce: BN;
-    // TODO: return upgraded or not here
+    typeOfUser: UserType;
+    upgraded: boolean | null;
   };
   nodesData: {
     nodeIndexes: number[];

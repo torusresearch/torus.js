@@ -202,8 +202,20 @@ export async function retrieveOrImportShare(params: {
       return true;
     });
 
-    if (completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
-      return Promise.resolve(completedRequests);
+    // we need to get commitments from all endpoints for importing share
+    if (importedShares.length > 0 && completedRequests.length === endpoints.length) {
+      return Promise.resolve(resultArr);
+    } else if (importedShares.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
+      const requiredNodeResult = completedRequests.find((resp: JRPCResponse<CommitmentRequestResult>) => {
+        if (resp && resp.result?.nodeindex === 1) {
+          return true;
+        }
+        return false;
+      });
+
+      if (requiredNodeResult) {
+        return Promise.resolve(resultArr);
+      }
     }
 
     return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
@@ -212,9 +224,23 @@ export async function retrieveOrImportShare(params: {
       const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult>>[] = [];
       const nodeSigs: CommitmentRequestResult[] = [];
       for (let i = 0; i < responses.length; i += 1) {
-        if (responses[i]) nodeSigs.push((responses[i] as JRPCResponse<CommitmentRequestResult>).result);
+        const x = responses[i];
+        if (!x || typeof x !== "object") {
+          continue;
+        }
+        if (x.error) {
+          continue;
+        }
+        if (x) nodeSigs.push((x as JRPCResponse<CommitmentRequestResult>).result);
       }
       for (let i = 0; i < endpoints.length; i += 1) {
+        const x = responses[i];
+        if (!x || typeof x !== "object") {
+          continue;
+        }
+        if (x.error) {
+          continue;
+        }
         if (isImportShareReq) {
           const importedShare = importedShares[i];
           const p = post<JRPCResponse<ImportShareRequestResult>>(
@@ -310,11 +336,12 @@ export async function retrieveOrImportShare(params: {
           );
         }
 
+        const thresholdReqCount = importedShares.length > 0 ? endpoints.length : ~~(endpoints.length / 2) + 1;
         // optimistically run lagrange interpolation once threshold number of shares have been received
         // this is matched against the user public key to ensure that shares are consistent
         // Note: no need of thresholdMetadataNonce for extended_verifier_id key
         if (
-          completedRequests.length >= ~~(endpoints.length / 2) + 1 &&
+          completedRequests.length >= thresholdReqCount &&
           thresholdPublicKey &&
           (thresholdNonceData || verifierParams.extended_verifier_id || LEGACY_NETWORKS_ROUTE_MAP[network])
         ) {
@@ -454,6 +481,7 @@ export async function retrieveOrImportShare(params: {
 
           return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes };
         }
+        throw new Error("Invalid");
       });
     })
     .then(async (res) => {
@@ -477,8 +505,8 @@ export async function retrieveOrImportShare(params: {
         if (enableOneKey) {
           nonceResult = await getNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
-          if (nonceResult.typeOfUser === "v2") {
-            typeOfUser = "v2";
+          typeOfUser = nonceResult.typeOfUser;
+          if (typeOfUser === "v2") {
             finalPubKey = ecCurve
               .keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY })
               .getPublic()
@@ -489,13 +517,14 @@ export async function retrieveOrImportShare(params: {
               );
           }
         } else {
+          typeOfUser = "v1";
           // for imported keys in legacy networks
           metadataNonce = await getMetadata(legacyMetadataHost, { pub_key_X: oAuthPubkeyX, pub_key_Y: oAuthPubkeyY });
           const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
           finalPubKey = ecCurve.keyFromPrivate(privateKeyWithNonce.toString(16, 64), "hex").getPublic();
         }
       } else {
-        // TODO: What is the typeofuser here?
+        typeOfUser = "v2";
         finalPubKey = ecCurve
           .keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY })
           .getPublic()
@@ -516,6 +545,12 @@ export async function retrieveOrImportShare(params: {
         finalPrivKey = privateKeyWithNonce.toString("hex", 64);
       }
 
+      let isUpgraded: boolean | null = false;
+      if (typeOfUser === "v1") {
+        isUpgraded = null;
+      } else if (typeOfUser === "v2") {
+        isUpgraded = metadataNonce.eq(new BN("0"));
+      }
       // return reconstructed private key and ethereum address
       return {
         finalKeyData: {
@@ -536,6 +571,8 @@ export async function retrieveOrImportShare(params: {
         },
         metadata: {
           metadataNonce,
+          typeOfUser,
+          upgraded: isUpgraded,
         },
         nodesData: {
           nodeIndexes: nodeIndexes.map((x) => x.toNumber()),

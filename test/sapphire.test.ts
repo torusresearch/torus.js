@@ -9,7 +9,7 @@ import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
 
 const TORUS_TEST_EMAIL = "saasas@tr.us";
-const TORUS_IMPORT_EMAIL = "importeduser3@tor.us";
+const TORUS_IMPORT_EMAIL = "importeduser5@tor.us";
 
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
 
@@ -121,6 +121,13 @@ describe("torus utils sapphire", function () {
     const { finalPubKeyData } = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(finalPubKeyData.evmAddress).to.equal("0x4924F91F5d6701dDd41042D94832bB17B76F316F");
   });
+  it("should fetch public address of imported user", async function () {
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const { finalPubKeyData } = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+    expect(finalPubKeyData.evmAddress).to.not.equal(null);
+  });
 
   it("should keep public address same", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: faker.internet.email() };
@@ -177,7 +184,7 @@ describe("torus utils sapphire", function () {
     );
     expect(finalKeyData.privKey).to.be.equal("04eb166ddcf59275a210c7289dca4a026f87a33fd2d6ed22f56efae7eab4052c");
   });
-  it.skip("should be able to import a key for a new user", async function () {
+  it("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const privKeyBuffer = generatePrivate();
@@ -195,12 +202,10 @@ describe("torus utils sapphire", function () {
     );
     expect(finalKeyData.privKey).to.be.equal(privHex);
   });
-  it.skip("should be able to import a key for a existing user", async function () {
+  it("should be able to import a key for a existing user", async function () {
     let verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const { finalPubKeyData } = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(finalPubKeyData.evmAddress).to.not.equal(null);
     const token = generateIdToken(TORUS_IMPORT_EMAIL, "ES256");
     const privKeyBuffer = generatePrivate();
     const privHex = privKeyBuffer.toString("hex");
