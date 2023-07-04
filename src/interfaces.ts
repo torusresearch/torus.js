@@ -207,7 +207,7 @@ export interface RetrieveSharesResponse {
     sessionAuthKey: string;
   };
   metadata: {
-    metadataNonce: BN;
+    nonce: BN;
     typeOfUser: UserType;
     upgraded: boolean | null;
   };

@@ -171,7 +171,7 @@ describe("torus utils celeste", function () {
         privKey: "0ae056aa938080c9e8bf6641261619e09fd510c91bb5aad14b0de9742085a914",
       },
       sessionData: { sessionTokenData: [], sessionAuthKey: "" },
-      metadata: { metadataNonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      metadata: { nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: [] },
     });
   });
@@ -208,7 +208,7 @@ describe("torus utils celeste", function () {
         privKey: "356305761eca57f27b09700d76456ad627b084152725dbfdfcfa0abcd9d4f17e",
       },
       sessionData: { sessionTokenData: [], sessionAuthKey: "" },
-      metadata: { metadataNonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      metadata: { nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: [] },
     });
   });

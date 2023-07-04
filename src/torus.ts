@@ -499,7 +499,7 @@ class Torus {
             sessionAuthKey: "",
           },
           metadata: {
-            metadataNonce,
+            nonce: metadataNonce,
             typeOfUser: typeOfUser as UserType,
             upgraded: isUpgraded,
           },

@@ -176,7 +176,7 @@ describe("torus utils mainnet", function () {
         privKey: "0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44",
       },
       sessionData: { sessionTokenData: [], sessionAuthKey: "" },
-      metadata: { metadataNonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      metadata: { nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: [] },
     });
   });
@@ -214,7 +214,7 @@ describe("torus utils mainnet", function () {
         privKey: "f55d89088a0c491d797c00da5b2ed6dc9c269c960ff121e45f255d06a91c6534",
       },
       sessionData: { sessionTokenData: [], sessionAuthKey: "" },
-      metadata: { metadataNonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      metadata: { nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: [] },
     });
   });

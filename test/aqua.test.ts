@@ -171,7 +171,7 @@ describe("torus utils aqua", function () {
         privKey: "f726ce4ac79ae4475d72633c94769a8817aff35eebe2d4790aed7b5d8a84aa1d",
       },
       sessionData: { sessionTokenData: [], sessionAuthKey: "" },
-      metadata: { metadataNonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      metadata: { nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: [] },
     });
   });
@@ -209,7 +209,7 @@ describe("torus utils aqua", function () {
         privKey: "488d39ac548e15cfb0eaf161d86496e1645b09437df21311e24a56c4efd76355",
       },
       sessionData: { sessionTokenData: [], sessionAuthKey: "" },
-      metadata: { metadataNonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      metadata: { nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: [] },
     });
   });

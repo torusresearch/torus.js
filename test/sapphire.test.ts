@@ -112,7 +112,7 @@ describe("torus utils sapphire", function () {
         privKey: "dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9",
       },
       metadata: {
-        metadataNonce: new BN(0),
+        nonce: new BN(0),
         upgraded: null,
         typeOfUser: "v1",
       },
@@ -340,7 +340,7 @@ describe("torus utils sapphire", function () {
         sessionAuthKey: result.sessionData.sessionAuthKey,
       },
       metadata: {
-        metadataNonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
+        nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
         typeOfUser: "v2",
         upgraded: false,
       },
@@ -379,7 +379,7 @@ describe("torus utils sapphire", function () {
         sessionAuthKey: result.sessionData.sessionAuthKey,
       },
       metadata: {
-        metadataNonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
+        nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
         typeOfUser: "v2",
         upgraded: false,
       },
@@ -490,7 +490,7 @@ describe("torus utils sapphire", function () {
     expect(result.finalKeyData.privKey).to.not.equal(null);
     expect(result.oAuthKeyData.evmAddress).to.not.equal(null);
     expect(result.metadata.typeOfUser).to.equal("v2");
-    expect(result.metadata.metadataNonce).to.eql(new BN("0"));
+    expect(result.metadata.nonce).to.eql(new BN("0"));
     expect(result.metadata.upgraded).to.equal(true);
   });
 
@@ -598,7 +598,7 @@ describe("torus utils sapphire", function () {
         sessionAuthKey: result.sessionData.sessionAuthKey,
       },
       metadata: {
-        metadataNonce: new BN("51eb06f7901d5a8562274d3e53437328ca41ad96926f075122f6bd50e31be52d", "hex"),
+        nonce: new BN("51eb06f7901d5a8562274d3e53437328ca41ad96926f075122f6bd50e31be52d", "hex"),
         typeOfUser: "v2",
         upgraded: false,
       },
@@ -629,7 +629,7 @@ describe("torus utils sapphire", function () {
     expect(result.finalKeyData.evmAddress).to.not.equal("");
     expect(result.oAuthKeyData.evmAddress).to.not.equal(null);
     expect(result.metadata.typeOfUser).to.equal("v2");
-    expect(result.metadata.metadataNonce).to.not.equal(null);
+    expect(result.metadata.nonce).to.not.equal(null);
     expect(result.metadata.upgraded).to.equal(false);
   });
 });

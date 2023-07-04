@@ -177,7 +177,7 @@ describe("torus utils migrated testnet on sapphire", function () {
         sessionTokenData: result.sessionData.sessionTokenData,
         sessionAuthKey: result.sessionData.sessionAuthKey,
       },
-      metadata: { metadataNonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      metadata: { nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
   });
@@ -218,7 +218,7 @@ describe("torus utils migrated testnet on sapphire", function () {
         sessionTokenData: result.sessionData.sessionTokenData,
         sessionAuthKey: result.sessionData.sessionAuthKey,
       },
-      metadata: { metadataNonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      metadata: { nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
   });

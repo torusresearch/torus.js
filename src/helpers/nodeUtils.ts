@@ -571,7 +571,7 @@ export async function retrieveOrImportShare(params: {
           sessionAuthKey: sessionAuthKey.toString("hex").padStart(64, "0"),
         },
         metadata: {
-          metadataNonce,
+          nonce: metadataNonce,
           typeOfUser,
           upgraded: isUpgraded,
         },
