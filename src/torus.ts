@@ -442,6 +442,7 @@ class Torus {
         let metadataNonce: BN;
         let finalPubKey: curve.base.BasePoint;
         let typeOfUser: UserType = "v1";
+        let pubKeyNonceResult: { x: string; y: string } | undefined;
         if (this.enableOneKey) {
           const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
@@ -455,6 +456,7 @@ class Torus {
                   .keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y })
                   .getPublic()
               );
+            pubKeyNonceResult = (nonceResult as v2NonceResultType).pubNonce;
           }
         } else {
           // for imported keys in legacy networks
@@ -499,6 +501,7 @@ class Torus {
             sessionAuthKey: "",
           },
           metadata: {
+            pubNonce: pubKeyNonceResult,
             nonce: metadataNonce,
             typeOfUser: typeOfUser as UserType,
             upgraded: isUpgraded,

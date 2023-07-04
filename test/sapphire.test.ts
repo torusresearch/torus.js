@@ -112,6 +112,7 @@ describe("torus utils sapphire", function () {
         privKey: "dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9",
       },
       metadata: {
+        pubNonce: undefined,
         nonce: new BN(0),
         upgraded: null,
         typeOfUser: "v1",
@@ -236,21 +237,21 @@ describe("torus utils sapphire", function () {
     expect(result.finalPubKeyData.evmAddress).to.not.equal(null);
     expect(result).eql({
       oAuthPubKeyData: {
-        evmAddress: "0xCd8133df1926cB15Bddf4c70b0f43543B58635AB",
-        x: "f5bf4f42cc38b938606eeab6d131ced341e990d7abf30403d17c77311c43f6a6",
-        y: "f60c4acc8a58a724f58fcf3b87b14303ba088ac5f9a8d81a0fcc199b5929ffb2",
+        evmAddress: "0x3a9fbDdd78bD094DFE20A88A70D8f3D7133d6e55",
+        x: "365c8da0402c8ca70fa434e88e8a5788e84292101e447ac070b6d04dc1c09606",
+        y: "fd05d26bbf4c2b4c2a9c783da1399124101c2e8e400891f0484346883471145a",
       },
       finalPubKeyData: {
-        evmAddress: "0x8DCf13f835954b6533cD929A9617B44ad1D827F5",
-        x: "e6b8354b6fcc104cb11c979002c5f2e577ebe9e14f6609d1a12e77823aa10ad7",
-        y: "1a9b3309b82433e626818d2cc25af39c7713a1e80ee9a3f7fc02650642ae0bd0",
+        evmAddress: "0xE8c6c6F92B776397E2a60d79d94B998b8545eA40",
+        x: "d878f7f727c6195464fc3baf227466208906e1bac2b42d755a809db334aec818",
+        y: "207e890a1c53abfd5c5186e176b2f8e4f6954f445696d1f41b5ad5f171be5a81",
       },
       metadata: {
         pubNonce: {
-          x: "d1749ff52f432c4699f9a0d756c35bb4dc60b82fed70345fc6f8cfb3b94aba62",
-          y: "7087aff1d0facf67dfdf004b5b8b122d99e0eb53accf113b90f8ecaaacb05b25",
+          x: "14b6e017ff7b4b2a81a82fe3f119e4dc6806a4ca1bd2291f3cc382d14d7d7f28",
+          y: "8ee9bdf9b19ca3559c5c920157ba97c4f1a51e6e4e2933d292de822bd6fd16e0",
         },
-        nonce: new BN("d875112f0d863018e10b820da403a7cc7aec3a5dc88e6d07ba68815cb334c549", "hex"),
+        nonce: new BN("7eed6988a548438fefc20e6eb7a647c7639c650a99bd985b8892e319272b4ad0", "hex"),
         upgraded: false,
         typeOfUser: "v2",
       },
@@ -340,6 +341,10 @@ describe("torus utils sapphire", function () {
         sessionAuthKey: result.sessionData.sessionAuthKey,
       },
       metadata: {
+        pubNonce: {
+          x: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
+          y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
+        },
         nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
         typeOfUser: "v2",
         upgraded: false,
@@ -379,6 +384,10 @@ describe("torus utils sapphire", function () {
         sessionAuthKey: result.sessionData.sessionAuthKey,
       },
       metadata: {
+        pubNonce: {
+          x: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
+          y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
+        },
         nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
         typeOfUser: "v2",
         upgraded: false,
@@ -598,6 +607,10 @@ describe("torus utils sapphire", function () {
         sessionAuthKey: result.sessionData.sessionAuthKey,
       },
       metadata: {
+        pubNonce: {
+          x: "d6404befc44e3ab77a8387829d77e9c77a9c2fb37ae314c3a59bdc108d70349d",
+          y: "1054dfe297f1d977ccc436109cbcce64e95b27f93efc0f1dab739c9146eda2e",
+        },
         nonce: new BN("51eb06f7901d5a8562274d3e53437328ca41ad96926f075122f6bd50e31be52d", "hex"),
         typeOfUser: "v2",
         upgraded: false,

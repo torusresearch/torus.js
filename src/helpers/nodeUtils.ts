@@ -495,6 +495,7 @@ export async function retrieveOrImportShare(params: {
       const oAuthPubkeyY = oAuthPubKey.slice(66);
       let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
       let finalPubKey: curve.base.BasePoint;
+      let pubNonce: { x: string; y: string } | undefined;
       let typeOfUser: UserType = "v1";
       // extended_verifier_id is only exception for torus-test-health verifier
       // otherwise extended verifier id should not even return shares.
@@ -532,6 +533,7 @@ export async function retrieveOrImportShare(params: {
           .add(
             ecCurve.keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y }).getPublic()
           );
+        pubNonce = (nonceResult as v2NonceResultType).pubNonce;
       }
 
       const oAuthKeyAddress = generateAddressFromPrivKey(ecCurve, oAuthKey);
@@ -571,6 +573,7 @@ export async function retrieveOrImportShare(params: {
           sessionAuthKey: sessionAuthKey.toString("hex").padStart(64, "0"),
         },
         metadata: {
+          pubNonce,
           nonce: metadataNonce,
           typeOfUser,
           upgraded: isUpgraded,

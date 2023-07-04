@@ -176,7 +176,7 @@ describe("torus utils cyan", function () {
         privKey: "1e0c955d73e73558f46521da55cc66de7b8fcb56c5b24e851616849b6a1278c8",
       },
       sessionData: { sessionTokenData: [], sessionAuthKey: "" },
-      metadata: { nonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: [] },
     });
   });
@@ -214,7 +214,7 @@ describe("torus utils cyan", function () {
         privKey: "45a5b62c4ff5490baa75d33bf4f03ba6c5b0095678b0f4055312eef7b780b7bf",
       },
       sessionData: { sessionTokenData: [], sessionAuthKey: "" },
-      metadata: { nonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: [] },
     });
   });
