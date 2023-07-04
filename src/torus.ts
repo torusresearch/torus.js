@@ -441,7 +441,7 @@ class Torus {
         const oAuthKeyY = oAuthPubKey.slice(66);
         let metadataNonce: BN;
         let finalPubKey: curve.base.BasePoint;
-        let typeOfUser = "v1";
+        let typeOfUser: UserType = "v1";
         if (this.enableOneKey) {
           const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
