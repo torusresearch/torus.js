@@ -7,11 +7,11 @@ import { keccak256, TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
 
-const TORUS_TEST_EMAIL = "test1@tor.us";
+const TORUS_TEST_EMAIL = "archit1@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe("torus utils migrated testnet on sapphire", function () {
+describe.only("torus utils migrated testnet on sapphire", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -26,7 +26,7 @@ describe("torus utils migrated testnet on sapphire", function () {
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const { finalPubKeyData } = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
-    expect(finalPubKeyData.evmAddress).to.equal("0x3894D3b9bC3cEca97E86E438CDf42E38FF821f99");
+    expect(finalPubKeyData.evmAddress).to.equal("0x9bcBAde70546c0796c00323CD1b97fa0a425A506");
   });
 
   it("should fetch user type and public address", async function () {
@@ -34,7 +34,7 @@ describe("torus utils migrated testnet on sapphire", function () {
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const { finalPubKeyData, metadata } = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
-    expect(finalPubKeyData.evmAddress).to.equal("0x3894D3b9bC3cEca97E86E438CDf42E38FF821f99");
+    expect(finalPubKeyData.evmAddress).to.equal("0x9bcBAde70546c0796c00323CD1b97fa0a425A506");
     expect(metadata.typeOfUser).to.equal("v1");
 
     const v2Verifier = "tkey-google-lrc";
@@ -78,7 +78,7 @@ describe("torus utils migrated testnet on sapphire", function () {
       { verifier_id: TORUS_TEST_EMAIL },
       token
     );
-    expect(finalKeyData.privKey).to.be.equal("abca829ab2e5369b2f29737e19e3e29e5ee5e3dcdd9e14412f9a88f46263ed65");
+    expect(finalKeyData.privKey).to.be.equal("9b0fb017db14a0a25ed51f78a258713c8ae88b5e58a43acb70b22f9e2ee138e3");
   });
 
   it("should be able to aggregate login", async function () {
@@ -86,7 +86,7 @@ describe("torus utils migrated testnet on sapphire", function () {
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const { finalKeyData } = await torus.retrieveShares(
+    const { finalKeyData, oAuthKeyData, metadata } = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_AGGREGATE_VERIFIER,
@@ -97,6 +97,10 @@ describe("torus utils migrated testnet on sapphire", function () {
       },
       hashedIdToken.substring(2)
     );
-    expect(finalKeyData.evmAddress).to.be.equal("0xA89937F914Dd9401e3a0c7Ab6fC7a15e1CfCcDc4");
+
+    expect(metadata.typeOfUser).to.be.equal("v1");
+    expect(oAuthKeyData.evmAddress).to.be.equal("0x938a40E155d118BD31E439A9d92D67bd55317965");
+
+    expect(finalKeyData.evmAddress).to.be.equal("0x938a40E155d118BD31E439A9d92D67bd55317965");
   });
 });
