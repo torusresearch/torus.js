@@ -55,13 +55,13 @@ describe("torus utils sapphire", function () {
     expect(publicKeyData).eql({
       oAuthKeyData: {
         evmAddress: "0xf1e76fcDD28b5AA06De01de508fF21589aB9017E",
-        X: "b3f2b4d8b746353fe670e0c39ac9adb58056d4d7b718d06b623612d4ec49268b",
-        Y: "ac9f79dff78add39cdba380dbbf517c20cf2c1e06b32842a90a84a31f6eb9a9a",
+        x: "b3f2b4d8b746353fe670e0c39ac9adb58056d4d7b718d06b623612d4ec49268b",
+        y: "ac9f79dff78add39cdba380dbbf517c20cf2c1e06b32842a90a84a31f6eb9a9a",
       },
       finalKeyData: {
         evmAddress: "0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1",
-        X: "12f6b90d66bda29807cf9ff14b2e537c25080154fc4fafed446306e8356ff425",
-        Y: "e7c92e164b83e1b53e41e5d87d478bb07d7b19d105143e426e1ef08f7b37f224",
+        x: "12f6b90d66bda29807cf9ff14b2e537c25080154fc4fafed446306e8356ff425",
+        y: "e7c92e164b83e1b53e41e5d87d478bb07d7b19d105143e426e1ef08f7b37f224",
       },
       metadata: {
         pubNonce: undefined,
@@ -148,18 +148,18 @@ describe("torus utils sapphire", function () {
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x376597141d8d219553378313d18590F373B09795",
-        X: "86cd2db15b7a9937fa8ab7d0bf8e7f4113b64d1f4b2397aad35d6d4749d2fb6c",
-        Y: "86ef47a3724144331c31a3a322d85b6fc1a5d113b41eaa0052053b6e3c74a3e2",
+        x: "86cd2db15b7a9937fa8ab7d0bf8e7f4113b64d1f4b2397aad35d6d4749d2fb6c",
+        y: "86ef47a3724144331c31a3a322d85b6fc1a5d113b41eaa0052053b6e3c74a3e2",
       },
       finalKeyData: {
         evmAddress: "0xE91200d82029603d73d6E307DbCbd9A7D0129d8D",
-        X: "c350e338dde24df986915992fea6e0aef3560c245ca144ee7fe1498784c4ef4e",
-        Y: "a605e52b65d3635f89654519dfa7e31f7b45f206ef4189866ad0c2240d40f97f",
+        x: "c350e338dde24df986915992fea6e0aef3560c245ca144ee7fe1498784c4ef4e",
+        y: "a605e52b65d3635f89654519dfa7e31f7b45f206ef4189866ad0c2240d40f97f",
       },
       metadata: {
         pubNonce: {
-          X: "ad121b67fa550da814bbbd54ec7070705d058c941e04c03e07967b07b2f90345",
-          Y: "bfe2395b177a72ebb836aaf24cedff2f14cd9ed49047990f5cdb99e4981b5753",
+          x: "ad121b67fa550da814bbbd54ec7070705d058c941e04c03e07967b07b2f90345",
+          y: "bfe2395b177a72ebb836aaf24cedff2f14cd9ed49047990f5cdb99e4981b5753",
         },
         nonce: new BN(0),
         upgraded: false,
@@ -179,18 +179,18 @@ describe("torus utils sapphire", function () {
     expect(data).eql({
       oAuthKeyData: {
         evmAddress: "0xd45383fbF04BccFa0450d7d8ee453ca86b7C6544",
-        X: "d25cc473fbb448d20b5551f3c9aa121e1924b3d197353347187c47ad13ecd5d8",
-        Y: "3394000f43160a925e6c3017dde1354ecb2b61739571c6584f58edd6b923b0f5",
+        x: "d25cc473fbb448d20b5551f3c9aa121e1924b3d197353347187c47ad13ecd5d8",
+        y: "3394000f43160a925e6c3017dde1354ecb2b61739571c6584f58edd6b923b0f5",
       },
       finalKeyData: {
         evmAddress: "0x1016DA7c47A04C76036637Ea02AcF1d29c64a456",
-        X: "d3e222f6b23f0436b7c86e9cc4164eb5ea8448e4c0e7539c8b4f7fd00e8ec5c7",
-        Y: "1c47f5faccec6cf57c36919f6f0941fe3d8d65033cf2cc78f209304386044222",
+        x: "d3e222f6b23f0436b7c86e9cc4164eb5ea8448e4c0e7539c8b4f7fd00e8ec5c7",
+        y: "1c47f5faccec6cf57c36919f6f0941fe3d8d65033cf2cc78f209304386044222",
       },
       metadata: {
         pubNonce: {
-          X: "4f86b0e69992d1551f1b16ceb0909453dbe17b9422b030ee6c5471c2e16b65d0",
-          Y: "640384f3d39debb04c4e9fe5a5ec6a1b494b0ad66d00ac9be6f166f21d116ca4",
+          x: "4f86b0e69992d1551f1b16ceb0909453dbe17b9422b030ee6c5471c2e16b65d0",
+          y: "640384f3d39debb04c4e9fe5a5ec6a1b494b0ad66d00ac9be6f166f21d116ca4",
         },
         nonce: new BN(0),
         upgraded: true,
@@ -209,18 +209,18 @@ describe("torus utils sapphire", function () {
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0xac997dE675Fb69FCb0F4115A23c0061A892A2772",
-        X: "9508a251dfc4146a132feb96111c136538f4fabd20fc488dbcaaf762261c1528",
-        Y: "f9128bc7403bab6d45415cad01dd0ba0924628cfb6bf51c17e77aa8ca43b3cfe",
+        x: "9508a251dfc4146a132feb96111c136538f4fabd20fc488dbcaaf762261c1528",
+        y: "f9128bc7403bab6d45415cad01dd0ba0924628cfb6bf51c17e77aa8ca43b3cfe",
       },
       finalKeyData: {
         evmAddress: "0x4924F91F5d6701dDd41042D94832bB17B76F316F",
-        X: "f3eaf63bf1fd645d4159832ccaad7f42457e287ac929363ba636eb7e87978bff",
-        Y: "f3b9d8dd91927a89ec45199ad697fe3fa01b8b836710143a0babb1a4eb35f1cd",
+        x: "f3eaf63bf1fd645d4159832ccaad7f42457e287ac929363ba636eb7e87978bff",
+        y: "f3b9d8dd91927a89ec45199ad697fe3fa01b8b836710143a0babb1a4eb35f1cd",
       },
       metadata: {
         pubNonce: {
-          X: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
-          Y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
+          x: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
+          y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
         },
         nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
         upgraded: false,
@@ -235,29 +235,28 @@ describe("torus utils sapphire", function () {
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.not.equal(null);
-    // the result keeps changing in each iteration
-    // expect(result).eql({
-    //   oAuthKeyData: {
-    //     evmAddress: "0x3a9fbDdd78bD094DFE20A88A70D8f3D7133d6e55",
-    //     X: "365c8da0402c8ca70fa434e88e8a5788e84292101e447ac070b6d04dc1c09606",
-    //     Y: "fd05d26bbf4c2b4c2a9c783da1399124101c2e8e400891f0484346883471145a",
-    //   },
-    //   finalKeyData: {
-    //     evmAddress: "0xE8c6c6F92B776397E2a60d79d94B998b8545eA40",
-    //     X: "d878f7f727c6195464fc3baf227466208906e1bac2b42d755a809db334aec818",
-    //     Y: "207e890a1c53abfd5c5186e176b2f8e4f6954f445696d1f41b5ad5f171be5a81",
-    //   },
-    //   metadata: {
-    //     pubNonce: {
-    //       X: "14b6e017ff7b4b2a81a82fe3f119e4dc6806a4ca1bd2291f3cc382d14d7d7f28",
-    //       Y: "8ee9bdf9b19ca3559c5c920157ba97c4f1a51e6e4e2933d292de822bd6fd16e0",
-    //     },
-    //     nonce: new BN("7eed6988a548438fefc20e6eb7a647c7639c650a99bd985b8892e319272b4ad0", "hex"),
-    //     upgraded: false,
-    //     typeOfUser: "v2",
-    //   },
-    //   nodesData: { nodeIndexes: [] },
-    // });
+    expect(result).eql({
+      oAuthKeyData: {
+        evmAddress: "0x3a9fbDdd78bD094DFE20A88A70D8f3D7133d6e55",
+        x: "365c8da0402c8ca70fa434e88e8a5788e84292101e447ac070b6d04dc1c09606",
+        y: "fd05d26bbf4c2b4c2a9c783da1399124101c2e8e400891f0484346883471145a",
+      },
+      finalKeyData: {
+        evmAddress: "0xE8c6c6F92B776397E2a60d79d94B998b8545eA40",
+        x: "d878f7f727c6195464fc3baf227466208906e1bac2b42d755a809db334aec818",
+        y: "207e890a1c53abfd5c5186e176b2f8e4f6954f445696d1f41b5ad5f171be5a81",
+      },
+      metadata: {
+        pubNonce: {
+          x: "14b6e017ff7b4b2a81a82fe3f119e4dc6806a4ca1bd2291f3cc382d14d7d7f28",
+          y: "8ee9bdf9b19ca3559c5c920157ba97c4f1a51e6e4e2933d292de822bd6fd16e0",
+        },
+        nonce: new BN("7eed6988a548438fefc20e6eb7a647c7639c650a99bd985b8892e319272b4ad0", "hex"),
+        upgraded: false,
+        typeOfUser: "v2",
+      },
+      nodesData: { nodeIndexes: [] },
+    });
   });
 
   it("should keep public address same", async function () {
@@ -281,18 +280,18 @@ describe("torus utils sapphire", function () {
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0xac997dE675Fb69FCb0F4115A23c0061A892A2772",
-        X: "9508a251dfc4146a132feb96111c136538f4fabd20fc488dbcaaf762261c1528",
-        Y: "f9128bc7403bab6d45415cad01dd0ba0924628cfb6bf51c17e77aa8ca43b3cfe",
+        x: "9508a251dfc4146a132feb96111c136538f4fabd20fc488dbcaaf762261c1528",
+        y: "f9128bc7403bab6d45415cad01dd0ba0924628cfb6bf51c17e77aa8ca43b3cfe",
       },
       finalKeyData: {
         evmAddress: "0x4924F91F5d6701dDd41042D94832bB17B76F316F",
-        X: "f3eaf63bf1fd645d4159832ccaad7f42457e287ac929363ba636eb7e87978bff",
-        Y: "f3b9d8dd91927a89ec45199ad697fe3fa01b8b836710143a0babb1a4eb35f1cd",
+        x: "f3eaf63bf1fd645d4159832ccaad7f42457e287ac929363ba636eb7e87978bff",
+        y: "f3b9d8dd91927a89ec45199ad697fe3fa01b8b836710143a0babb1a4eb35f1cd",
       },
       metadata: {
         pubNonce: {
-          X: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
-          Y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
+          x: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
+          y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
         },
         nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
         upgraded: false,
@@ -343,8 +342,8 @@ describe("torus utils sapphire", function () {
       },
       metadata: {
         pubNonce: {
-          X: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
-          Y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
+          x: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
+          y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
         },
         nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
         typeOfUser: "v2",
@@ -386,8 +385,8 @@ describe("torus utils sapphire", function () {
       },
       metadata: {
         pubNonce: {
-          X: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
-          Y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
+          x: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
+          y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
         },
         nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
         typeOfUser: "v2",
@@ -449,13 +448,13 @@ describe("torus utils sapphire", function () {
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0xBd6Bc8aDC5f2A0526078Fd2016C4335f64eD3a30",
-        X: "d45d4ad45ec643f9eccd9090c0a2c753b1c991e361388e769c0dfa90c210348c",
-        Y: "fdc151b136aa7df94e97cc7d7007e2b45873c4b0656147ec70aad46e178bce1e",
+        x: "d45d4ad45ec643f9eccd9090c0a2c753b1c991e361388e769c0dfa90c210348c",
+        y: "fdc151b136aa7df94e97cc7d7007e2b45873c4b0656147ec70aad46e178bce1e",
       },
       finalKeyData: {
         evmAddress: "0xBd6Bc8aDC5f2A0526078Fd2016C4335f64eD3a30",
-        X: "d45d4ad45ec643f9eccd9090c0a2c753b1c991e361388e769c0dfa90c210348c",
-        Y: "fdc151b136aa7df94e97cc7d7007e2b45873c4b0656147ec70aad46e178bce1e",
+        x: "d45d4ad45ec643f9eccd9090c0a2c753b1c991e361388e769c0dfa90c210348c",
+        y: "fdc151b136aa7df94e97cc7d7007e2b45873c4b0656147ec70aad46e178bce1e",
       },
       metadata: {
         pubNonce: undefined,
@@ -513,18 +512,18 @@ describe("torus utils sapphire", function () {
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x4135ad20D2E9ACF37D64E7A6bD8AC34170d51219",
-        X: "9c591943683c0e5675f99626cea84153a3c5b72c6e7840f8b8b53d0f2bb50c67",
-        Y: "9d9896d82e565a2d5d437745af6e4560f3564c2ac0d0edcb72e0b508b3ac05a0",
+        x: "9c591943683c0e5675f99626cea84153a3c5b72c6e7840f8b8b53d0f2bb50c67",
+        y: "9d9896d82e565a2d5d437745af6e4560f3564c2ac0d0edcb72e0b508b3ac05a0",
       },
       finalKeyData: {
         evmAddress: "0xF79b5ffA48463eba839ee9C97D61c6063a96DA03",
-        X: "21cd0ae3168d60402edb8bd65c58ff4b3e0217127d5bb5214f03f84a76f24d8a",
-        Y: "575b7a4d0ef9921b3b1b84f30d412e87bc69b4eab83f6706e247cceb9e985a1e",
+        x: "21cd0ae3168d60402edb8bd65c58ff4b3e0217127d5bb5214f03f84a76f24d8a",
+        y: "575b7a4d0ef9921b3b1b84f30d412e87bc69b4eab83f6706e247cceb9e985a1e",
       },
       metadata: {
         pubNonce: {
-          X: "d6404befc44e3ab77a8387829d77e9c77a9c2fb37ae314c3a59bdc108d70349d",
-          Y: "1054dfe297f1d977ccc436109cbcce64e95b27f93efc0f1dab739c9146eda2e",
+          x: "d6404befc44e3ab77a8387829d77e9c77a9c2fb37ae314c3a59bdc108d70349d",
+          y: "1054dfe297f1d977ccc436109cbcce64e95b27f93efc0f1dab739c9146eda2e",
         },
         nonce: new BN("51eb06f7901d5a8562274d3e53437328ca41ad96926f075122f6bd50e31be52d", "hex"),
         upgraded: false,
@@ -556,18 +555,18 @@ describe("torus utils sapphire", function () {
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x4135ad20D2E9ACF37D64E7A6bD8AC34170d51219",
-        X: "9c591943683c0e5675f99626cea84153a3c5b72c6e7840f8b8b53d0f2bb50c67",
-        Y: "9d9896d82e565a2d5d437745af6e4560f3564c2ac0d0edcb72e0b508b3ac05a0",
+        x: "9c591943683c0e5675f99626cea84153a3c5b72c6e7840f8b8b53d0f2bb50c67",
+        y: "9d9896d82e565a2d5d437745af6e4560f3564c2ac0d0edcb72e0b508b3ac05a0",
       },
       finalKeyData: {
         evmAddress: "0xF79b5ffA48463eba839ee9C97D61c6063a96DA03",
-        X: "21cd0ae3168d60402edb8bd65c58ff4b3e0217127d5bb5214f03f84a76f24d8a",
-        Y: "575b7a4d0ef9921b3b1b84f30d412e87bc69b4eab83f6706e247cceb9e985a1e",
+        x: "21cd0ae3168d60402edb8bd65c58ff4b3e0217127d5bb5214f03f84a76f24d8a",
+        y: "575b7a4d0ef9921b3b1b84f30d412e87bc69b4eab83f6706e247cceb9e985a1e",
       },
       metadata: {
         pubNonce: {
-          X: "d6404befc44e3ab77a8387829d77e9c77a9c2fb37ae314c3a59bdc108d70349d",
-          Y: "1054dfe297f1d977ccc436109cbcce64e95b27f93efc0f1dab739c9146eda2e",
+          x: "d6404befc44e3ab77a8387829d77e9c77a9c2fb37ae314c3a59bdc108d70349d",
+          y: "1054dfe297f1d977ccc436109cbcce64e95b27f93efc0f1dab739c9146eda2e",
         },
         nonce: new BN("51eb06f7901d5a8562274d3e53437328ca41ad96926f075122f6bd50e31be52d", "hex"),
         upgraded: false,
@@ -609,8 +608,8 @@ describe("torus utils sapphire", function () {
       },
       metadata: {
         pubNonce: {
-          X: "d6404befc44e3ab77a8387829d77e9c77a9c2fb37ae314c3a59bdc108d70349d",
-          Y: "1054dfe297f1d977ccc436109cbcce64e95b27f93efc0f1dab739c9146eda2e",
+          x: "d6404befc44e3ab77a8387829d77e9c77a9c2fb37ae314c3a59bdc108d70349d",
+          y: "1054dfe297f1d977ccc436109cbcce64e95b27f93efc0f1dab739c9146eda2e",
         },
         nonce: new BN("51eb06f7901d5a8562274d3e53437328ca41ad96926f075122f6bd50e31be52d", "hex"),
         typeOfUser: "v2",
