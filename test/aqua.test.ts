@@ -30,17 +30,17 @@ describe("torus utils aqua", function () {
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
-    expect(result.finalPubKeyData.evmAddress).to.equal("0xDfA967285AC699A70DA340F60d00DB19A272639d");
+    expect(result.finalKeyData.evmAddress).to.equal("0xDfA967285AC699A70DA340F60d00DB19A272639d");
     expect(result).eql({
-      oAuthPubKeyData: {
+      oAuthKeyData: {
         evmAddress: "0xDfA967285AC699A70DA340F60d00DB19A272639d",
-        x: "4fc8db5d3fe164a3ab70fd6348721f2be848df2cc02fd2db316a154855a7aa7d",
-        y: "f76933cbf5fe2916681075bb6cb4cde7d5f6b6ce290071b1b7106747d906457c",
+        X: "4fc8db5d3fe164a3ab70fd6348721f2be848df2cc02fd2db316a154855a7aa7d",
+        Y: "f76933cbf5fe2916681075bb6cb4cde7d5f6b6ce290071b1b7106747d906457c",
       },
-      finalPubKeyData: {
+      finalKeyData: {
         evmAddress: "0xDfA967285AC699A70DA340F60d00DB19A272639d",
-        x: "4fc8db5d3fe164a3ab70fd6348721f2be848df2cc02fd2db316a154855a7aa7d",
-        y: "f76933cbf5fe2916681075bb6cb4cde7d5f6b6ce290071b1b7106747d906457c",
+        X: "4fc8db5d3fe164a3ab70fd6348721f2be848df2cc02fd2db316a154855a7aa7d",
+        Y: "f76933cbf5fe2916681075bb6cb4cde7d5f6b6ce290071b1b7106747d906457c",
       },
       metadata: {
         pubNonce: undefined,
@@ -57,18 +57,18 @@ describe("torus utils aqua", function () {
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result1 = (await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
-    expect(result1.finalPubKeyData.evmAddress).to.equal("0xDfA967285AC699A70DA340F60d00DB19A272639d");
+    expect(result1.finalKeyData.evmAddress).to.equal("0xDfA967285AC699A70DA340F60d00DB19A272639d");
     expect(result1.metadata.typeOfUser).to.equal("v1");
     expect(result1).eql({
-      oAuthPubKeyData: {
+      oAuthKeyData: {
         evmAddress: "0xDfA967285AC699A70DA340F60d00DB19A272639d",
-        x: "4fc8db5d3fe164a3ab70fd6348721f2be848df2cc02fd2db316a154855a7aa7d",
-        y: "f76933cbf5fe2916681075bb6cb4cde7d5f6b6ce290071b1b7106747d906457c",
+        X: "4fc8db5d3fe164a3ab70fd6348721f2be848df2cc02fd2db316a154855a7aa7d",
+        Y: "f76933cbf5fe2916681075bb6cb4cde7d5f6b6ce290071b1b7106747d906457c",
       },
-      finalPubKeyData: {
+      finalKeyData: {
         evmAddress: "0xDfA967285AC699A70DA340F60d00DB19A272639d",
-        x: "4fc8db5d3fe164a3ab70fd6348721f2be848df2cc02fd2db316a154855a7aa7d",
-        y: "f76933cbf5fe2916681075bb6cb4cde7d5f6b6ce290071b1b7106747d906457c",
+        X: "4fc8db5d3fe164a3ab70fd6348721f2be848df2cc02fd2db316a154855a7aa7d",
+        Y: "f76933cbf5fe2916681075bb6cb4cde7d5f6b6ce290071b1b7106747d906457c",
       },
       metadata: {
         pubNonce: undefined,
@@ -86,18 +86,18 @@ describe("torus utils aqua", function () {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     })) as TorusPublicKey;
-    expect(result2.finalPubKeyData.evmAddress).to.equal("0x5735dDC8d5125B23d77C3531aab3895A533584a3");
+    expect(result2.finalKeyData.evmAddress).to.equal("0x5735dDC8d5125B23d77C3531aab3895A533584a3");
     expect(result2.metadata.typeOfUser).to.equal("v1");
     expect(result2).eql({
-      oAuthPubKeyData: {
+      oAuthKeyData: {
         evmAddress: "0x5735dDC8d5125B23d77C3531aab3895A533584a3",
-        x: "e1b419bc52b82e14b148c307f10479cfa464d20c947555fb4758c586eab12873",
-        y: "75f47d7d5a271c0fcf51a790c1683a1cb3394b1d37d20e29c346ac249e3bfca2",
+        X: "e1b419bc52b82e14b148c307f10479cfa464d20c947555fb4758c586eab12873",
+        Y: "75f47d7d5a271c0fcf51a790c1683a1cb3394b1d37d20e29c346ac249e3bfca2",
       },
-      finalPubKeyData: {
+      finalKeyData: {
         evmAddress: "0x5735dDC8d5125B23d77C3531aab3895A533584a3",
-        x: "e1b419bc52b82e14b148c307f10479cfa464d20c947555fb4758c586eab12873",
-        y: "75f47d7d5a271c0fcf51a790c1683a1cb3394b1d37d20e29c346ac249e3bfca2",
+        X: "e1b419bc52b82e14b148c307f10479cfa464d20c947555fb4758c586eab12873",
+        Y: "75f47d7d5a271c0fcf51a790c1683a1cb3394b1d37d20e29c346ac249e3bfca2",
       },
       metadata: {
         pubNonce: undefined,
@@ -114,18 +114,18 @@ describe("torus utils aqua", function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     })) as TorusPublicKey;
-    expect(result3.finalPubKeyData.evmAddress).to.equal("0x4ce0D09C3989eb3cC9372cC27fa022D721D737dD");
+    expect(result3.finalKeyData.evmAddress).to.equal("0x4ce0D09C3989eb3cC9372cC27fa022D721D737dD");
     expect(result3.metadata.typeOfUser).to.equal("v1");
     expect(result3).eql({
-      oAuthPubKeyData: {
+      oAuthKeyData: {
         evmAddress: "0x4ce0D09C3989eb3cC9372cC27fa022D721D737dD",
-        x: "e76d2f7fa2c0df324b4ab74629c3af47aa4609c35f1d2b6b90b77a47ab9a1281",
-        y: "b33b35148d72d357070f66372e07fec436001bdb15c098276b120b9ed64c1e5f",
+        X: "e76d2f7fa2c0df324b4ab74629c3af47aa4609c35f1d2b6b90b77a47ab9a1281",
+        Y: "b33b35148d72d357070f66372e07fec436001bdb15c098276b120b9ed64c1e5f",
       },
-      finalPubKeyData: {
+      finalKeyData: {
         evmAddress: "0x4ce0D09C3989eb3cC9372cC27fa022D721D737dD",
-        x: "e76d2f7fa2c0df324b4ab74629c3af47aa4609c35f1d2b6b90b77a47ab9a1281",
-        y: "b33b35148d72d357070f66372e07fec436001bdb15c098276b120b9ed64c1e5f",
+        X: "e76d2f7fa2c0df324b4ab74629c3af47aa4609c35f1d2b6b90b77a47ab9a1281",
+        Y: "b33b35148d72d357070f66372e07fec436001bdb15c098276b120b9ed64c1e5f",
       },
       metadata: {
         pubNonce: undefined,
@@ -142,11 +142,11 @@ describe("torus utils aqua", function () {
     const email = faker.internet.email();
     const verifierDetails = { verifier, verifierId: email };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const { finalPubKeyData, oAuthPubKeyData, metadata } = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
-    expect(finalPubKeyData.evmAddress).to.not.equal("");
-    expect(finalPubKeyData.evmAddress).to.not.equal(null);
-    expect(oAuthPubKeyData.evmAddress).to.not.equal("");
-    expect(oAuthPubKeyData.evmAddress).to.not.equal(null);
+    const { finalKeyData, oAuthKeyData, metadata } = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
+    expect(finalKeyData.evmAddress).to.not.equal("");
+    expect(finalKeyData.evmAddress).to.not.equal(null);
+    expect(oAuthKeyData.evmAddress).to.not.equal("");
+    expect(oAuthKeyData.evmAddress).to.not.equal(null);
     expect(metadata.typeOfUser).to.equal("v1");
     expect(metadata.upgraded).to.equal(false);
   });

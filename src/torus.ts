@@ -33,9 +33,9 @@ import {
   LegacyShareRequestResult,
   LegacyVerifierLookupResponse,
   NonceMetadataParams,
-  RetrieveSharesResponse,
   SetNonceData,
   TorusCtorOptions,
+  TorusKey,
   TorusPublicKey,
   UserType,
   v2NonceResultType,
@@ -115,7 +115,7 @@ class Torus {
     verifierParams: VerifierParams,
     idToken: string,
     extraParams: Record<string, unknown> = {}
-  ): Promise<RetrieveSharesResponse> {
+  ): Promise<TorusKey> {
     if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams);
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
@@ -152,7 +152,7 @@ class Torus {
     idToken: string,
     newPrivateKey: string,
     extraParams: Record<string, unknown> = {}
-  ): Promise<RetrieveSharesResponse> {
+  ): Promise<TorusKey> {
     if (this.isLegacyNetwork) throw new Error("This function is not supported on legacy networks");
     if (endpoints.length !== nodeIndexes.length) {
       throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
@@ -240,7 +240,7 @@ class Torus {
     verifierParams: VerifierParams,
     idToken: string,
     extraParams: Record<string, unknown> = {}
-  ): Promise<RetrieveSharesResponse> {
+  ): Promise<TorusKey> {
     const promiseArr = [];
     await get<void>(
       this.allowHost,
@@ -442,7 +442,7 @@ class Torus {
         let metadataNonce: BN;
         let finalPubKey: curve.base.BasePoint;
         let typeOfUser: UserType = "v1";
-        let pubKeyNonceResult: { x: string; y: string } | undefined;
+        let pubKeyNonceResult: { X: string; Y: string } | undefined;
         if (this.enableOneKey) {
           const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
@@ -456,7 +456,7 @@ class Torus {
                   .keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y })
                   .getPublic()
               );
-            pubKeyNonceResult = (nonceResult as v2NonceResultType).pubNonce;
+            pubKeyNonceResult = { X: (nonceResult as v2NonceResultType).pubNonce.x, Y: (nonceResult as v2NonceResultType).pubNonce.y };
           }
         } else {
           // for imported keys in legacy networks
@@ -615,7 +615,7 @@ class Torus {
       throw new GetOrSetNonceError("metadata nonce is missing in share response");
     }
     const { pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0];
-    let pubNonce: { x: string; y: string } | undefined;
+    let pubNonce: { X: string; Y: string } | undefined;
     const nonce = new BN(nonceResult?.nonce || "0", 16);
     let oAuthPubKey: curve.base.BasePoint;
     let finalPubKey: curve.base.BasePoint;
@@ -639,7 +639,7 @@ class Torus {
         .getPublic()
         .add(this.ec.keyFromPublic({ x: v2NonceResult.pubNonce.x, y: v2NonceResult.pubNonce.y }).getPublic());
 
-      pubNonce = v2NonceResult.pubNonce;
+      pubNonce = { X: v2NonceResult.pubNonce.x, Y: v2NonceResult.pubNonce.y };
     }
 
     if (!oAuthPubKey) {
@@ -648,7 +648,7 @@ class Torus {
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
     const oAuthAddress = generateAddressFromPubKey(this.ec, oAuthPubKey.getX(), oAuthPubKey.getY());
-    log.debug("> torus.js/getPublicAddress, oAuthPubKeyData", { X: oAuthX, Y: oAuthY, oAuthAddress, nonce: nonce?.toString(16), pubNonce });
+    log.debug("> torus.js/getPublicAddress, oAuthKeyData", { X: oAuthX, Y: oAuthY, oAuthAddress, nonce: nonce?.toString(16), pubNonce });
 
     if (!finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
@@ -657,15 +657,15 @@ class Torus {
     const finalY = finalPubKey ? finalPubKey.getY().toString(16, 64) : "";
     const finalAddress = finalPubKey ? generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY()) : "";
     return {
-      oAuthPubKeyData: {
+      oAuthKeyData: {
         evmAddress: oAuthAddress,
-        x: oAuthX,
-        y: oAuthY,
+        X: oAuthX,
+        Y: oAuthY,
       },
-      finalPubKeyData: {
+      finalKeyData: {
         evmAddress: finalAddress,
-        x: finalX,
-        y: finalY,
+        X: finalX,
+        Y: finalY,
       },
       metadata: {
         pubNonce,
@@ -690,7 +690,7 @@ class Torus {
     let nonce: BN;
     let finalPubKey: curve.base.BasePoint;
     let typeOfUser: GetOrSetNonceResult["typeOfUser"];
-    let pubNonce: { x: string; y: string } | undefined;
+    let pubNonce: { X: string; Y: string } | undefined;
 
     const oAuthPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
 
@@ -712,7 +712,7 @@ class Torus {
           .keyFromPublic({ x: X, y: Y })
           .getPublic()
           .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
-        pubNonce = nonceResult.pubNonce;
+        pubNonce = { X: nonceResult.pubNonce.x, Y: nonceResult.pubNonce.y };
       } else {
         throw new Error("getOrSetNonce should always return typeOfUser.");
       }
@@ -731,7 +731,7 @@ class Torus {
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
     const oAuthAddress = generateAddressFromPubKey(this.ec, oAuthPubKey.getX(), oAuthPubKey.getY());
-    log.debug("> torus.js/getPublicAddress, oAuthPubKeyData", { X: oAuthX, Y: oAuthY, oAuthAddress, nonce: nonce?.toString(16), pubNonce });
+    log.debug("> torus.js/getPublicAddress, oAuthKeyData", { X: oAuthX, Y: oAuthY, oAuthAddress, nonce: nonce?.toString(16), pubNonce });
 
     if (typeOfUser === "v2" && !finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
@@ -740,15 +740,15 @@ class Torus {
     const finalY = finalPubKey ? finalPubKey.getY().toString(16, 64) : "";
     const finalAddress = finalPubKey ? generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY()) : "";
     return {
-      oAuthPubKeyData: {
+      oAuthKeyData: {
         evmAddress: oAuthAddress,
-        x: oAuthX,
-        y: oAuthY,
+        X: oAuthX,
+        Y: oAuthY,
       },
-      finalPubKeyData: {
+      finalKeyData: {
         evmAddress: finalAddress,
-        x: finalX,
-        y: finalY,
+        X: finalX,
+        Y: finalY,
       },
       metadata: {
         pubNonce,

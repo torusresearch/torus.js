@@ -37,28 +37,6 @@ export interface TorusCtorOptions {
   legacyMetadataHost?: string;
 }
 
-export interface TorusPublicKey {
-  oAuthPubKeyData: {
-    evmAddress: string;
-    x: string;
-    y: string;
-  };
-  finalPubKeyData: {
-    evmAddress: string;
-    x: string;
-    y: string;
-  };
-  metadata: {
-    pubNonce?: { x: string; y: string };
-    nonce?: BN;
-    upgraded: boolean;
-    typeOfUser: UserType;
-  };
-  nodesData: {
-    nodeIndexes: number[];
-  };
-}
-
 export interface LegacyVerifierLookupResponse {
   keys: { pub_key_X: string; pub_key_Y: string; address: string }[];
 }
@@ -188,36 +166,41 @@ export interface SessionToken {
   node_pubx: string;
   node_puby: string;
 }
-
-export interface RetrieveSharesResponse {
+export interface TorusPublicKey {
   finalKeyData: {
     evmAddress: string;
     X: string; // this is final pub x user before and after updating to 2/n
     Y: string; // this is final pub y user before and after updating to 2/n
-    privKey?: string;
   };
   oAuthKeyData: {
     evmAddress: string;
     X: string;
     Y: string;
-    privKey: string;
-  };
-  sessionData: {
-    sessionTokenData: SessionToken[];
-    sessionAuthKey: string;
   };
   metadata: {
-    pubNonce?: {
-      x: string;
-      y: string;
-    };
-    nonce: BN;
+    pubNonce?: { X: string; Y: string };
+    nonce?: BN;
     typeOfUser: UserType;
     upgraded: boolean | null;
   };
   nodesData: {
     nodeIndexes: number[];
   };
+}
+
+export interface TorusKey {
+  finalKeyData: TorusPublicKey["finalKeyData"] & {
+    privKey?: string;
+  };
+  oAuthKeyData: TorusPublicKey["oAuthKeyData"] & {
+    privKey: string;
+  };
+  sessionData: {
+    sessionTokenData: SessionToken[];
+    sessionAuthKey: string;
+  };
+  metadata: TorusPublicKey["metadata"] & Required<Pick<TorusPublicKey["metadata"], "nonce">>;
+  nodesData: TorusPublicKey["nodesData"];
 }
 
 export interface VerifierParams {

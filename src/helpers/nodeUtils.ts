@@ -16,10 +16,10 @@ import {
   KeyLookupResult,
   LegacyKeyLookupResult,
   LegacyVerifierLookupResponse,
-  RetrieveSharesResponse,
   SessionToken,
   ShareRequestResult,
   SignerResponse,
+  TorusKey,
   UserType,
   v2NonceResultType,
   VerifierLookupResponse,
@@ -120,7 +120,7 @@ export async function retrieveOrImportShare(params: {
   idToken: string;
   importedShares?: ImportedShare[];
   extraParams: Record<string, unknown>;
-}): Promise<RetrieveSharesResponse> {
+}): Promise<TorusKey> {
   const {
     legacyMetadataHost,
     serverTimeOffset,
@@ -495,7 +495,7 @@ export async function retrieveOrImportShare(params: {
       const oAuthPubkeyY = oAuthPubKey.slice(66);
       let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
       let finalPubKey: curve.base.BasePoint;
-      let pubNonce: { x: string; y: string } | undefined;
+      let pubNonce: { X: string; Y: string } | undefined;
       let typeOfUser: UserType = "v1";
       // extended_verifier_id is only exception for torus-test-health verifier
       // otherwise extended verifier id should not even return shares.
@@ -507,7 +507,7 @@ export async function retrieveOrImportShare(params: {
         if (enableOneKey) {
           nonceResult = await getNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
-          pubNonce = (nonceResult as v2NonceResultType).pubNonce;
+          pubNonce = { X: (nonceResult as v2NonceResultType).pubNonce.x, Y: (nonceResult as v2NonceResultType).pubNonce.y };
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {
             finalPubKey = ecCurve
@@ -534,7 +534,7 @@ export async function retrieveOrImportShare(params: {
           .add(
             ecCurve.keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y }).getPublic()
           );
-        pubNonce = (nonceResult as v2NonceResultType).pubNonce;
+        pubNonce = { X: (nonceResult as v2NonceResultType).pubNonce.x, Y: (nonceResult as v2NonceResultType).pubNonce.y };
       }
 
       const oAuthKeyAddress = generateAddressFromPrivKey(ecCurve, oAuthKey);
@@ -582,7 +582,7 @@ export async function retrieveOrImportShare(params: {
         nodesData: {
           nodeIndexes: nodeIndexes.map((x) => x.toNumber()),
         },
-      } as RetrieveSharesResponse;
+      } as TorusKey;
     });
 }
 
