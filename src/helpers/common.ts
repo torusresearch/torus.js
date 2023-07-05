@@ -8,8 +8,9 @@ import { EciesHex, VerifierLookupResponse } from "../interfaces";
 // like created_at field might vary and nonce_data might not be returned by all nodes because
 // of the metadata implementation in sapphire.
 export const normalizeKeysResult = (result: VerifierLookupResponse) => {
-  const finalResult: Pick<VerifierLookupResponse, "keys"> = {
+  const finalResult: Pick<VerifierLookupResponse, "keys" | "is_new_key"> = {
     keys: [],
+    is_new_key: result.is_new_key,
   };
   if (result && result.keys && result.keys.length > 0) {
     finalResult.keys = result.keys.map((key) => {

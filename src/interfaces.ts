@@ -1,4 +1,4 @@
-import type { INodePub, TORUS_SAPPHIRE_NETWORK_TYPE } from "@toruslabs/constants";
+import type { INodePub, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 
@@ -8,7 +8,11 @@ export interface KeyIndex {
   tag: "imported" | "generated"; // we tag keys so that we can identify if generated using dkg or externally imported by user
 }
 
-export type GetOrSetNonceResult = { nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
+export type UserType = "v1" | "v2";
+export type v2NonceResultType = { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
+
+export type v1NonceResultType = { typeOfUser: "v1"; nonce?: string };
+export type GetOrSetNonceResult = v2NonceResultType | v1NonceResultType;
 
 export interface SetNonceData {
   operation: string;
@@ -26,18 +30,37 @@ export interface NonceMetadataParams {
 
 export interface TorusCtorOptions {
   clientId: string;
-  network: TORUS_SAPPHIRE_NETWORK_TYPE;
+  network: TORUS_NETWORK_TYPE;
   enableOneKey?: boolean;
   serverTimeOffset?: number;
   allowHost?: string;
+  legacyMetadataHost?: string;
 }
 
-export interface TorusPublicKey extends INodePub {
-  address: string;
-  metadataNonce: BN;
-  pubNonce?: { x: string; y: string };
-  upgraded?: boolean;
-  nodeIndexes?: number[];
+export interface TorusPublicKey {
+  oAuthPubKeyData: {
+    evmAddress: string;
+    x: string;
+    y: string;
+  };
+  finalPubKeyData: {
+    evmAddress: string;
+    x: string;
+    y: string;
+  };
+  metadata: {
+    pubNonce?: { x: string; y: string };
+    nonce?: BN;
+    upgraded: boolean;
+    typeOfUser: UserType;
+  };
+  nodesData: {
+    nodeIndexes: number[];
+  };
+}
+
+export interface LegacyVerifierLookupResponse {
+  keys: { pub_key_X: string; pub_key_Y: string; address: string }[];
 }
 
 export interface VerifierLookupResponse {
@@ -57,6 +80,7 @@ export interface CommitmentRequestResult {
   data: string;
   nodepubx: string;
   nodepuby: string;
+  nodeindex: number;
 }
 
 export interface JRPCResponse<T> {
@@ -70,8 +94,13 @@ export interface JRPCResponse<T> {
   };
 }
 
+export interface LegacyKeyLookupResult {
+  keyResult: Pick<LegacyVerifierLookupResponse, "keys">;
+  errorResult: JRPCResponse<LegacyVerifierLookupResponse>["error"];
+}
+
 export interface KeyLookupResult {
-  keyResult: Pick<VerifierLookupResponse, "keys">;
+  keyResult: Pick<VerifierLookupResponse, "keys" | "is_new_key">;
   nodeIndexes: number[];
   errorResult: JRPCResponse<VerifierLookupResponse>["error"];
   nonceResult?: GetOrSetNonceResult;
@@ -82,7 +111,6 @@ export interface SignerResponse {
   "torus-nonce": string;
   "torus-signature": string;
 }
-
 export interface KeyAssignInput {
   endpoints: string[];
   torusNodePubs: INodePub[];
@@ -99,6 +127,19 @@ export type EciesHex = {
   [key in keyof Ecies]: string;
 } & { mode?: string };
 
+export interface LegacyKeyAssignment {
+  Index: string;
+  PublicKey: {
+    X: string;
+    Y: string;
+  };
+  Threshold: number;
+  Verifiers: Record<string, string>;
+  Share: string;
+  Metadata: {
+    [key in keyof Ecies]: string;
+  };
+}
 export interface KeyAssignment {
   index: KeyIndex;
   public_key: {
@@ -111,6 +152,10 @@ export interface KeyAssignment {
   share: string;
   share_metadata: EciesHex;
   nonce_data?: GetOrSetNonceResult;
+}
+
+export interface LegacyShareRequestResult {
+  keys: LegacyKeyAssignment[];
 }
 
 export interface ShareRequestResult {
@@ -143,17 +188,36 @@ export interface SessionToken {
   node_pubx: string;
   node_puby: string;
 }
+
 export interface RetrieveSharesResponse {
-  ethAddress: string;
-  privKey: string;
-  sessionTokenData: SessionToken[];
-  X: string;
-  Y: string;
-  metadataNonce: BN;
-  postboxPubKeyX: string;
-  postboxPubKeyY: string;
-  sessionAuthKey: string;
-  nodeIndexes: number[];
+  finalKeyData: {
+    evmAddress: string;
+    X: string; // this is final pub x user before and after updating to 2/n
+    Y: string; // this is final pub y user before and after updating to 2/n
+    privKey?: string;
+  };
+  oAuthKeyData: {
+    evmAddress: string;
+    X: string;
+    Y: string;
+    privKey: string;
+  };
+  sessionData: {
+    sessionTokenData: SessionToken[];
+    sessionAuthKey: string;
+  };
+  metadata: {
+    pubNonce?: {
+      x: string;
+      y: string;
+    };
+    nonce: BN;
+    typeOfUser: UserType;
+    upgraded: boolean | null;
+  };
+  nodesData: {
+    nodeIndexes: number[];
+  };
 }
 
 export interface VerifierParams {
@@ -165,3 +229,18 @@ export interface VerifierParams {
 export type BNString = string | BN;
 
 export type StringifiedType = Record<string, unknown>;
+
+export interface MetadataResponse {
+  message: string;
+}
+
+export interface MetadataParams {
+  namespace?: string;
+  pub_key_X: string;
+  pub_key_Y: string;
+  set_data: {
+    data: "getNonce" | "getOrSetNonce" | string;
+    timestamp: string;
+  };
+  signature: string;
+}

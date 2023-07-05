@@ -35,16 +35,16 @@ export function generateAddressFromPrivKey(ecCurve: ec, privateKey: BN): string 
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64), "hex");
   const publicKey = key.getPublic().encode("hex", false).slice(2);
   log.info(publicKey, "public key");
-  const ethAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
-  return toChecksumAddress(ethAddressLower);
+  const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
+  return toChecksumAddress(evmAddressLower);
 }
 
 export function generateAddressFromPubKey(ecCurve: ec, publicKeyX: BN, publicKeyY: BN): string {
   const key = ecCurve.keyFromPublic({ x: publicKeyX.toString("hex", 64), y: publicKeyY.toString("hex", 64) });
   const publicKey = key.getPublic().encode("hex", false).slice(2);
   log.info(key.getPublic().encode("hex", false), "public key");
-  const ethAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
-  return toChecksumAddress(ethAddressLower);
+  const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
+  return toChecksumAddress(evmAddressLower);
 }
 
 export function getPostboxKeyFrom1OutOf1(ecCurve: ec, privKey: string, nonce: string): string {
