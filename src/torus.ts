@@ -108,6 +108,13 @@ class Torus {
     return err instanceof GetOrSetNonceError;
   }
 
+  static getPostboxKey(torusKey: TorusKey): string {
+    if (torusKey.metadata.typeOfUser === "v1") {
+      return torusKey.finalKeyData.privKey || torusKey.oAuthKeyData.privKey;
+    }
+    return torusKey.oAuthKeyData.privKey;
+  }
+
   async retrieveShares(
     endpoints: string[],
     indexes: number[],
