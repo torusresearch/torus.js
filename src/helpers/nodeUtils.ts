@@ -628,7 +628,7 @@ export const legacyKeyAssign = async ({
   let initialPoint: number | undefined;
   if (lastPoint === undefined) {
     nodeNum = Math.floor(Math.random() * endpoints.length);
-    // nodeNum = endpoints.indexOf("https://torus-node.ens.domains/jrpc");
+    // nodeNum = endpoints.indexOf("https://torus-node.binancex.dev/jrpc");
     log.info("keyassign", nodeNum, endpoints[nodeNum]);
     initialPoint = nodeNum;
   } else {
@@ -679,8 +679,10 @@ export const legacyKeyAssign = async ({
     ];
     if (
       error?.status === 502 ||
+      error?.status === 504 ||
       error?.status === 401 ||
       acceptedErrorMsgs.includes(error.message) ||
+      acceptedErrorMsgs.some((x) => error.message.includes(x)) ||
       (error.message && error.message.includes("reason: getaddrinfo EAI_AGAIN"))
     )
       return legacyKeyAssign({
