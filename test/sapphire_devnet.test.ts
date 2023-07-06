@@ -239,7 +239,7 @@ describe("torus utils sapphire", function () {
     expect(result.finalKeyData.evmAddress).to.not.equal(null);
     expect(result.oAuthKeyData.evmAddress).to.not.equal("");
     expect(result.oAuthKeyData.evmAddress).to.not.equal(null);
-    expect(result.metadata.typeOfUser).to.equal("v1");
+    expect(result.metadata.typeOfUser).to.equal("v2");
     expect(result.metadata.upgraded).to.equal(false);
   });
 
