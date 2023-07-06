@@ -83,7 +83,7 @@ class Torus {
     this.signerHost = `${SIGNER_MAP[network]}/api/sign`;
   }
 
-  private get isLegacyNetwork(): boolean {
+  public get isLegacyNetwork(): boolean {
     const legacyNetwork = LEGACY_NETWORKS_ROUTE_MAP[this.network as TORUS_LEGACY_NETWORK_TYPE];
     if (legacyNetwork && !legacyNetwork.migrationCompleted) return true;
     return false;
