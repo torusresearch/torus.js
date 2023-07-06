@@ -235,29 +235,12 @@ describe("torus utils sapphire", function () {
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.not.equal(null);
-    // the result keeps changing in each iteration
-    // expect(result).eql({
-    //   oAuthKeyData: {
-    //     evmAddress: "0x3a9fbDdd78bD094DFE20A88A70D8f3D7133d6e55",
-    //     X: "365c8da0402c8ca70fa434e88e8a5788e84292101e447ac070b6d04dc1c09606",
-    //     Y: "fd05d26bbf4c2b4c2a9c783da1399124101c2e8e400891f0484346883471145a",
-    //   },
-    //   finalKeyData: {
-    //     evmAddress: "0xE8c6c6F92B776397E2a60d79d94B998b8545eA40",
-    //     X: "d878f7f727c6195464fc3baf227466208906e1bac2b42d755a809db334aec818",
-    //     Y: "207e890a1c53abfd5c5186e176b2f8e4f6954f445696d1f41b5ad5f171be5a81",
-    //   },
-    //   metadata: {
-    //     pubNonce: {
-    //       X: "14b6e017ff7b4b2a81a82fe3f119e4dc6806a4ca1bd2291f3cc382d14d7d7f28",
-    //       Y: "8ee9bdf9b19ca3559c5c920157ba97c4f1a51e6e4e2933d292de822bd6fd16e0",
-    //     },
-    //     nonce: new BN("7eed6988a548438fefc20e6eb7a647c7639c650a99bd985b8892e319272b4ad0", "hex"),
-    //     upgraded: false,
-    //     typeOfUser: "v2",
-    //   },
-    //   nodesData: { nodeIndexes: [] },
-    // });
+    expect(result.finalKeyData.evmAddress).to.not.equal("");
+    expect(result.finalKeyData.evmAddress).to.not.equal(null);
+    expect(result.oAuthKeyData.evmAddress).to.not.equal("");
+    expect(result.oAuthKeyData.evmAddress).to.not.equal(null);
+    expect(result.metadata.typeOfUser).to.equal("v1");
+    expect(result.metadata.upgraded).to.equal(false);
   });
 
   it("should keep public address same", async function () {
