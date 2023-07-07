@@ -58,7 +58,7 @@ export interface CommitmentRequestResult {
   data: string;
   nodepubx: string;
   nodepuby: string;
-  nodeindex: number;
+  nodeindex: string;
 }
 
 export interface JRPCResponse<T> {
