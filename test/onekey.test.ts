@@ -28,25 +28,24 @@ describe("torus onekey", function () {
 
   it("should still fetch v1 public address correctly", async function () {
     const verifier = "google-lrc"; // any verifier
-    const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
+    const verifierDetails = { verifier, verifierId: "himanshu@tor.us" };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
-    expect(publicAddress.metadata.typeOfUser).to.equal("v1");
     expect(publicAddress.finalKeyData.evmAddress).to.equal("0x5b56E06009528Bffb1d6336575731ee3B63f6150");
     expect(publicAddress).eql({
       oAuthKeyData: {
-        evmAddress: "0x5b56E06009528Bffb1d6336575731ee3B63f6150",
-        X: "38a259ba42875243bba7254dd75eb3b448d83f03726ca1359fd0262faa8cede7",
-        Y: "3ad7aece972e471eed7002149e830c0f5b60be93ad91bb7313437bd0702b3d79",
+        evmAddress: "0xf1e76fcDD28b5AA06De01de508fF21589aB9017E",
+        X: "b3f2b4d8b746353fe670e0c39ac9adb58056d4d7b718d06b623612d4ec49268b",
+        Y: "ac9f79dff78add39cdba380dbbf517c20cf2c1e06b32842a90a84a31f6eb9a9a",
       },
       finalKeyData: {
-        evmAddress: "0x5b56E06009528Bffb1d6336575731ee3B63f6150",
-        X: "38a259ba42875243bba7254dd75eb3b448d83f03726ca1359fd0262faa8cede7",
-        Y: "3ad7aece972e471eed7002149e830c0f5b60be93ad91bb7313437bd0702b3d79",
+        evmAddress: "0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1",
+        X: "12f6b90d66bda29807cf9ff14b2e537c25080154fc4fafed446306e8356ff425",
+        Y: "e7c92e164b83e1b53e41e5d87d478bb07d7b19d105143e426e1ef08f7b37f224",
       },
       metadata: {
         pubNonce: undefined,
-        nonce: new BN(0),
+        nonce: new BN("186a20d9b00315855ff5622a083aca6b2d34ef66ef6e0a4de670f5b2fde37e0d"),
         upgraded: false,
         typeOfUser: "v1",
       },
