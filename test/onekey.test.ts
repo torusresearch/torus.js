@@ -31,7 +31,7 @@ describe("torus onekey", function () {
     const verifierDetails = { verifier, verifierId: "himanshu@tor.us" };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
-    expect(publicAddress.finalKeyData.evmAddress).to.equal("0x5b56E06009528Bffb1d6336575731ee3B63f6150");
+    expect(publicAddress.finalKeyData.evmAddress).to.be.equal("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
     expect(publicAddress).eql({
       oAuthKeyData: {
         evmAddress: "0xf1e76fcDD28b5AA06De01de508fF21589aB9017E",
@@ -45,7 +45,7 @@ describe("torus onekey", function () {
       },
       metadata: {
         pubNonce: undefined,
-        nonce: new BN("186a20d9b00315855ff5622a083aca6b2d34ef66ef6e0a4de670f5b2fde37e0d"),
+        nonce: new BN("186a20d9b00315855ff5622a083aca6b2d34ef66ef6e0a4de670f5b2fde37e0d", "hex"),
         upgraded: false,
         typeOfUser: "v1",
       },

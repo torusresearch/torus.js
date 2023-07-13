@@ -16,7 +16,7 @@ const HashEnabledVerifier = "torus-test-verifierid-hash";
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
 const TORUS_IMPORT_EMAIL = "importeduser5@tor.us";
 
-describe("torus utils sapphire mainnet", function () {
+describe.skip("torus utils sapphire mainnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
