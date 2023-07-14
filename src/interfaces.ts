@@ -50,7 +50,7 @@ export interface VerifierLookupResponse {
     created_at?: number;
   }[];
   is_new_key: boolean;
-  node_index: number;
+  node_index: string;
 }
 
 export interface CommitmentRequestResult {
@@ -58,7 +58,7 @@ export interface CommitmentRequestResult {
   data: string;
   nodepubx: string;
   nodepuby: string;
-  nodeindex: number;
+  nodeindex: string;
 }
 
 export interface JRPCResponse<T> {
@@ -111,7 +111,7 @@ export interface LegacyKeyAssignment {
     X: string;
     Y: string;
   };
-  Threshold: number;
+  Threshold: string;
   Verifiers: Record<string, string>;
   Share: string;
   Metadata: {
@@ -124,8 +124,8 @@ export interface KeyAssignment {
     X: string;
     Y: string;
   };
-  threshold: number;
-  node_index: number;
+  threshold: string;
+  node_index: string;
   // this is encrypted ciphertext
   share: string;
   share_metadata: EciesHex;

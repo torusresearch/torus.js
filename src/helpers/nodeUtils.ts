@@ -87,8 +87,9 @@ export const GetPubKeyOrKeyAssign = async (params: {
     if ((keyResult && (nonceResult || extendedVerifierId || LEGACY_NETWORKS_ROUTE_MAP[network])) || errorResult) {
       if (keyResult) {
         lookupResults.forEach((x1) => {
-          if (x1 && x1.result?.node_index) {
-            nodeIndexes.push(x1.result.node_index);
+          if (x1 && x1.result) {
+            const nodeIndex = parseInt(x1.result.node_index);
+            if (nodeIndex) nodeIndexes.push(nodeIndex);
           }
         });
       }
@@ -208,7 +209,7 @@ export async function retrieveOrImportShare(params: {
       return Promise.resolve(resultArr);
     } else if (importedShares.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
       const requiredNodeResult = completedRequests.find((resp: JRPCResponse<CommitmentRequestResult>) => {
-        if (resp && resp.result?.nodeindex === 1) {
+        if (resp && resp.result?.nodeindex === "1") {
           return true;
         }
         return false;
