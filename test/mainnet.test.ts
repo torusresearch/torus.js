@@ -161,12 +161,12 @@ describe("torus utils mainnet", function () {
     const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x90A926b698047b4A87265ba1E9D8b512E8489067");
     expect(result.finalKeyData.privKey).to.be.equal("0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44");
-    expect(result.finalKeyData.evmAddress).to.be.equal("0xB4d9D085AA7f28dC60De88e343A32363079b4A59");
+    expect(result.finalKeyData.evmAddress).to.be.equal("0x90A926b698047b4A87265ba1E9D8b512E8489067");
     expect(result).eql({
       finalKeyData: {
-        evmAddress: "0xB4d9D085AA7f28dC60De88e343A32363079b4A59",
-        X: "31600521026132112170505875906080018823972474568844927151389160616822189112799",
-        Y: "17273036880415366106658985805391994876983148722894059515138336751166359563553",
+        evmAddress: "0x90A926b698047b4A87265ba1E9D8b512E8489067",
+        X: "a92d8bf1f01ad62e189a5cb0f606b89aa6df1b867128438c38e3209f3b9fc34f",
+        Y: "0ad1ffaecb2178b02a37c455975368be9b967ead1b281202cc8d48c77618bff1",
         privKey: "0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44",
       },
       oAuthKeyData: {
@@ -198,13 +198,12 @@ describe("torus utils mainnet", function () {
       hashedIdToken.substring(2)
     );
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
-
-    expect(result.finalKeyData.evmAddress).to.be.equal("0xA5F7751515b8561Ec7aF1Fba589ac4eeAE008578");
+    expect(result.finalKeyData.evmAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
     expect(result).eql({
       finalKeyData: {
-        evmAddress: "0xA5F7751515b8561Ec7aF1Fba589ac4eeAE008578",
-        X: "43564288410192394462847657942154042873928392376563036841495138510673098978279",
-        Y: "59983272266567645178572545705333227687084077741077174039161990905110140858036",
+        evmAddress: "0x621a4d458cFd345dAE831D9E756F10cC40A50381",
+        X: "52abc69ebec21deacd273dbdcb4d40066b701177bba906a187676e3292e1e236",
+        Y: "5e57e251db2c95c874f7ec852439302a62ef9592c8c50024e3d48018a6f77c7e",
         privKey: "f55d89088a0c491d797c00da5b2ed6dc9c269c960ff121e45f255d06a91c6534",
       },
       oAuthKeyData: {

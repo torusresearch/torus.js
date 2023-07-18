@@ -469,7 +469,7 @@ class Torus {
           // for imported keys in legacy networks
           metadataNonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: oAuthKeyX, pub_key_Y: oAuthKeyY });
           const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(this.ec.curve.n);
-          finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString()).getPublic();
+          finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex"), "hex").getPublic();
         }
 
         const oAuthKeyAddress = generateAddressFromPrivKey(this.ec, oAuthKey);
@@ -493,8 +493,8 @@ class Torus {
         return {
           finalKeyData: {
             evmAddress: finalEvmAddress,
-            X: finalPubKey ? finalPubKey.getX().toString() : "", // this is final pub x user before and after updating to 2/n
-            Y: finalPubKey ? finalPubKey.getY().toString() : "", // this is final pub y user before and after updating to 2/n
+            X: finalPubKey ? finalPubKey.getX().toString(16, 64) : "", // this is final pub x user before and after updating to 2/n
+            Y: finalPubKey ? finalPubKey.getY().toString(16, 64) : "", // this is final pub y user before and after updating to 2/n
             privKey: finalPrivKey,
           },
           oAuthKeyData: {
