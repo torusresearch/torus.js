@@ -560,8 +560,8 @@ export async function retrieveOrImportShare(params: {
       return {
         finalKeyData: {
           evmAddress: finalEvmAddress,
-          X: finalPubKey.getX().toString(), // this is final pub x user before and after updating to 2/n
-          Y: finalPubKey.getY().toString(), // this is final pub y user before and after updating to 2/n
+          X: finalPubKey.getX().toString(16, 64), // this is final pub x user before and after updating to 2/n
+          Y: finalPubKey.getY().toString(16, 64), // this is final pub y user before and after updating to 2/n
           privKey: finalPrivKey,
         },
         oAuthKeyData: {

@@ -16,7 +16,7 @@ const HashEnabledVerifier = "torus-test-verifierid-hash";
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
 const TORUS_IMPORT_EMAIL = "importeduser5@tor.us";
 
-describe.skip("torus utils sapphire mainnet", function () {
+describe("torus utils sapphire mainnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -257,8 +257,8 @@ describe.skip("torus utils sapphire mainnet", function () {
     expect(result).eql({
       finalKeyData: {
         evmAddress: "0xCb76F4C8cbAe524997787B57efeeD99f6D3BD5AB",
-        X: "83797579910383816332478033108286397664014875395129414497372974471604777601480",
-        Y: "72819903200820905577114752293027935621125376331713494587883836525941496934032",
+        X: "b943bfdc29c515195270d3a219da6a57bcaf6e58e57d03e2accb8c716e6949c8",
+        Y: "a0fe9ac87310d302a821f89a747d80c9b7dc5cbd0956571f84b09e58d11eee90",
         privKey: "13941ecd812b08d8a33a20bc975f0cd1c3f82de25b20c0c863ba5f21580b65f6",
       },
       oAuthKeyData: {
@@ -293,8 +293,8 @@ describe.skip("torus utils sapphire mainnet", function () {
     expect(result).eql({
       finalKeyData: {
         evmAddress: "0x70520A7F04868ACad901683699Fa32765C9F6871",
-        X: "78700735110750790464703051876138517394784593715781635316632139327803124941403",
-        Y: "14936946893656703768147925200123514489210489737800365548922298528185448371412",
+        X: "adff099b5d3b1e238b43fba1643cfa486e8d9e8de22c1e6731d06a5303f9025b",
+        Y: "21060328e7889afd303acb63201b6493e3061057d1d81279931ab4a6cabf94d4",
         privKey: "dfb39b84e0c64b8c44605151bf8670ae6eda232056265434729b6a8a50fa3419",
       },
       oAuthKeyData: {

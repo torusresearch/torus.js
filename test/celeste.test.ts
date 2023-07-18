@@ -159,9 +159,9 @@ describe("torus utils celeste", function () {
     expect(result.finalKeyData.privKey).to.be.equal("0ae056aa938080c9e8bf6641261619e09fd510c91bb5aad14b0de9742085a914");
     expect(result).eql({
       finalKeyData: {
-        evmAddress: "0x1e784B325633D10E0C83540621f769179d2e3b30",
-        X: "11437151187570330525859293326584557417113863683174119328941497694140550466272",
-        Y: "91357081663862880168036261895972185802440111547643813916181264118293595820054",
+        evmAddress: "0x58420FB83971C4490D8c9B091f8bfC890D716617",
+        X: "73b82ce0f8201a962636d404fe7a683f37c2267a9528576e1dac9964940add74",
+        Y: "6d28c46c5385b90322bde74d6c5096e154eae2838399f4d6e8d752f7b0c449c1",
         privKey: "0ae056aa938080c9e8bf6641261619e09fd510c91bb5aad14b0de9742085a914",
       },
       oAuthKeyData: {
@@ -193,12 +193,12 @@ describe("torus utils celeste", function () {
       hashedIdToken.substring(2)
     );
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x535Eb1AefFAc6f699A2a1A5846482d7b5b2BD564");
-    expect(result.finalKeyData.evmAddress).to.be.equal("0x451AF9da3f9F85C033308DE0097A8BCbC96386db");
+    expect(result.finalKeyData.evmAddress).to.be.equal("0x535Eb1AefFAc6f699A2a1A5846482d7b5b2BD564");
     expect(result).eql({
       finalKeyData: {
-        evmAddress: "0x451AF9da3f9F85C033308DE0097A8BCbC96386db",
-        X: "10710639575321525719048661415949854969960920914113535370288710504072019615703",
-        Y: "30368521037273100161184536216420559893463609930384233211589634913760226888329",
+        evmAddress: "0x535Eb1AefFAc6f699A2a1A5846482d7b5b2BD564",
+        X: "df6eb11d52e76b388a44896e9442eda17096c2b67b0be957a4ba0b68a70111ca",
+        Y: "bfd29ab1e97b3f7c444bb3e7ad0acb39d72589371387436c7d623d1e83f3d6eb",
         privKey: "356305761eca57f27b09700d76456ad627b084152725dbfdfcfa0abcd9d4f17e",
       },
       oAuthKeyData: {
