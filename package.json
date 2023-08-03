@@ -24,11 +24,13 @@
     "@babel/runtime": "7.x"
   },
   "dependencies": {
+    "@toruslabs/config": "file:toruslabs-config-2.0.0.tgz",
     "@toruslabs/constants": "^11.0.0",
     "@toruslabs/eccrypto": "^3.0.0",
     "@toruslabs/http-helpers": "^4.0.0",
     "bn.js": "^5.2.1",
     "elliptic": "^6.5.4",
+    "esbuild-plugin-eslint": "^0.3.6",
     "ethereum-cryptography": "^2.0.0",
     "json-stable-stringify": "^1.0.2",
     "loglevel": "^1.8.1"
@@ -38,7 +40,7 @@
     "@babel/runtime": "^7.22.6",
     "@toruslabs/eslint-config-typescript": "^2.0.0",
     "@toruslabs/fetch-node-details": "^11.0.1",
-    "@toruslabs/torus-scripts": "^4.0.0",
+    "@toruslabs/torus-scripts": "file:toruslabs-torus-scripts-4.0.0.tgz",
     "@types/chai": "^4.3.5",
     "@types/elliptic": "^6.4.14",
     "@types/faker": "^5.5.3",
@@ -49,6 +51,8 @@
     "chai": "^4.3.7",
     "cross-env": "^7.0.3",
     "dotenv": "^16.3.1",
+    "esbuild": "^0.18.17",
+    "esbuild-node-externals": "^1.8.0",
     "eslint": "^8.44.0",
     "eslint-plugin-chai-expect": "^3.0.0",
     "eslint-plugin-import": "^2.27.5",
