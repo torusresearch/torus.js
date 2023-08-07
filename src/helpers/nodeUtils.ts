@@ -1,4 +1,4 @@
-import { LEGACY_NETWORKS_ROUTE_MAP, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import { LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -84,7 +84,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
     );
 
     // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
-    if ((keyResult && (nonceResult || extendedVerifierId || LEGACY_NETWORKS_ROUTE_MAP[network])) || errorResult) {
+    if ((keyResult && (nonceResult || extendedVerifierId || LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE])) || errorResult) {
       if (keyResult) {
         lookupResults.forEach((x1) => {
           if (x1 && x1.result) {
@@ -208,7 +208,7 @@ export async function retrieveOrImportShare(params: {
     if (importedShares.length > 0 && completedRequests.length === endpoints.length) {
       return Promise.resolve(resultArr);
     } else if (importedShares.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
-      const requiredNodeResult = completedRequests.find((resp: JRPCResponse<CommitmentRequestResult>) => {
+      const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
         if (resp && resp.result?.nodeindex === "1") {
           return true;
         }
@@ -332,7 +332,7 @@ export async function retrieveOrImportShare(params: {
 
         // if both thresholdNonceData and extended_verifier_id are not available
         // then we need to throw other wise address would be incorrect.
-        if (!thresholdNonceData && !verifierParams.extended_verifier_id && !LEGACY_NETWORKS_ROUTE_MAP[network]) {
+        if (!thresholdNonceData && !verifierParams.extended_verifier_id && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
           throw new Error(
             `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
           );
@@ -345,7 +345,7 @@ export async function retrieveOrImportShare(params: {
         if (
           completedRequests.length >= thresholdReqCount &&
           thresholdPublicKey &&
-          (thresholdNonceData || verifierParams.extended_verifier_id || LEGACY_NETWORKS_ROUTE_MAP[network])
+          (thresholdNonceData || verifierParams.extended_verifier_id || LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE])
         ) {
           const sharePromises: Promise<void | Buffer>[] = [];
           const sessionTokenSigPromises: Promise<void | Buffer>[] = [];
@@ -450,17 +450,20 @@ export async function retrieveOrImportShare(params: {
 
           if (sharedState.resolved) return undefined;
 
-          const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
-            if (curr) acc.push({ index: nodeIndexes[index], value: new BN(curr) });
-            return acc;
-          }, [] as { index: BN; value: BN }[]);
+          const decryptedShares = sharesResolved.reduce(
+            (acc, curr, index) => {
+              if (curr) acc.push({ index: nodeIndexes[index], value: new BN(curr) });
+              return acc;
+            },
+            [] as { index: BN; value: BN }[]
+          );
           // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
           const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1);
 
           let privateKey: BN | null = null;
           for (let j = 0; j < allCombis.length; j += 1) {
             const currentCombi = allCombis[j];
-            const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index));
+            const currentCombiShares = decryptedShares.filter((_, index) => currentCombi.includes(index));
             const shares = currentCombiShares.map((x) => x.value);
             const indices = currentCombiShares.map((x) => x.index);
             const derivedPrivateKey = lagrangeInterpolation(ecCurve, shares, indices);
@@ -504,7 +507,7 @@ export async function retrieveOrImportShare(params: {
         typeOfUser = "v2";
         // for tss key no need to add pub nonce
         finalPubKey = ecCurve.keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY }).getPublic();
-      } else if (LEGACY_NETWORKS_ROUTE_MAP[network]) {
+      } else if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
         if (enableOneKey) {
           nonceResult = await getNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
@@ -665,7 +668,8 @@ export const legacyKeyAssign = async ({
         },
       }
     );
-  } catch (error) {
+  } catch (error2: unknown) {
+    const error = error2 as { status: number; message: string };
     log.error(error.status, error.message, error, "key assign error");
     const acceptedErrorMsgs = [
       // Slow node

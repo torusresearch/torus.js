@@ -36,38 +36,30 @@
   "devDependencies": {
     "@babel/register": "^7.22.5",
     "@babel/runtime": "^7.22.6",
-    "@toruslabs/eslint-config-typescript": "^2.0.0",
+    "@toruslabs/config": "file:../torus-cli/packages/config/toruslabs-config-1.0.0.tgz",
+    "@toruslabs/eslint-config-typescript": "file:../torus-cli/packages/eslint-config-typescript/toruslabs-eslint-config-typescript-2.0.0.tgz",
     "@toruslabs/fetch-node-details": "^11.0.1",
-    "@toruslabs/torus-scripts": "^4.0.0",
+    "@toruslabs/torus-scripts": "file:../torus-cli/packages/torus-scripts/toruslabs-torus-scripts-4.0.0.tgz",
     "@types/chai": "^4.3.5",
     "@types/elliptic": "^6.4.14",
     "@types/faker": "^5.5.3",
     "@types/json-stable-stringify": "^1.0.34",
+    "@types/jsonwebtoken": "^9.0.2",
     "@types/mocha": "^10.0.1",
-    "@typescript-eslint/eslint-plugin": "^5.61.0",
-    "@typescript-eslint/parser": "^5.61.0",
     "chai": "^4.3.7",
     "cross-env": "^7.0.3",
     "dotenv": "^16.3.1",
     "eslint": "^8.44.0",
-    "eslint-plugin-chai-expect": "^3.0.0",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-mocha": "^10.1.0",
-    "eslint-plugin-n": "^15.7.0",
-    "eslint-plugin-prettier": "^4.2.1",
-    "eslint-plugin-promise": "^6.1.1",
-    "eslint-plugin-simple-import-sort": "^10.0.0",
-    "eslint-plugin-tsdoc": "^0.2.17",
     "faker": "^5.5.3",
     "husky": "^8.0.3",
     "jsonwebtoken": "^9.0.0",
     "lint-staged": "^13.2.3",
     "mocha": "^10.2.0",
     "node-fetch": "^3.3.1",
-    "prettier": "^2.8.8",
+    "prettier": "^3.0.1",
     "rimraf": "^5.0.1",
     "ts-node": "^10.9.1",
-    "typescript": "^4.9.5",
+    "typescript": "^5.1.6",
     "webpack-node-externals": "^3.0.0"
   },
   "repository": {
@@ -100,7 +92,7 @@
     ]
   },
   "engines": {
-    "node": ">=16.18.1",
-    "npm": ">=8.x"
+    "node": ">=18.x",
+    "npm": ">=9.x"
   }
 }

@@ -80,7 +80,7 @@ class Torus {
     this.allowHost = allowHost;
     this.enableOneKey = enableOneKey;
     this.legacyMetadataHost = legacyMetadataHost;
-    this.signerHost = `${SIGNER_MAP[network]}/api/sign`;
+    this.signerHost = `${SIGNER_MAP[network as TORUS_LEGACY_NETWORK_TYPE]}/api/sign`;
   }
 
   public get isLegacyNetwork(): boolean {
@@ -407,16 +407,19 @@ class Torus {
             const sharesResolved = await Promise.all(sharePromises);
             if (sharedState.resolved) return undefined;
 
-            const decryptedShares = sharesResolved.reduce((acc, curr, index) => {
-              if (curr) acc.push({ index: nodeIndexes[index], value: new BN(curr) });
-              return acc;
-            }, [] as { index: BN; value: BN }[]);
+            const decryptedShares = sharesResolved.reduce(
+              (acc, curr, index) => {
+                if (curr) acc.push({ index: nodeIndexes[index], value: new BN(curr) });
+                return acc;
+              },
+              [] as { index: BN; value: BN }[]
+            );
             // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
             const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1);
             let privateKey: BN | null = null;
             for (let j = 0; j < allCombis.length; j += 1) {
               const currentCombi = allCombis[j];
-              const currentCombiShares = decryptedShares.filter((v, index) => currentCombi.includes(index));
+              const currentCombiShares = decryptedShares.filter((_, index) => currentCombi.includes(index));
               const shares = currentCombiShares.map((x) => x.value);
               const indices = currentCombiShares.map((x) => x.index);
               const derivedPrivateKey = lagrangeInterpolation(this.ec, shares, indices);
@@ -618,7 +621,7 @@ class Torus {
     }
 
     // no need of nonce for extendedVerifierId (tss verifier id)
-    if (!nonceResult && !extendedVerifierId && !LEGACY_NETWORKS_ROUTE_MAP[this.network]) {
+    if (!nonceResult && !extendedVerifierId && !LEGACY_NETWORKS_ROUTE_MAP[this.network as TORUS_LEGACY_NETWORK_TYPE]) {
       throw new GetOrSetNonceError("metadata nonce is missing in share response");
     }
     const { pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0];
@@ -630,7 +633,7 @@ class Torus {
       // for tss key no need to add pub nonce
       finalPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
       oAuthPubKey = finalPubKey;
-    } else if (LEGACY_NETWORKS_ROUTE_MAP[this.network]) {
+    } else if (LEGACY_NETWORKS_ROUTE_MAP[this.network as TORUS_LEGACY_NETWORK_TYPE]) {
       return this.formatLegacyPublicKeyData({
         isNewKey: keyResult.is_new_key,
         enableOneKey,
