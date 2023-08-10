@@ -7,7 +7,7 @@ module.exports = {
   ignorePatterns: ["*.config.js", ".eslintrc.js"],
   parserOptions: {
     sourceType: "module",
-    ecmaVersion: 11,
+    ecmaVersion: 2022,
     project: "./tsconfig.json",
   },
 };

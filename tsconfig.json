@@ -1,4 +1,5 @@
 {
   "extends": "@toruslabs/config/tsconfig.default.json",
-  "include": ["src", "test"]
+  "include": ["src", "test"],
+  "compilerOptions": {}
 }

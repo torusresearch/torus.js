@@ -33,7 +33,6 @@ This module is distributed in 4 formats
 - `esm` build `dist/torusUtils.esm.js` in es6 format
 - `commonjs` build `dist/torusUtils.cjs.js` in es5 format
 - `umd` build `dist/torusUtils.umd.min.js` in es5 format without polyfilling corejs minified
-- `nodejs` build `dist/torusUtils-node.js` in es5 format
 
 By default, the appropriate format is used for your specified usecase
 You can use a different format (if you know what you're doing eg. node) by referencing the correct file
