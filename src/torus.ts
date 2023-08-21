@@ -477,10 +477,6 @@ class Torus {
 
         const oAuthKeyAddress = generateAddressFromPrivKey(this.ec, oAuthKey);
 
-        // deriving address from pub key coz pubkey is always available
-        // but finalPrivKey won't be available for  v2 user upgraded to 2/n
-        const finalEvmAddress = generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY());
-        log.debug("> torus.js/retrieveShares", { finalEvmAddress });
         let finalPrivKey = ""; // it is empty for v2 user upgraded to 2/n
         if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
           const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(this.ec.curve.n);
@@ -493,6 +489,15 @@ class Torus {
         } else if (typeOfUser === "v2") {
           isUpgraded = metadataNonce.eq(new BN("0"));
         }
+
+        // deriving address from pub key coz pubkey is always available
+        // but finalPrivKey won't be available for  v2 user upgraded to 2/n
+        let finalEvmAddress = "";
+        if (finalPubKey) {
+          finalEvmAddress = generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY());
+          log.debug("> torus.js/retrieveShares", { finalEvmAddress });
+        }
+
         return {
           finalKeyData: {
             evmAddress: finalEvmAddress,
