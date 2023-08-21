@@ -467,6 +467,11 @@ class Torus {
                   .getPublic()
               );
             pubKeyNonceResult = { X: (nonceResult as v2NonceResultType).pubNonce.x, Y: (nonceResult as v2NonceResultType).pubNonce.y };
+          } else {
+            // for imported keys in legacy networks
+            metadataNonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: oAuthKeyX, pub_key_Y: oAuthKeyY });
+            const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(this.ec.curve.n);
+            finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex"), "hex").getPublic();
           }
         } else {
           // for imported keys in legacy networks
@@ -477,10 +482,6 @@ class Torus {
 
         const oAuthKeyAddress = generateAddressFromPrivKey(this.ec, oAuthKey);
 
-        // deriving address from pub key coz pubkey is always available
-        // but finalPrivKey won't be available for  v2 user upgraded to 2/n
-        const finalEvmAddress = generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY());
-        log.debug("> torus.js/retrieveShares", { finalEvmAddress });
         let finalPrivKey = ""; // it is empty for v2 user upgraded to 2/n
         if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
           const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(this.ec.curve.n);
@@ -493,6 +494,17 @@ class Torus {
         } else if (typeOfUser === "v2") {
           isUpgraded = metadataNonce.eq(new BN("0"));
         }
+
+        // deriving address from pub key coz pubkey is always available
+        // but finalPrivKey won't be available for  v2 user upgraded to 2/n
+        let finalEvmAddress = "";
+        if (finalPubKey) {
+          finalEvmAddress = generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY());
+          log.debug("> torus.js/retrieveShares", { finalEvmAddress });
+        } else {
+          throw new Error("Invalid public key, this might be a bug, please report this to web3auth team");
+        }
+
         return {
           finalKeyData: {
             evmAddress: finalEvmAddress,

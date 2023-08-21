@@ -522,6 +522,12 @@ export async function retrieveOrImportShare(params: {
                   .keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y })
                   .getPublic()
               );
+          } else {
+            typeOfUser = "v1";
+            // for imported keys in legacy networks
+            metadataNonce = await getMetadata(legacyMetadataHost, { pub_key_X: oAuthPubkeyX, pub_key_Y: oAuthPubkeyY });
+            const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
+            finalPubKey = ecCurve.keyFromPrivate(privateKeyWithNonce.toString(16, 64), "hex").getPublic();
           }
         } else {
           typeOfUser = "v1";
@@ -539,6 +545,10 @@ export async function retrieveOrImportShare(params: {
             ecCurve.keyFromPublic({ x: (nonceResult as v2NonceResultType).pubNonce.x, y: (nonceResult as v2NonceResultType).pubNonce.y }).getPublic()
           );
         pubNonce = { X: (nonceResult as v2NonceResultType).pubNonce.x, Y: (nonceResult as v2NonceResultType).pubNonce.y };
+      }
+
+      if (!finalPubKey) {
+        throw new Error("Invalid public key, this might be a bug, please report this to web3auth team");
       }
 
       const oAuthKeyAddress = generateAddressFromPrivKey(ecCurve, oAuthKey);

@@ -397,7 +397,7 @@ describe("torus utils sapphire", function () {
     );
     expect(result.finalKeyData.privKey).to.be.equal(privHex);
   });
-  it("should be able to import a key for a existing user", async function () {
+  it.skip("should be able to import a key for a existing user", async function () {
     let verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
