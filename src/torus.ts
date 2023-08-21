@@ -467,6 +467,11 @@ class Torus {
                   .getPublic()
               );
             pubKeyNonceResult = { X: (nonceResult as v2NonceResultType).pubNonce.x, Y: (nonceResult as v2NonceResultType).pubNonce.y };
+          } else {
+            // for imported keys in legacy networks
+            metadataNonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: oAuthKeyX, pub_key_Y: oAuthKeyY });
+            const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(this.ec.curve.n);
+            finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex"), "hex").getPublic();
           }
         } else {
           // for imported keys in legacy networks
@@ -496,6 +501,8 @@ class Torus {
         if (finalPubKey) {
           finalEvmAddress = generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY());
           log.debug("> torus.js/retrieveShares", { finalEvmAddress });
+        } else {
+          throw new Error("Invalid public key, this might be a bug, please report this to web3auth team");
         }
 
         return {
