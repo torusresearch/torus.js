@@ -30,7 +30,7 @@ import { Some } from "../some";
 import { kCombinations, normalizeKeysResult, thresholdSame } from "./common";
 import { generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
-import { decryptNodeData, getMetadata, getNonce } from "./metadataUtils";
+import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
 
 export const GetPubKeyOrKeyAssign = async (params: {
   endpoints: string[];
@@ -299,7 +299,8 @@ export async function retrieveOrImportShare(params: {
       let thresholdNonceData: GetOrSetNonceResult;
       return Some<
         void | JRPCResponse<ShareRequestResult>,
-        { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult; nodeIndexes: BN[] } | undefined
+        | { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult; nodeIndexes: BN[]; isNewKey: boolean }
+        | undefined
       >(promiseArrRequest, async (shareResponses, sharedState) => {
         // check if threshold number of nodes have returned the same user public key
         const completedRequests = shareResponses.filter((x) => {
@@ -352,6 +353,7 @@ export async function retrieveOrImportShare(params: {
           const sessionTokenPromises: Promise<void | Buffer>[] = [];
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
+          const isNewKeyResponses: boolean[] = [];
 
           for (let i = 0; i < completedRequests.length; i += 1) {
             const currentShareResponse = completedRequests[i] as JRPCResponse<ShareRequestResult>;
@@ -361,7 +363,10 @@ export async function retrieveOrImportShare(params: {
               session_token_sigs: sessionTokenSigs,
               session_token_sig_metadata: sessionTokenSigMetadata,
               keys,
+              is_new_key: isNewKey,
             } = currentShareResponse.result;
+
+            isNewKeyResponses.push(isNewKey);
 
             if (sessionTokenSigs?.length > 0) {
               // decrypt sessionSig if enc metadata is sent
@@ -483,14 +488,15 @@ export async function retrieveOrImportShare(params: {
           if (privateKey === undefined || privateKey === null) {
             throw new Error("could not derive private key");
           }
+          const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
-          return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes };
+          return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey: thresholdIsNewKey };
         }
         throw new Error("Invalid");
       });
     })
     .then(async (res) => {
-      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes } = res;
+      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey } = res;
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oAuthKey = privateKey;
@@ -509,7 +515,7 @@ export async function retrieveOrImportShare(params: {
         finalPubKey = ecCurve.keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
         if (enableOneKey) {
-          nonceResult = await getNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey);
+          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {

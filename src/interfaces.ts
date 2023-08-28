@@ -146,6 +146,7 @@ export interface ShareRequestResult {
   session_token_sig_metadata: EciesHex[];
   node_pubx: string;
   node_puby: string;
+  is_new_key: boolean;
 }
 
 export interface ImportedShare {
