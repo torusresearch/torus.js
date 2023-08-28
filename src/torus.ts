@@ -725,10 +725,11 @@ class Torus {
         throw new GetOrSetNonceError();
       }
       if (nonceResult.typeOfUser === "v1") {
+        nonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: X, pub_key_Y: Y });
         finalPubKey = this.ec
           .keyFromPublic({ x: X, y: Y })
           .getPublic()
-          .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
+          .add(this.ec.keyFromPrivate(nonce.toString(16, 64), "hex").getPublic());
       } else if (nonceResult.typeOfUser === "v2") {
         finalPubKey = this.ec
           .keyFromPublic({ x: X, y: Y })
