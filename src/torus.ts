@@ -457,7 +457,7 @@ class Torus {
           const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
-          if (nonceResult.typeOfUser === "v2") {
+          if (typeOfUser === "v2") {
             finalPubKey = this.ec
               .keyFromPublic({ x: oAuthKeyX, y: oAuthKeyY })
               .getPublic()
@@ -744,7 +744,7 @@ class Torus {
       finalPubKey = this.ec
         .keyFromPublic({ x: X, y: Y })
         .getPublic()
-        .add(this.ec.keyFromPrivate(nonce.toString(16)).getPublic());
+        .add(this.ec.keyFromPrivate(nonce.toString(16, 64), "hex").getPublic());
     }
 
     if (!oAuthPubKey) {

@@ -511,9 +511,9 @@ export async function retrieveOrImportShare(params: {
         if (enableOneKey) {
           nonceResult = await getNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
-          pubNonce = { X: (nonceResult as v2NonceResultType).pubNonce.x, Y: (nonceResult as v2NonceResultType).pubNonce.y };
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {
+            pubNonce = { X: (nonceResult as v2NonceResultType).pubNonce.x, Y: (nonceResult as v2NonceResultType).pubNonce.y };
             finalPubKey = ecCurve
               .keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY })
               .getPublic()
