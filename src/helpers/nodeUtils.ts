@@ -353,7 +353,7 @@ export async function retrieveOrImportShare(params: {
           const sessionTokenPromises: Promise<void | Buffer>[] = [];
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
-          const isNewKeyResponses: boolean[] = [];
+          const isNewKeyResponses: string[] = [];
 
           for (let i = 0; i < completedRequests.length; i += 1) {
             const currentShareResponse = completedRequests[i] as JRPCResponse<ShareRequestResult>;
@@ -490,7 +490,7 @@ export async function retrieveOrImportShare(params: {
           }
           const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
-          return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey: thresholdIsNewKey };
+          return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey: thresholdIsNewKey === "true" };
         }
         throw new Error("Invalid");
       });
