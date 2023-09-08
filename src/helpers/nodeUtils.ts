@@ -223,57 +223,71 @@ export async function retrieveOrImportShare(params: {
     return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
   })
     .then((responses) => {
-      const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult>>[] = [];
+      const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult> | JRPCResponse<ShareRequestResult[]>>[] = [];
       const nodeSigs: CommitmentRequestResult[] = [];
       for (let i = 0; i < responses.length; i += 1) {
         const x = responses[i];
-        if (!x || typeof x !== "object") {
-          continue;
-        }
-        if (x.error) {
+        if (!x || typeof x !== "object" || x.error) {
           continue;
         }
         if (x) nodeSigs.push((x as JRPCResponse<CommitmentRequestResult>).result);
       }
-      for (let i = 0; i < endpoints.length; i += 1) {
-        const x = responses[i];
-        if (!x || typeof x !== "object") {
-          continue;
+
+      if (isImportShareReq) {
+        const importedPubKey = ecCurve.keyFromPublic({ x: importedShares[0].pub_key_x, y: importedShares[0].pub_key_x }).getPublic();
+        const importedPubKeyStr = importedPubKey.encode("hex", false).slice(2);
+        const hashedImportedPubKey = keccak256(Buffer.from(importedPubKeyStr, "utf8"));
+        const proxyEndpointNum = parseInt(hashedImportedPubKey, 16) % endpoints.length;
+        const sortedEndpoints = [endpoints[proxyEndpointNum], ...endpoints.slice(0, proxyEndpointNum), ...endpoints.slice(proxyEndpointNum + 1)];
+        const sortedImportedShares = [
+          importedShares[proxyEndpointNum],
+          ...importedShares.slice(0, proxyEndpointNum),
+          ...importedShares.slice(proxyEndpointNum + 1),
+        ];
+
+        const items: Record<string, unknown>[] = [];
+        for (let i = 0; i < endpoints.length; i += 1) {
+          const x = responses[i];
+          if (!x || typeof x !== "object" || x.error) {
+            continue;
+          }
+          const importedShare = sortedImportedShares[i];
+          items.push({
+            ...verifierParams,
+            idtoken: idToken,
+            nodesignatures: nodeSigs,
+            verifieridentifier: verifier,
+            pub_key_x: importedShare.pub_key_x,
+            pub_key_y: importedShare.pub_key_y,
+            encrypted_share: importedShare.encrypted_share,
+            encrypted_share_metadata: importedShare.encrypted_share_metadata,
+            node_index: importedShare.node_index,
+            key_type: importedShare.key_type,
+            nonce_data: importedShare.nonce_data,
+            nonce_signature: importedShare.nonce_signature,
+            sss_endpoint: sortedEndpoints[i],
+            ...extraParams,
+          });
         }
-        if (x.error) {
-          continue;
-        }
-        if (isImportShareReq) {
-          const importedShare = importedShares[i];
-          const p = post<JRPCResponse<ImportShareRequestResult>>(
-            endpoints[i],
-            generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
-              encrypted: "yes",
-              use_temp: true,
-              item: [
-                {
-                  ...verifierParams,
-                  idtoken: idToken,
-                  nodesignatures: nodeSigs,
-                  verifieridentifier: verifier,
-                  pub_key_x: importedShare.pub_key_x,
-                  pub_key_y: importedShare.pub_key_y,
-                  encrypted_share: importedShare.encrypted_share,
-                  encrypted_share_metadata: importedShare.encrypted_share_metadata,
-                  node_index: importedShare.node_index,
-                  key_type: importedShare.key_type,
-                  nonce_data: importedShare.nonce_data,
-                  nonce_signature: importedShare.nonce_signature,
-                  ...extraParams,
-                },
-              ],
-              one_key_flow: true,
-            }),
-            null,
-            { logTracingHeader: config.logRequestTracing }
-          ).catch((err) => log.error("share req", err));
-          promiseArrRequest.push(p);
-        } else {
+
+        const p = post<JRPCResponse<ImportShareRequestResult[]>>(
+          sortedEndpoints[0],
+          generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARES, {
+            encrypted: "yes",
+            use_temp: true,
+            item: items,
+            one_key_flow: true,
+          }),
+          null,
+          { logTracingHeader: config.logRequestTracing }
+        ).catch((err) => log.error("share req", err));
+        promiseArrRequest.push(p);
+      } else {
+        for (let i = 0; i < endpoints.length; i += 1) {
+          const x = responses[i];
+          if (!x || typeof x !== "object" || x.error) {
+            continue;
+          }
           const p = post<JRPCResponse<ShareRequestResult>>(
             endpoints[i],
             generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
@@ -298,10 +312,25 @@ export async function retrieveOrImportShare(params: {
       }
       let thresholdNonceData: GetOrSetNonceResult;
       return Some<
-        void | JRPCResponse<ShareRequestResult>,
+        void | JRPCResponse<ShareRequestResult> | JRPCResponse<ShareRequestResult[]>,
         | { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult; nodeIndexes: BN[]; isNewKey: boolean }
         | undefined
-      >(promiseArrRequest, async (shareResponses, sharedState) => {
+      >(promiseArrRequest, async (shareResponseResult, sharedState) => {
+        let shareResponses: (void | JRPCResponse<ShareRequestResult>)[] = [];
+        if (shareResponseResult.length === 1 && shareResponseResult[0] && Array.isArray(shareResponseResult[0].result)) {
+          // this is for import shares
+          const importedSharesResult = shareResponseResult[0];
+          shareResponseResult[0].result.forEach((res) => {
+            shareResponses.push({
+              id: importedSharesResult.id,
+              jsonrpc: "2.0",
+              result: res,
+              error: importedSharesResult.error,
+            });
+          });
+        } else {
+          shareResponses = shareResponseResult as (void | JRPCResponse<ShareRequestResult>)[];
+        }
         // check if threshold number of nodes have returned the same user public key
         const completedRequests = shareResponses.filter((x) => {
           if (!x || typeof x !== "object") {
