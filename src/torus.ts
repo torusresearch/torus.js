@@ -257,6 +257,7 @@ class Torus {
           verifierId: verifierParams.verifier_id,
           network: this.network,
           clientId: this.clientId,
+          enable_gating: "true",
         },
       },
       { useAPIKey: true }
