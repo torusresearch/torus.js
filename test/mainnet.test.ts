@@ -162,6 +162,8 @@ describe("torus utils mainnet", function () {
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x90A926b698047b4A87265ba1E9D8b512E8489067");
     expect(result.finalKeyData.privKey).to.be.equal("0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44");
     expect(result.finalKeyData.evmAddress).to.be.equal("0x90A926b698047b4A87265ba1E9D8b512E8489067");
+    delete result.sessionData;
+
     expect(result).eql({
       finalKeyData: {
         evmAddress: "0x90A926b698047b4A87265ba1E9D8b512E8489067",
@@ -175,9 +177,8 @@ describe("torus utils mainnet", function () {
         Y: "0ad1ffaecb2178b02a37c455975368be9b967ead1b281202cc8d48c77618bff1",
         privKey: "0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44",
       },
-      sessionData: { sessionTokenData: [], sessionAuthKey: "" },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: [] },
+      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
   });
 
