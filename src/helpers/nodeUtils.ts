@@ -234,10 +234,9 @@ export async function retrieveOrImportShare(params: {
       }
 
       if (isImportShareReq) {
-        const importedPubKey = ecCurve.keyFromPublic({ x: importedShares[0].pub_key_x, y: importedShares[0].pub_key_x }).getPublic();
-        const importedPubKeyStr = importedPubKey.encode("hex", false).slice(2);
-        const hashedImportedPubKey = keccak256(Buffer.from(importedPubKeyStr, "utf8"));
-        const proxyEndpointNum = parseInt(hashedImportedPubKey, 16) % endpoints.length;
+        const verifierIdStr = `${verifier}${verifierParams.verifier_id}`;
+        const hashedVerifierId = keccak256(Buffer.from(verifierIdStr, "utf8"));
+        const proxyEndpointNum = parseInt(hashedVerifierId, 16) % endpoints.length;
         const sortedEndpoints = [endpoints[proxyEndpointNum], ...endpoints.slice(0, proxyEndpointNum), ...endpoints.slice(proxyEndpointNum + 1)];
         const sortedImportedShares = [
           importedShares[proxyEndpointNum],
