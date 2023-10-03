@@ -237,12 +237,6 @@ export async function retrieveOrImportShare(params: {
         const verifierIdStr = `${verifier}${verifierParams.verifier_id}`;
         const hashedVerifierId = keccak256(Buffer.from(verifierIdStr, "utf8"));
         const proxyEndpointNum = parseInt(hashedVerifierId, 16) % endpoints.length;
-        const sortedEndpoints = [endpoints[proxyEndpointNum], ...endpoints.slice(0, proxyEndpointNum), ...endpoints.slice(proxyEndpointNum + 1)];
-        const sortedImportedShares = [
-          importedShares[proxyEndpointNum],
-          ...importedShares.slice(0, proxyEndpointNum),
-          ...importedShares.slice(proxyEndpointNum + 1),
-        ];
 
         const items: Record<string, unknown>[] = [];
         for (let i = 0; i < endpoints.length; i += 1) {
@@ -250,7 +244,7 @@ export async function retrieveOrImportShare(params: {
           if (!x || typeof x !== "object" || x.error) {
             continue;
           }
-          const importedShare = sortedImportedShares[i];
+          const importedShare = importedShares[i];
           items.push({
             ...verifierParams,
             idtoken: idToken,
@@ -264,13 +258,13 @@ export async function retrieveOrImportShare(params: {
             key_type: importedShare.key_type,
             nonce_data: importedShare.nonce_data,
             nonce_signature: importedShare.nonce_signature,
-            sss_endpoint: sortedEndpoints[i],
+            sss_endpoint: endpoints[i],
             ...extraParams,
           });
         }
 
         const p = post<JRPCResponse<ImportShareRequestResult[]>>(
-          sortedEndpoints[0],
+          endpoints[proxyEndpointNum],
           generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARES, {
             encrypted: "yes",
             use_temp: true,
