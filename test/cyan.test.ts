@@ -48,7 +48,7 @@ describe("torus utils cyan", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
   });
 
@@ -76,7 +76,7 @@ describe("torus utils cyan", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: { nodeIndexes: result1.nodesData.nodeIndexes },
     });
 
     const v2Verifier = "tkey-google-cyan";
@@ -108,7 +108,7 @@ describe("torus utils cyan", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: { nodeIndexes: result2.nodesData.nodeIndexes },
     });
     // 2/n user
     const v2nTestEmail = "caspertorus@gmail.com";
@@ -138,7 +138,7 @@ describe("torus utils cyan", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: { nodeIndexes: result3.nodesData.nodeIndexes },
     });
   });
 
@@ -176,7 +176,6 @@ describe("torus utils cyan", function () {
         evmAddress: "0xC615aA03Dd8C9b2dc6F7c43cBDfF2c34bBa47Ec9",
         privKey: "5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8",
       },
-      sessionData: { sessionTokenData: [], sessionAuthKey: "" },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
@@ -214,7 +213,6 @@ describe("torus utils cyan", function () {
         Y: "e557a5ee879632727f5979d6b9cea69d87e3dab54a8c1b6685d86dfbfcd785dd",
         privKey: "45a5b62c4ff5490baa75d33bf4f03ba6c5b0095678b0f4055312eef7b780b7bf",
       },
-      sessionData: { sessionTokenData: [], sessionAuthKey: "" },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
