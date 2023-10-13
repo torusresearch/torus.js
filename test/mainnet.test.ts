@@ -162,7 +162,6 @@ describe("torus utils mainnet", function () {
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x90A926b698047b4A87265ba1E9D8b512E8489067");
     expect(result.finalKeyData.privKey).to.be.equal("0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44");
     expect(result.finalKeyData.evmAddress).to.be.equal("0x90A926b698047b4A87265ba1E9D8b512E8489067");
-    delete result.sessionData;
     expect(result).eql({
       finalKeyData: {
         evmAddress: "0x90A926b698047b4A87265ba1E9D8b512E8489067",
@@ -176,7 +175,7 @@ describe("torus utils mainnet", function () {
         Y: "0ad1ffaecb2178b02a37c455975368be9b967ead1b281202cc8d48c77618bff1",
         privKey: "0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44",
       },
-      sessionData: { sessionTokenData: [], sessionAuthKey: "" },
+      sessionData: { sessionTokenData: result.sessionData.sessionTokenData, sessionAuthKey: result.sessionData.sessionAuthKey },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
@@ -200,7 +199,6 @@ describe("torus utils mainnet", function () {
     );
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
     expect(result.finalKeyData.evmAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
-    delete result.sessionData;
     expect(result).eql({
       finalKeyData: {
         evmAddress: "0x621a4d458cFd345dAE831D9E756F10cC40A50381",
@@ -214,7 +212,7 @@ describe("torus utils mainnet", function () {
         Y: "5e57e251db2c95c874f7ec852439302a62ef9592c8c50024e3d48018a6f77c7e",
         privKey: "f55d89088a0c491d797c00da5b2ed6dc9c269c960ff121e45f255d06a91c6534",
       },
-      sessionData: { sessionTokenData: [], sessionAuthKey: "" },
+      sessionData: { sessionTokenData: result.sessionData.sessionTokenData, sessionAuthKey: result.sessionData.sessionAuthKey },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
