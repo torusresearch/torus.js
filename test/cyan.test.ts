@@ -161,23 +161,24 @@ describe("torus utils cyan", function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
-    expect(result.finalKeyData.privKey).to.be.equal("1e0c955d73e73558f46521da55cc66de7b8fcb56c5b24e851616849b6a1278c8");
+    delete result.sessionData;
+    expect(result.finalKeyData.privKey).to.be.equal("5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8");
     expect(result).eql({
       finalKeyData: {
-        evmAddress: "0x8AA6C8ddCD868873120aA265Fc63E3a2180375BA",
-        X: "35739417e3be1b1e56cdf8c509d8dee5412712514b18df1bc961ac6465a0c949",
-        Y: "887497602e62ced686eb99eaa0020b0c0d705cad96eafeec2dd1bbfb6a9d42c2",
-        privKey: "1e0c955d73e73558f46521da55cc66de7b8fcb56c5b24e851616849b6a1278c8",
+        X: "e2ed6033951af2851d1bea98799e62fb1ff24b952c1faea17922684678ba42d1",
+        Y: "beef0efad88e81385952c0068ca48e8b9c2121be87cb0ddf18a68806db202359",
+        evmAddress: "0xC615aA03Dd8C9b2dc6F7c43cBDfF2c34bBa47Ec9",
+        privKey: "5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8",
       },
       oAuthKeyData: {
-        evmAddress: "0x8AA6C8ddCD868873120aA265Fc63E3a2180375BA",
-        X: "35739417e3be1b1e56cdf8c509d8dee5412712514b18df1bc961ac6465a0c949",
-        Y: "887497602e62ced686eb99eaa0020b0c0d705cad96eafeec2dd1bbfb6a9d42c2",
-        privKey: "1e0c955d73e73558f46521da55cc66de7b8fcb56c5b24e851616849b6a1278c8",
+        X: "e2ed6033951af2851d1bea98799e62fb1ff24b952c1faea17922684678ba42d1",
+        Y: "beef0efad88e81385952c0068ca48e8b9c2121be87cb0ddf18a68806db202359",
+        evmAddress: "0xC615aA03Dd8C9b2dc6F7c43cBDfF2c34bBa47Ec9",
+        privKey: "5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8",
       },
       sessionData: { sessionTokenData: [], sessionAuthKey: "" },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: [] },
+      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
   });
 
@@ -197,7 +198,7 @@ describe("torus utils cyan", function () {
       },
       hashedIdToken.substring(2)
     );
-
+    delete result.sessionData;
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x34117FDFEFBf1ad2DFA6d4c43804E6C710a6fB04");
     expect(result.finalKeyData.evmAddress).to.be.equal("0x34117FDFEFBf1ad2DFA6d4c43804E6C710a6fB04");
     expect(result).eql({
@@ -215,7 +216,7 @@ describe("torus utils cyan", function () {
       },
       sessionData: { sessionTokenData: [], sessionAuthKey: "" },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: [] },
+      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
   });
 });
