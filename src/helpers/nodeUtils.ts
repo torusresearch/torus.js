@@ -88,8 +88,14 @@ export const GetPubKeyOrKeyAssign = async (params: {
       if (keyResult) {
         lookupResults.forEach((x1) => {
           if (x1 && x1.result) {
-            const nodeIndex = parseInt(x1.result.node_index);
-            if (nodeIndex) nodeIndexes.push(nodeIndex);
+            const currentNodePubKey = x1.result.keys[0].pub_key_X.toLowerCase();
+            const thresholdPubKey = keyResult.keys[0].pub_key_X.toLowerCase();
+            // push only those indexes for nodes who are returning pub key matching with threshold pub key.
+            // this check is important when different nodes have different keys assigned to a user.
+            if (currentNodePubKey === thresholdPubKey) {
+              const nodeIndex = parseInt(x1.result.node_index);
+              if (nodeIndex) nodeIndexes.push(nodeIndex);
+            }
           }
         });
       }
@@ -145,6 +151,7 @@ export async function retrieveOrImportShare(params: {
         verifierId: verifierParams.verifier_id,
         network,
         clientId,
+        enable_gating: "true",
       },
     },
     { useAPIKey: true }

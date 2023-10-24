@@ -155,7 +155,7 @@ describe("torus utils sapphire mainnet", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
   });
 
@@ -207,7 +207,7 @@ describe("torus utils sapphire mainnet", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
   });
 
@@ -237,7 +237,7 @@ describe("torus utils sapphire mainnet", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
     });
   });
   it("should be able to login when verifierID hash enabled", async function () {
