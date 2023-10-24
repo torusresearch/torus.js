@@ -237,7 +237,6 @@ export async function retrieveOrImportShare(params: {
         const verifierIdStr = `${verifier}${verifierParams.verifier_id}`;
         const hashedVerifierId = keccak256(Buffer.from(verifierIdStr, "utf8"));
         const proxyEndpointNum = parseInt(hashedVerifierId, 16) % endpoints.length;
-
         const items: Record<string, unknown>[] = [];
         for (let i = 0; i < endpoints.length; i += 1) {
           const x = responses[i];
@@ -310,6 +309,7 @@ export async function retrieveOrImportShare(params: {
         | undefined
       >(promiseArrRequest, async (shareResponseResult, sharedState) => {
         let shareResponses: (void | JRPCResponse<ShareRequestResult>)[] = [];
+        // for import shares case, where result is an array
         if (shareResponseResult.length === 1 && shareResponseResult[0] && Array.isArray(shareResponseResult[0].result)) {
           // this is for import shares
           const importedSharesResult = shareResponseResult[0];
