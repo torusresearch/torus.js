@@ -15,6 +15,7 @@ import stringify from "json-stable-stringify";
 
 import { config } from "./config";
 import {
+  derivePubKey,
   encParamsBufToHex,
   generateAddressFromPrivKey,
   generateAddressFromPubKey,
@@ -37,6 +38,7 @@ import {
   CommitmentRequestResult,
   GetOrSetNonceResult,
   ImportedShare,
+  KeyType,
   LegacyShareRequestResult,
   LegacyVerifierLookupResponse,
   NonceMetadataParams,
@@ -70,10 +72,22 @@ class Torus {
 
   private legacyMetadataHost: string;
 
-  constructor({ enableOneKey = false, clientId, network, serverTimeOffset = 0, allowHost, legacyMetadataHost }: TorusCtorOptions) {
+  private _keyType: KeyType = "secp256k1";
+
+  constructor({
+    enableOneKey = false,
+    clientId,
+    network,
+    serverTimeOffset = 0,
+    allowHost,
+    legacyMetadataHost,
+    keyType = "secp256k1",
+  }: TorusCtorOptions) {
     if (!clientId) throw Error("Please provide a valid clientId in constructor");
     if (!network) throw Error("Please provide a valid network in constructor");
-    this.ec = new EC("secp256k1");
+
+    this._keyType = keyType;
+    this.ec = new EC(this._keyType);
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.network = network;
     this.clientId = clientId;
@@ -129,6 +143,7 @@ class Torus {
       serverTimeOffset: this.serverTimeOffset,
       enableOneKey: this.enableOneKey,
       ecCurve: this.ec,
+      keyType: this._keyType,
       allowHost: this.allowHost,
       network: this.network,
       clientId: this.clientId,
@@ -179,7 +194,7 @@ class Torus {
     const oAuthPubKey = this.ec.keyFromPrivate(oAuthKey.toString("hex").padStart(64, "0")).getPublic();
     const poly = generateRandomPolynomial(this.ec, degree, oAuthKey);
     const shares = poly.generateShares(nodeIndexesBn);
-    const nonceParams = this.generateNonceMetadataParams("getOrSetNonce", oAuthKey, randomNonce);
+    const nonceParams = this.generateNonceMetadataParams("getOrSetNonce", oAuthKey, this._keyType, randomNonce);
     const nonceData = Buffer.from(stringify(nonceParams.set_data), "utf8").toString("base64");
     const sharesData: ImportedShare[] = [];
     const encPromises: Promise<Ecies>[] = [];
@@ -202,7 +217,7 @@ class Torus {
         encrypted_share: encParamsMetadata.ciphertext,
         encrypted_share_metadata: encParamsMetadata,
         node_index: Number.parseInt(shareJson.shareIndex, 16),
-        key_type: "secp256k1",
+        key_type: this._keyType,
         nonce_data: nonceData,
         nonce_signature: nonceParams.signature,
       };
@@ -214,6 +229,7 @@ class Torus {
       serverTimeOffset: this.serverTimeOffset,
       enableOneKey: this.enableOneKey,
       ecCurve: this.ec,
+      keyType: "secp256k1",
       allowHost: this.allowHost,
       network: this.network,
       clientId: this.clientId,
@@ -425,13 +441,10 @@ class Torus {
               const indices = currentCombiShares.map((x) => x.index);
               const derivedPrivateKey = lagrangeInterpolation(this.ec, shares, indices);
               if (!derivedPrivateKey) continue;
-              const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), "hex")).toString("hex");
-              const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-              const decryptedPubKeyY = decryptedPubKey.slice(66);
-              if (
-                new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
-                new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
-              ) {
+              const decryptedPubKey = derivePubKey(this.ec, derivedPrivateKey);
+              const decryptedPubKeyX = decryptedPubKey.getX();
+              const decryptedPubKeyY = decryptedPubKey.getY();
+              if (decryptedPubKeyX.cmp(new BN(thresholdPublicKey.X, 16)) === 0 && decryptedPubKeyY.cmp(new BN(thresholdPublicKey.Y, 16)) === 0) {
                 privateKey = derivedPrivateKey;
                 break;
               }
@@ -447,15 +460,17 @@ class Torus {
       .then(async (returnedKey) => {
         const oAuthKey = returnedKey;
         if (!oAuthKey) throw new Error("Invalid private key returned");
-        const oAuthPubKey = getPublic(Buffer.from(oAuthKey.toString(16, 64), "hex")).toString("hex");
-        const oAuthKeyX = oAuthPubKey.slice(2, 66);
-        const oAuthKeyY = oAuthPubKey.slice(66);
+
+        const oAuthPubKey = derivePubKey(this.ec, oAuthKey);
+        const oAuthKeyX = oAuthPubKey.getX().toString("hex");
+        const oAuthKeyY = oAuthPubKey.getY().toString("hex");
+
         let metadataNonce: BN;
         let finalPubKey: curve.base.BasePoint;
         let typeOfUser: UserType = "v1";
         let pubKeyNonceResult: { X: string; Y: string } | undefined;
         if (this.enableOneKey) {
-          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
+          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this._keyType, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {
@@ -585,10 +600,11 @@ class Torus {
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
   }
 
-  private generateNonceMetadataParams(operation: string, privateKey: BN, nonce?: BN): NonceMetadataParams {
+  private generateNonceMetadataParams(operation: string, privateKey: BN, keyType: KeyType, nonce?: BN): NonceMetadataParams {
     const key = this.ec.keyFromPrivate(privateKey.toString("hex", 64));
     const setData: Partial<SetNonceData> = {
       operation,
+      key_type: keyType,
       timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
     };
 
@@ -719,7 +735,7 @@ class Torus {
 
     if (enableOneKey) {
       try {
-        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, X, Y, undefined, !isNewKey);
+        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this._keyType, this.serverTimeOffset, X, Y, undefined, !isNewKey);
         nonce = new BN(nonceResult.nonce || "0", 16);
         typeOfUser = nonceResult.typeOfUser;
       } catch {

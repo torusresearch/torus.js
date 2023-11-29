@@ -13,11 +13,13 @@ export type v2NonceResultType = { typeOfUser: "v2"; nonce?: string; pubNonce: { 
 
 export type v1NonceResultType = { typeOfUser: "v1"; nonce?: string };
 export type GetOrSetNonceResult = v2NonceResultType | v1NonceResultType;
+export type KeyType = "secp256k1" | "ed25519";
 
 export interface SetNonceData {
   operation: string;
   data: string;
   timestamp: string;
+  key_type?: KeyType;
 }
 
 export interface NonceMetadataParams {
@@ -31,6 +33,7 @@ export interface NonceMetadataParams {
 export interface TorusCtorOptions {
   clientId: string;
   network: TORUS_NETWORK_TYPE;
+  keyType?: KeyType;
   enableOneKey?: boolean;
   serverTimeOffset?: number;
   allowHost?: string;
@@ -222,6 +225,7 @@ export interface MetadataParams {
   namespace?: string;
   pub_key_X: string;
   pub_key_Y: string;
+  key_type?: KeyType;
   set_data: {
     data: "getNonce" | "getOrSetNonce" | string;
     timestamp: string;

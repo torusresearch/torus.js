@@ -1,5 +1,5 @@
 import BN from "bn.js";
-import { ec } from "elliptic";
+import { curve, ec } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 
 import log from "../loglevel";
@@ -51,4 +51,9 @@ export function getPostboxKeyFrom1OutOf1(ecCurve: ec, privKey: string, nonce: st
   const privKeyBN = new BN(privKey, 16);
   const nonceBN = new BN(nonce, 16);
   return privKeyBN.sub(nonceBN).umod(ecCurve.curve.n).toString("hex");
+}
+
+export function derivePubKey(ecCurve: ec, sk: BN): curve.base.BasePoint {
+  const skHex = sk.toString(16, 64);
+  return ecCurve.keyFromPrivate(skHex).getPublic();
 }

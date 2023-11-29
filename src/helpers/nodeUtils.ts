@@ -14,6 +14,7 @@ import {
   JRPCResponse,
   KeyAssignInput,
   KeyLookupResult,
+  KeyType,
   LegacyKeyLookupResult,
   LegacyVerifierLookupResponse,
   SessionToken,
@@ -28,7 +29,7 @@ import {
 import log from "../loglevel";
 import { Some } from "../some";
 import { kCombinations, normalizeKeysResult, thresholdSame } from "./common";
-import { generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
+import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
 
@@ -118,6 +119,7 @@ export async function retrieveOrImportShare(params: {
   serverTimeOffset: number;
   enableOneKey: boolean;
   ecCurve: ec;
+  keyType: KeyType;
   allowHost: string;
   network: string;
   clientId: string;
@@ -133,6 +135,7 @@ export async function retrieveOrImportShare(params: {
     serverTimeOffset,
     enableOneKey,
     ecCurve,
+    keyType,
     allowHost,
     network,
     clientId,
@@ -480,13 +483,10 @@ export async function retrieveOrImportShare(params: {
             const indices = currentCombiShares.map((x) => x.index);
             const derivedPrivateKey = lagrangeInterpolation(ecCurve, shares, indices);
             if (!derivedPrivateKey) continue;
-            const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), "hex")).toString("hex");
-            const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-            const decryptedPubKeyY = decryptedPubKey.slice(66);
-            if (
-              new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
-              new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
-            ) {
+            const decryptedPubKey = derivePubKey(ecCurve, derivedPrivateKey);
+            const decryptedPubKeyX = decryptedPubKey.getX();
+            const decryptedPubKeyY = decryptedPubKey.getY();
+            if (decryptedPubKeyX.cmp(new BN(thresholdPublicKey.X, 16)) === 0 && decryptedPubKeyY.cmp(new BN(thresholdPublicKey.Y, 16)) === 0) {
               privateKey = derivedPrivateKey;
               break;
             }
@@ -507,9 +507,10 @@ export async function retrieveOrImportShare(params: {
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oAuthKey = privateKey;
-      const oAuthPubKey = getPublic(Buffer.from(oAuthKey.toString(16, 64), "hex")).toString("hex");
-      const oAuthPubkeyX = oAuthPubKey.slice(2, 66);
-      const oAuthPubkeyY = oAuthPubKey.slice(66);
+      const oAuthPubKey = derivePubKey(ecCurve, oAuthKey);
+      const oAuthPubkeyX = oAuthPubKey.getX().toString("hex");
+      const oAuthPubkeyY = oAuthPubKey.getY().toString("hex");
+
       let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
       let finalPubKey: curve.base.BasePoint;
       let pubNonce: { X: string; Y: string } | undefined;
@@ -522,7 +523,7 @@ export async function retrieveOrImportShare(params: {
         finalPubKey = ecCurve.keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
         if (enableOneKey) {
-          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
+          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, keyType, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {

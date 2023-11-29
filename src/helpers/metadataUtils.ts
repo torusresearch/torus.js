@@ -5,7 +5,7 @@ import { ec } from "elliptic";
 import stringify from "json-stable-stringify";
 import log from "loglevel";
 
-import { EciesHex, GetOrSetNonceResult, MetadataParams } from "../interfaces";
+import { EciesHex, GetOrSetNonceResult, KeyType, MetadataParams } from "../interfaces";
 import { encParamsHexToBuf } from "./common";
 import { keccak256 } from "./keyUtils";
 
@@ -25,7 +25,7 @@ export async function decryptNodeData(eciesData: EciesHex, ciphertextHex: string
   return decryptedSigBuffer;
 }
 
-export function generateMetadataParams(ecCurve: ec, serverTimeOffset: number, message: string, privateKey: BN): MetadataParams {
+export function generateMetadataParams(ecCurve: ec, serverTimeOffset: number, message: string, privateKey: BN, keyType: KeyType): MetadataParams {
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64));
   const setData = {
     data: message,
@@ -36,6 +36,7 @@ export function generateMetadataParams(ecCurve: ec, serverTimeOffset: number, me
     pub_key_X: key.getPublic().getX().toString("hex"), // DO NOT PAD THIS. BACKEND DOESN'T
     pub_key_Y: key.getPublic().getY().toString("hex"), // DO NOT PAD THIS. BACKEND DOESN'T
     set_data: setData,
+    key_type: keyType,
     signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
   };
 }
@@ -60,6 +61,7 @@ export async function getMetadata(
 export async function getOrSetNonce(
   legacyMetadataHost: string,
   ecCurve: ec,
+  keyType: KeyType,
   serverTimeOffset: number,
   X: string,
   Y: string,
@@ -69,7 +71,7 @@ export async function getOrSetNonce(
   let data: Data;
   const msg = getOnly ? "getNonce" : "getOrSetNonce";
   if (privKey) {
-    data = generateMetadataParams(ecCurve, serverTimeOffset, msg, privKey);
+    data = generateMetadataParams(ecCurve, serverTimeOffset, msg, privKey, keyType);
   } else {
     data = {
       pub_key_X: X,
@@ -83,10 +85,11 @@ export async function getOrSetNonce(
 export async function getNonce(
   legacyMetadataHost: string,
   ecCurve: ec,
+  keyType: KeyType,
   serverTimeOffset: number,
   X: string,
   Y: string,
   privKey?: BN
 ): Promise<GetOrSetNonceResult> {
-  return getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, X, Y, privKey, true);
+  return getOrSetNonce(legacyMetadataHost, ecCurve, keyType, serverTimeOffset, X, Y, privKey, true);
 }
