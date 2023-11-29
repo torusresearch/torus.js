@@ -1,4 +1,12 @@
-import { INodePub, JRPCResponse, LEGACY_NETWORKS_ROUTE_MAP, SIGNER_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import {
+  INodePub,
+  JRPCResponse,
+  LEGACY_NETWORKS_ROUTE_MAP,
+  METADATA_MAP,
+  SIGNER_MAP,
+  TORUS_LEGACY_NETWORK_TYPE,
+  TORUS_NETWORK_TYPE,
+} from "@toruslabs/constants";
 import { decrypt, Ecies, encrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -6,7 +14,6 @@ import { curve, ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 
 import { config } from "./config";
-import { LEGACY_METADATA_HOST } from "./constants";
 import {
   encParamsBufToHex,
   generateAddressFromPrivKey,
@@ -63,23 +70,16 @@ class Torus {
 
   private legacyMetadataHost: string;
 
-  constructor({
-    enableOneKey = false,
-    clientId,
-    network,
-    serverTimeOffset = 0,
-    allowHost = "https://signer.tor.us/api/allow",
-    legacyMetadataHost = LEGACY_METADATA_HOST,
-  }: TorusCtorOptions) {
+  constructor({ enableOneKey = false, clientId, network, serverTimeOffset = 0, allowHost, legacyMetadataHost }: TorusCtorOptions) {
     if (!clientId) throw Error("Please provide a valid clientId in constructor");
     if (!network) throw Error("Please provide a valid network in constructor");
     this.ec = new EC("secp256k1");
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.network = network;
     this.clientId = clientId;
-    this.allowHost = allowHost;
+    this.allowHost = allowHost || `${SIGNER_MAP[network]}/api/allow`;
     this.enableOneKey = enableOneKey;
-    this.legacyMetadataHost = legacyMetadataHost;
+    this.legacyMetadataHost = legacyMetadataHost || METADATA_MAP[network as TORUS_LEGACY_NETWORK_TYPE];
     this.signerHost = `${SIGNER_MAP[network as TORUS_LEGACY_NETWORK_TYPE]}/api/sign`;
   }
 

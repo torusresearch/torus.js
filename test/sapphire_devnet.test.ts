@@ -19,7 +19,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe("torus utils sapphire", function () {
+describe("torus utils sapphire devnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -27,7 +27,6 @@ describe("torus utils sapphire", function () {
     TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET });
     torus = new TorusUtils({
       network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET,
-      allowHost: "https://signer.tor.us/api/allow",
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
     });
@@ -44,7 +43,6 @@ describe("torus utils sapphire", function () {
     const verifierDetails = { verifier, verifierId: "himanshu@tor.us" };
     const legacyTorus = new TorusUtils({
       network: TORUS_LEGACY_NETWORK.TESTNET,
-      allowHost: "https://signer.tor.us/api/allow",
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
     });
@@ -69,7 +67,7 @@ describe("torus utils sapphire", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: publicKeyData.nodesData,
     });
   });
 
@@ -85,7 +83,6 @@ describe("torus utils sapphire", function () {
     const verifierDetails = { verifier, verifierId: email };
     const legacyTorus = new TorusUtils({
       network: TORUS_LEGACY_NETWORK.TESTNET,
-      allowHost: "https://signer.tor.us/api/allow",
       clientId: "YOUR_CLIENT_ID",
     });
     const { torusNodeSSSEndpoints: torusNodeEndpoints, torusIndexes } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
@@ -133,7 +130,6 @@ describe("torus utils sapphire", function () {
 
     const legacyTorus = new TorusUtils({
       network: TORUS_LEGACY_NETWORK.TESTNET,
-      allowHost: "https://signer.tor.us/api/allow",
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
     });
@@ -165,7 +161,7 @@ describe("torus utils sapphire", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result.nodesData,
     });
 
     // 2/n user
@@ -196,7 +192,7 @@ describe("torus utils sapphire", function () {
         upgraded: true,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result.nodesData,
     });
   });
 
@@ -222,11 +218,11 @@ describe("torus utils sapphire", function () {
           X: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
           Y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
         },
-        nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
+        nonce: new BN("0"),
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
   // we are working on a new implementation for import sss keys, so skipping it for now.
@@ -278,11 +274,11 @@ describe("torus utils sapphire", function () {
           X: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
           Y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
         },
-        nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
+        nonce: new BN("0"),
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
 
@@ -447,7 +443,7 @@ describe("torus utils sapphire", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
   it("should assign key to tss verifier id", async function () {
@@ -510,11 +506,11 @@ describe("torus utils sapphire", function () {
           X: "d6404befc44e3ab77a8387829d77e9c77a9c2fb37ae314c3a59bdc108d70349d",
           Y: "1054dfe297f1d977ccc436109cbcce64e95b27f93efc0f1dab739c9146eda2e",
         },
-        nonce: new BN("51eb06f7901d5a8562274d3e53437328ca41ad96926f075122f6bd50e31be52d", "hex"),
+        nonce: new BN("0"),
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
 
@@ -553,11 +549,11 @@ describe("torus utils sapphire", function () {
           X: "d6404befc44e3ab77a8387829d77e9c77a9c2fb37ae314c3a59bdc108d70349d",
           Y: "1054dfe297f1d977ccc436109cbcce64e95b27f93efc0f1dab739c9146eda2e",
         },
-        nonce: new BN("51eb06f7901d5a8562274d3e53437328ca41ad96926f075122f6bd50e31be52d", "hex"),
+        nonce: new BN("0"),
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
   it("should be able to login when verifierID hash enabled", async function () {
@@ -600,7 +596,7 @@ describe("torus utils sapphire", function () {
         typeOfUser: "v2",
         upgraded: false,
       },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
 

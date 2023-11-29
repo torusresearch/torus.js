@@ -18,8 +18,6 @@ describe("torus utils cyan", function () {
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({
-      // signerHost: "https://signer-polygon.tor.us/api/sign",
-      allowHost: "https://signer-polygon.tor.us/api/allow",
       network: "cyan",
       clientId: "YOUR_CLIENT_ID",
     });
@@ -48,7 +46,7 @@ describe("torus utils cyan", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result.nodesData,
     });
   });
 
@@ -76,7 +74,7 @@ describe("torus utils cyan", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result1.nodesData,
     });
 
     const v2Verifier = "tkey-google-cyan";
@@ -108,7 +106,7 @@ describe("torus utils cyan", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result2.nodesData,
     });
     // 2/n user
     const v2nTestEmail = "caspertorus@gmail.com";
@@ -138,7 +136,7 @@ describe("torus utils cyan", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result3.nodesData,
     });
   });
 
@@ -177,7 +175,7 @@ describe("torus utils cyan", function () {
         privKey: "5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8",
       },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
 
@@ -215,7 +213,7 @@ describe("torus utils cyan", function () {
         privKey: "45a5b62c4ff5490baa75d33bf4f03ba6c5b0095678b0f4055312eef7b780b7bf",
       },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
 });

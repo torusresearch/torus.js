@@ -45,7 +45,7 @@ describe("torus utils migrated testnet on sapphire", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result.nodesData,
     });
   });
 
@@ -76,7 +76,7 @@ describe("torus utils migrated testnet on sapphire", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result1.nodesData,
     });
 
     const v2Verifier = "tkey-google-lrc";
@@ -108,7 +108,7 @@ describe("torus utils migrated testnet on sapphire", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result2.nodesData,
     });
 
     // 2/n user
@@ -139,7 +139,7 @@ describe("torus utils migrated testnet on sapphire", function () {
         upgraded: true,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result3.nodesData,
     });
   });
 
@@ -181,7 +181,7 @@ describe("torus utils migrated testnet on sapphire", function () {
         sessionAuthKey: result.sessionData.sessionAuthKey,
       },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
 
@@ -222,7 +222,7 @@ describe("torus utils migrated testnet on sapphire", function () {
         sessionAuthKey: result.sessionData.sessionAuthKey,
       },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
 });

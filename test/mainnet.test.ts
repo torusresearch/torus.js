@@ -46,7 +46,7 @@ describe("torus utils mainnet", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result.nodesData,
     });
   });
 
@@ -74,7 +74,7 @@ describe("torus utils mainnet", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result1.nodesData,
     });
 
     const v2Verifier = "tkey-google";
@@ -106,7 +106,7 @@ describe("torus utils mainnet", function () {
         upgraded: false,
         typeOfUser: "v2",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result2.nodesData,
     });
 
     // 2/n user
@@ -134,7 +134,7 @@ describe("torus utils mainnet", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result3.nodesData,
     });
   });
 
@@ -178,7 +178,7 @@ describe("torus utils mainnet", function () {
         privKey: "0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44",
       },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
 
@@ -216,7 +216,7 @@ describe("torus utils mainnet", function () {
         privKey: "f55d89088a0c491d797c00da5b2ed6dc9c269c960ff121e45f255d06a91c6534",
       },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: result.nodesData.nodeIndexes },
+      nodesData: result.nodesData,
     });
   });
 });
