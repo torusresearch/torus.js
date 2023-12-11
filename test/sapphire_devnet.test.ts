@@ -417,41 +417,76 @@ describe("torus utils sapphire devnet", function () {
     const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(result1.finalKeyData.evmAddress).to.be.equal(result2.finalKeyData.evmAddress);
   });
-  it("should be able to import private key concurently", async function () {
-    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
+  it("should be able to import private key subsequently", async function () {
+    const email = faker.internet.email();
+    const privKeyBuffer = generatePrivate();
+    const privHex = privKeyBuffer.toString("hex");
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const token1 = generateIdToken(email, "ES256");
+    const result1 = await torus.importPrivateKey(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      nodeDetails.torusNodePub,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token1,
+      privHex
+    );
+    const token2 = generateIdToken(email, "ES256");
+    const result2 = await torus.importPrivateKey(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      nodeDetails.torusNodePub,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token2,
+      privHex
+    );
+
+    expect(result1.finalKeyData.privKey).to.be.equal(privHex);
+    expect(result2.finalKeyData.privKey).to.be.equal(privHex);
+
+    const pubAddr = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, { verifier: TORUS_TEST_VERIFIER, verifierId: email });
+    expect(result1.finalKeyData.evmAddress).to.be.equal(pubAddr.finalKeyData.evmAddress);
+    expect(result2.finalKeyData.evmAddress).to.be.equal(pubAddr.finalKeyData.evmAddress);
+  });
+  it("should be able to import private key concurrently", async function () {
+    const email = faker.internet.email();
+    let verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const privKeyBuffer = generatePrivate();
     const privHex = privKeyBuffer.toString("hex");
 
-    // console.log("privHex", privHex);
+    const numOfConcurrentCalls = 2;
 
-    const importPrivKeyFunc = () => {
-      const token = generateIdToken(TORUS_IMPORT_EMAIL, "ES256");
+    const shareImportResultsPromises = Array.from(Array(numOfConcurrentCalls).keys()).map(() => {
+      const token = generateIdToken(email, "ES256");
       return torus.importPrivateKey(
         torusNodeEndpoints,
         nodeDetails.torusIndexes,
         nodeDetails.torusNodePub,
         TORUS_TEST_VERIFIER,
-        { verifier_id: TORUS_IMPORT_EMAIL },
+        { verifier_id: email },
         token,
         privHex
       );
-    };
+    });
 
-    // 3 concurrent result
-    const results = await Promise.all([importPrivKeyFunc(), importPrivKeyFunc()]);
+    const results = await Promise.all(shareImportResultsPromises);
 
-    // results.forEach((r: TorusKey) => {
-    //   console.log("r", r);
-    // });
-
-    expect(results.length).to.be.equal(2, "result length should be 3");
+    expect(results.length).to.be.equal(numOfConcurrentCalls, `result length should be ${numOfConcurrentCalls}`);
 
     // values to be tested
-    const privKeySet = new Set(results.map((r) => r.finalKeyData.privKey));
-    expect(privKeySet.has(privHex)).to.be.equal(true, "private keys before and after `importShare` should not be different");
-    expect(privKeySet.size).to.be.equal(1, "import share requests return different private keys");
+    const haveSamePrivateKeyValue = results.every((r) => r.finalKeyData.privKey === privHex);
+    expect(haveSamePrivateKeyValue).to.be.equal(true, "final private key must be the same as the private hex before the import share request");
+
+    // validating evm address
+    verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
+    const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+    const haveSameEvmAddr = results.every((r) => r.finalKeyData.evmAddress === result2.finalKeyData.evmAddress);
+    expect(haveSameEvmAddr).to.be.equal(true, "evm address must not change after the import share request");
   });
 
   it("should fetch pub address of tss verifier id", async function () {
