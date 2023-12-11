@@ -18,8 +18,6 @@ describe("torus utils celeste", function () {
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({
-      // signerHost: "https://signer-polygon.tor.us/api/sign",
-      allowHost: "https://signer-polygon.tor.us/api/allow",
       network: "celeste",
       clientId: "YOUR_CLIENT_ID",
     });

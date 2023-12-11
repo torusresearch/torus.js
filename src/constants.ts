@@ -4,5 +4,3 @@ export const JRPC_METHODS = {
   IMPORT_SHARES: "ImportShares",
   GET_SHARE_OR_KEY_ASSIGN: "GetShareOrKeyAssign",
 };
-
-export const LEGACY_METADATA_HOST = "https://metadata.tor.us";
