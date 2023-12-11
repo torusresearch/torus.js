@@ -421,6 +421,42 @@ describe("torus utils sapphire", function () {
     const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(result1.finalKeyData.evmAddress).to.be.equal(result2.finalKeyData.evmAddress);
   });
+  it("should be able to import private key concurently", async function () {
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const privKeyBuffer = generatePrivate();
+    const privHex = privKeyBuffer.toString("hex");
+
+    // console.log("privHex", privHex);
+
+    const importPrivKeyFunc = () => {
+      const token = generateIdToken(TORUS_IMPORT_EMAIL, "ES256");
+      return torus.importPrivateKey(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        nodeDetails.torusNodePub,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: TORUS_IMPORT_EMAIL },
+        token,
+        privHex
+      );
+    };
+
+    // 3 concurrent result
+    const results = await Promise.all([importPrivKeyFunc(), importPrivKeyFunc()]);
+
+    // results.forEach((r: TorusKey) => {
+    //   console.log("r", r);
+    // });
+
+    expect(results.length).to.be.equal(2, "result length should be 3");
+
+    // values to be tested
+    const privKeySet = new Set(results.map((r) => r.finalKeyData.privKey));
+    expect(privKeySet.has(privHex)).to.be.equal(true, "private keys before and after `importShare` should not be different");
+    expect(privKeySet.size).to.be.equal(1, "import share requests return different private keys");
+  });
 
   it("should fetch pub address of tss verifier id", async function () {
     const email = TORUS_EXTENDED_VERIFIER_EMAIL;
