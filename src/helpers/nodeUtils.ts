@@ -38,9 +38,10 @@ export const GetPubKeyOrKeyAssign = async (params: {
   network: TORUS_NETWORK_TYPE;
   verifier: string;
   verifierId: string;
+  keyType: KeyType;
   extendedVerifierId?: string;
 }): Promise<KeyLookupResult> => {
-  const { endpoints, network, verifier, verifierId, extendedVerifierId } = params;
+  const { endpoints, network, verifier, verifierId, extendedVerifierId, keyType } = params;
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
@@ -49,6 +50,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
         verifier_id: verifierId.toString(),
         extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
+        key_type: keyType,
         fetch_node_index: true,
       }),
       null,
@@ -190,6 +192,7 @@ export async function retrieveOrImportShare(params: {
       endpoints[i],
       generateJsonRPCObject(JRPC_METHODS.COMMITMENT_REQUEST, {
         messageprefix: "mug00",
+        keytype: keyType,
         tokencommitment: tokenCommitment.slice(2),
         temppubx: pubKeyX,
         temppuby: pubKeyY,
@@ -260,9 +263,11 @@ export async function retrieveOrImportShare(params: {
             generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
               encrypted: "yes",
               use_temp: true,
+              key_type: importedShare.key_type,
               item: [
                 {
                   ...verifierParams,
+                  key_type: importedShare.key_type,
                   idtoken: idToken,
                   nodesignatures: nodeSigs,
                   verifieridentifier: verifier,
@@ -271,7 +276,6 @@ export async function retrieveOrImportShare(params: {
                   encrypted_share: importedShare.encrypted_share,
                   encrypted_share_metadata: importedShare.encrypted_share_metadata,
                   node_index: importedShare.node_index,
-                  key_type: importedShare.key_type,
                   nonce_data: importedShare.nonce_data,
                   nonce_signature: importedShare.nonce_signature,
                   ...extraParams,
@@ -289,10 +293,12 @@ export async function retrieveOrImportShare(params: {
             generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
               encrypted: "yes",
               use_temp: true,
+              key_type: keyType,
               item: [
                 {
                   ...verifierParams,
                   idtoken: idToken,
+                  key_type: keyType,
                   nodesignatures: nodeSigs,
                   verifieridentifier: verifier,
                   ...extraParams,
@@ -353,6 +359,7 @@ export async function retrieveOrImportShare(params: {
         // optimistically run lagrange interpolation once threshold number of shares have been received
         // this is matched against the user public key to ensure that shares are consistent
         // Note: no need of thresholdMetadataNonce for extended_verifier_id key
+
         if (
           completedRequests.length >= thresholdReqCount &&
           thresholdPublicKey &&
@@ -418,7 +425,9 @@ export async function retrieveOrImportShare(params: {
                     latestKey.share_metadata,
                     Buffer.from(latestKey.share, "base64").toString("binary").padStart(64, "0"),
                     sessionAuthKey
-                  ).catch((err) => log.debug("share decryption", err))
+                  ).catch((err) => {
+                    log.debug("share decryption", err);
+                  })
                 );
               }
             } else {
@@ -495,6 +504,7 @@ export async function retrieveOrImportShare(params: {
           if (privateKey === undefined || privateKey === null) {
             throw new Error("could not derive private key");
           }
+
           const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
           return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey: thresholdIsNewKey === "true" };
@@ -614,13 +624,19 @@ export async function retrieveOrImportShare(params: {
     });
 }
 
-export const legacyKeyLookup = async (endpoints: string[], verifier: string, verifierId: string): Promise<LegacyKeyLookupResult> => {
+export const legacyKeyLookup = async (
+  endpoints: string[],
+  verifier: string,
+  verifierId: string,
+  keyType: KeyType
+): Promise<LegacyKeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<LegacyVerifierLookupResponse>>(
       x,
       generateJsonRPCObject("VerifierLookupRequest", {
         verifier,
         verifier_id: verifierId.toString(),
+        key_type: keyType,
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
@@ -651,6 +667,7 @@ export const legacyKeyAssign = async ({
   signerHost,
   network,
   clientId,
+  keyType,
 }: KeyAssignInput): Promise<void> => {
   let nodeNum: number;
   let initialPoint: number | undefined;
@@ -668,6 +685,7 @@ export const legacyKeyAssign = async ({
   const data = generateJsonRPCObject("KeyAssign", {
     verifier,
     verifier_id: verifierId.toString(),
+    key_type: keyType,
   });
   try {
     const signedData = await post<SignerResponse>(
@@ -724,6 +742,7 @@ export const legacyKeyAssign = async ({
         signerHost,
         network,
         clientId,
+        keyType,
       });
     throw new Error(
       `Sorry, the Torus Network that powers Web3Auth is currently very busy.
@@ -733,9 +752,15 @@ export const legacyKeyAssign = async ({
   }
 };
 
-export const legacyWaitKeyLookup = (endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<LegacyKeyLookupResult> =>
+export const legacyWaitKeyLookup = (
+  endpoints: string[],
+  verifier: string,
+  verifierId: string,
+  keyType: KeyType,
+  timeout: number
+): Promise<LegacyKeyLookupResult> =>
   new Promise((resolve, reject) => {
     setTimeout(() => {
-      legacyKeyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject);
+      legacyKeyLookup(endpoints, verifier, verifierId, keyType).then(resolve).catch(reject);
     }, timeout);
   });

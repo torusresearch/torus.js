@@ -137,7 +137,7 @@ class Torus {
     idToken: string,
     extraParams: Record<string, unknown> = {}
   ): Promise<TorusKey> {
-    if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams);
+    if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, this._keyType, extraParams);
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
@@ -229,7 +229,7 @@ class Torus {
       serverTimeOffset: this.serverTimeOffset,
       enableOneKey: this.enableOneKey,
       ecCurve: this.ec,
-      keyType: "secp256k1",
+      keyType: this._keyType,
       allowHost: this.allowHost,
       network: this.network,
       clientId: this.clientId,
@@ -262,6 +262,7 @@ class Torus {
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
+    keyType: KeyType,
     extraParams: Record<string, unknown> = {}
   ): Promise<TorusKey> {
     const promiseArr = [];
@@ -301,6 +302,7 @@ class Torus {
         endpoints[i],
         generateJsonRPCObject("CommitmentRequest", {
           messageprefix: "mug00",
+          keytype: keyType,
           tokencommitment: tokenCommitment.slice(2),
           temppubx: pubKeyX,
           temppuby: pubKeyY,
@@ -360,7 +362,9 @@ class Torus {
             endpoints[i],
             generateJsonRPCObject("ShareRequest", {
               encrypted: "yes",
-              item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
+              item: [
+                { ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, key_type: keyType, ...extraParams },
+              ],
             })
           ).catch((err) => log.error("share req", err));
           promiseArrRequest.push(p);
@@ -562,7 +566,7 @@ class Torus {
     let finalKeyResult: LegacyVerifierLookupResponse | undefined;
     let isNewKey = false;
 
-    const { keyResult, errorResult } = (await legacyKeyLookup(endpoints, verifier, verifierId)) || {};
+    const { keyResult, errorResult } = (await legacyKeyLookup(endpoints, verifier, verifierId, this._keyType)) || {};
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
@@ -579,8 +583,9 @@ class Torus {
         signerHost: this.signerHost,
         network: this.network,
         clientId: this.clientId,
+        keyType: this._keyType,
       });
-      const assignResult = await legacyWaitKeyLookup(endpoints, verifier, verifierId, 1000);
+      const assignResult = await legacyWaitKeyLookup(endpoints, verifier, verifierId, this._keyType, 1000);
       finalKeyResult = assignResult?.keyResult;
       isNewKey = true;
     } else if (keyResult) {
@@ -604,7 +609,6 @@ class Torus {
     const key = this.ec.keyFromPrivate(privateKey.toString("hex", 64));
     const setData: Partial<SetNonceData> = {
       operation,
-      key_type: keyType,
       timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
     };
 
@@ -616,6 +620,7 @@ class Torus {
       pub_key_X: key.getPublic().getX().toString("hex", 64),
       pub_key_Y: key.getPublic().getY().toString("hex", 64),
       set_data: setData,
+      key_type: keyType,
       signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
     };
   }
@@ -631,6 +636,7 @@ class Torus {
       network: this.network,
       verifier,
       verifierId,
+      keyType: this._keyType,
       extendedVerifierId,
     });
     const { errorResult, keyResult, nodeIndexes = [] } = keyAssignResult;

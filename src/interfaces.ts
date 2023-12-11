@@ -19,7 +19,6 @@ export interface SetNonceData {
   operation: string;
   data: string;
   timestamp: string;
-  key_type?: KeyType;
 }
 
 export interface NonceMetadataParams {
@@ -28,6 +27,7 @@ export interface NonceMetadataParams {
   pub_key_Y: string;
   set_data: Partial<SetNonceData>;
   signature: string;
+  key_type?: KeyType;
 }
 
 export interface TorusCtorOptions {
@@ -102,6 +102,7 @@ export interface KeyAssignInput {
   signerHost: string;
   network: string;
   clientId: string;
+  keyType: KeyType;
 }
 
 export type EciesHex = {
