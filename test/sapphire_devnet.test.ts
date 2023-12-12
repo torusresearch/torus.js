@@ -459,33 +459,52 @@ describe("torus utils sapphire devnet", function () {
     const privKeyBuffer = generatePrivate();
     const privHex = privKeyBuffer.toString("hex");
 
-    const numOfConcurrentCalls = 2;
+    const numOfConcurrentCalls = 3;
 
-    const shareImportResultsPromises = Array.from(Array(numOfConcurrentCalls).keys()).map(() => {
+    const inputs = Array.from(Array(numOfConcurrentCalls).keys()).map(() => {
       const token = generateIdToken(email, "ES256");
-      return torus.importPrivateKey(
+      return {
         torusNodeEndpoints,
-        nodeDetails.torusIndexes,
-        nodeDetails.torusNodePub,
-        TORUS_TEST_VERIFIER,
-        { verifier_id: email },
+        torusIndexes: nodeDetails.torusIndexes,
+        torusNodePub: nodeDetails.torusNodePub,
+        verifier: TORUS_TEST_VERIFIER,
+        verifierId: { verifier_id: email },
         token,
-        privHex
-      );
+        privHex,
+      };
     });
 
-    const results = await Promise.all(shareImportResultsPromises);
+    const outputs = await Promise.all(
+      inputs.map((input) => {
+        return torus.importPrivateKey(
+          input.torusNodeEndpoints,
+          input.torusIndexes,
+          input.torusNodePub,
+          input.verifier,
+          input.verifierId,
+          input.token,
+          input.privHex
+        );
+      })
+    );
 
-    expect(results.length).to.be.equal(numOfConcurrentCalls, `result length should be ${numOfConcurrentCalls}`);
+    // for (let i = 0; i < numOfConcurrentCalls; i++) {
+    //   const input = inputs[i];
+    //   const output = outputs[i];
+    //   console.log("input", input);
+    //   console.log("output", output);
+    // }
+
+    expect(outputs.length).to.be.equal(numOfConcurrentCalls, `outputs should have length of ${numOfConcurrentCalls}`);
 
     // values to be tested
-    const haveSamePrivateKeyValue = results.every((r) => r.finalKeyData.privKey === privHex);
+    const haveSamePrivateKeyValue = outputs.every((r) => r.finalKeyData.privKey === privHex);
     expect(haveSamePrivateKeyValue).to.be.equal(true, "final private key must be the same as the private hex before the import share request");
 
     // validating evm address
     verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
     const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    const haveSameEvmAddr = results.every((r) => r.finalKeyData.evmAddress === result2.finalKeyData.evmAddress);
+    const haveSameEvmAddr = outputs.every((r) => r.finalKeyData.evmAddress === result2.finalKeyData.evmAddress);
     expect(haveSameEvmAddr).to.be.equal(true, "evm address must not change after the import share request");
   });
 
