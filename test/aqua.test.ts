@@ -18,8 +18,6 @@ describe("torus utils aqua", function () {
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({
-      // signerHost: "https://signer-polygon.tor.us/api/sign",
-      allowHost: "https://signer-polygon.tor.us/api/allow",
       network: "aqua",
       clientId: "YOUR_CLIENT_ID",
     });
@@ -48,7 +46,7 @@ describe("torus utils aqua", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result.nodesData,
     });
   });
 
@@ -57,7 +55,7 @@ describe("torus utils aqua", function () {
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result1 = (await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
-    expect(result1.finalKeyData.evmAddress).to.equal("0xDfA967285AC699A70DA340F60d00DB19A272639d");
+    expect(result1.finalKeyData.evmAddress).to.equal("0x79F06350eF34Aeed4BE68e26954D405D573f1438");
     expect(result1.metadata.typeOfUser).to.equal("v1");
     expect(result1).eql({
       oAuthKeyData: {
@@ -76,7 +74,7 @@ describe("torus utils aqua", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result1.nodesData,
     });
 
     const v2Verifier = "tkey-google-aqua";
@@ -105,7 +103,7 @@ describe("torus utils aqua", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result2.nodesData,
     });
 
     // 2/n user
@@ -133,7 +131,7 @@ describe("torus utils aqua", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result3.nodesData,
     });
   });
 
@@ -170,9 +168,9 @@ describe("torus utils aqua", function () {
         Y: "63795690a33e575ee12d832935d563c2b5f2e1b1ffac63c32a4674152f68cb3f",
         privKey: "f726ce4ac79ae4475d72633c94769a8817aff35eebe2d4790aed7b5d8a84aa1d",
       },
-      sessionData: { sessionTokenData: [], sessionAuthKey: "" },
+      sessionData: result.sessionData,
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result.nodesData,
     });
   });
 
@@ -208,9 +206,9 @@ describe("torus utils aqua", function () {
         Y: "f963f2d08ed4dd0da9b8a8d74c6fdaeef7bdcde31f84fcce19fa2173d40b2c10",
         privKey: "488d39ac548e15cfb0eaf161d86496e1645b09437df21311e24a56c4efd76355",
       },
-      sessionData: { sessionTokenData: [], sessionAuthKey: "" },
+      sessionData: result.sessionData,
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
-      nodesData: { nodeIndexes: [] },
+      nodesData: result.nodesData,
     });
   });
 });

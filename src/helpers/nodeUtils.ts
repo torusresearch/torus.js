@@ -151,7 +151,7 @@ export async function retrieveOrImportShare(params: {
         verifierId: verifierParams.verifier_id,
         network,
         clientId,
-        enable_gating: "true",
+        enableGating: "true",
       },
     },
     { useAPIKey: true }

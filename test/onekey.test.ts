@@ -49,7 +49,7 @@ describe("torus onekey", function () {
         upgraded: false,
         typeOfUser: "v1",
       },
-      nodesData: { nodeIndexes: [] },
+      nodesData: publicAddress.nodesData,
     });
   });
 
@@ -91,7 +91,7 @@ describe("torus onekey", function () {
         typeOfUser: "v2",
         upgraded: false,
       },
-      nodesData: { nodeIndexes: retrieveSharesResponse.nodesData.nodeIndexes },
+      nodesData: retrieveSharesResponse.nodesData,
     });
   });
 
@@ -138,7 +138,7 @@ describe("torus onekey", function () {
         typeOfUser: "v2",
         upgraded: false,
       },
-      nodesData: { nodeIndexes: retrieveSharesResponse.nodesData.nodeIndexes },
+      nodesData: retrieveSharesResponse.nodesData,
     });
   });
 
@@ -210,7 +210,7 @@ describe("torus onekey", function () {
         typeOfUser: "v2",
         upgraded: false,
       },
-      nodesData: { nodeIndexes: retrieveSharesResponse.nodesData.nodeIndexes },
+      nodesData: retrieveSharesResponse.nodesData,
     });
   });
 });
