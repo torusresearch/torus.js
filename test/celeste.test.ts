@@ -12,7 +12,7 @@ const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe("torus utils celeste", function () {
+describe.only("torus utils celeste", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 

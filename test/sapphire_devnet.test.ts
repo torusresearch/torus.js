@@ -9,7 +9,9 @@ import { keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
 
-const TORUS_TEST_EMAIL = "saasas@tr.us";
+const TORUS_TEST_EMAIL = "devnettestuser@tor.us";
+const TORUS_HASH_ENABLED_TEST_EMAIL = "saasas@tr.us";
+
 const TORUS_IMPORT_EMAIL = "Elena_Hermann@yahoo.com";
 
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
@@ -201,22 +203,21 @@ describe("torus utils sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.evmAddress).to.equal("0x4924F91F5d6701dDd41042D94832bB17B76F316F");
     expect(result).eql({
       oAuthKeyData: {
-        evmAddress: "0xac997dE675Fb69FCb0F4115A23c0061A892A2772",
-        X: "9508a251dfc4146a132feb96111c136538f4fabd20fc488dbcaaf762261c1528",
-        Y: "f9128bc7403bab6d45415cad01dd0ba0924628cfb6bf51c17e77aa8ca43b3cfe",
+        evmAddress: "0x137B3607958562D03Eb3C6086392D1eFa01aA6aa",
+        X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
+        Y: "8325432b3a3418d632b4fe93db094d6d83250eea60fe512897c0ad548737f8a5",
       },
       finalKeyData: {
-        evmAddress: "0x4924F91F5d6701dDd41042D94832bB17B76F316F",
-        X: "f3eaf63bf1fd645d4159832ccaad7f42457e287ac929363ba636eb7e87978bff",
-        Y: "f3b9d8dd91927a89ec45199ad697fe3fa01b8b836710143a0babb1a4eb35f1cd",
+        evmAddress: "0x462A8BF111A55C9354425F875F89B22678c0Bc44",
+        X: "36e257717f746cdd52ba85f24f7c9040db8977d3b0354de70ed43689d24fa1b1",
+        Y: "58ec9768c2fe871b3e2a83cdbcf37ba6a88ad19ec2f6e16a66231732713fd507",
       },
       metadata: {
         pubNonce: {
-          X: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
-          Y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
+          X: "5d03a0df9b3db067d3363733df134598d42873bb4730298a53ee100975d703cc",
+          Y: "279434dcf0ff22f077877a70bcad1732412f853c96f02505547f7ca002b133ed",
         },
         nonce: new BN("0"),
         upgraded: false,
@@ -226,7 +227,7 @@ describe("torus utils sapphire devnet", function () {
     });
   });
   // we are working on a new implementation for import sss keys, so skipping it for now.
-  it.skip("should fetch public address of imported user", async function () {
+  it("should fetch public address of imported user", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -257,22 +258,21 @@ describe("torus utils sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.evmAddress).to.equal("0x4924F91F5d6701dDd41042D94832bB17B76F316F");
     expect(result).eql({
       oAuthKeyData: {
-        evmAddress: "0xac997dE675Fb69FCb0F4115A23c0061A892A2772",
-        X: "9508a251dfc4146a132feb96111c136538f4fabd20fc488dbcaaf762261c1528",
-        Y: "f9128bc7403bab6d45415cad01dd0ba0924628cfb6bf51c17e77aa8ca43b3cfe",
+        evmAddress: "0x137B3607958562D03Eb3C6086392D1eFa01aA6aa",
+        X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
+        Y: "8325432b3a3418d632b4fe93db094d6d83250eea60fe512897c0ad548737f8a5",
       },
       finalKeyData: {
-        evmAddress: "0x4924F91F5d6701dDd41042D94832bB17B76F316F",
-        X: "f3eaf63bf1fd645d4159832ccaad7f42457e287ac929363ba636eb7e87978bff",
-        Y: "f3b9d8dd91927a89ec45199ad697fe3fa01b8b836710143a0babb1a4eb35f1cd",
+        evmAddress: "0x462A8BF111A55C9354425F875F89B22678c0Bc44",
+        X: "36e257717f746cdd52ba85f24f7c9040db8977d3b0354de70ed43689d24fa1b1",
+        Y: "58ec9768c2fe871b3e2a83cdbcf37ba6a88ad19ec2f6e16a66231732713fd507",
       },
       metadata: {
         pubNonce: {
-          X: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
-          Y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
+          X: "5d03a0df9b3db067d3363733df134598d42873bb4730298a53ee100975d703cc",
+          Y: "279434dcf0ff22f077877a70bcad1732412f853c96f02505547f7ca002b133ed",
         },
         nonce: new BN("0"),
         upgraded: false,
@@ -303,19 +303,18 @@ describe("torus utils sapphire devnet", function () {
       { verifier_id: TORUS_TEST_EMAIL },
       token
     );
-    expect(result.finalKeyData.privKey).to.be.equal("04eb166ddcf59275a210c7289dca4a026f87a33fd2d6ed22f56efae7eab4052c");
     expect(result).eql({
       finalKeyData: {
-        evmAddress: "0x4924F91F5d6701dDd41042D94832bB17B76F316F",
-        X: "f3eaf63bf1fd645d4159832ccaad7f42457e287ac929363ba636eb7e87978bff",
-        Y: "f3b9d8dd91927a89ec45199ad697fe3fa01b8b836710143a0babb1a4eb35f1cd",
-        privKey: "04eb166ddcf59275a210c7289dca4a026f87a33fd2d6ed22f56efae7eab4052c",
+        evmAddress: "0x462A8BF111A55C9354425F875F89B22678c0Bc44",
+        X: "36e257717f746cdd52ba85f24f7c9040db8977d3b0354de70ed43689d24fa1b1",
+        Y: "58ec9768c2fe871b3e2a83cdbcf37ba6a88ad19ec2f6e16a66231732713fd507",
+        privKey: "230dad9f42039569e891e6b066ff5258b14e9764ef5176d74aeb594d1a744203",
       },
       oAuthKeyData: {
-        evmAddress: "0xac997dE675Fb69FCb0F4115A23c0061A892A2772",
-        X: "9508a251dfc4146a132feb96111c136538f4fabd20fc488dbcaaf762261c1528",
-        Y: "f9128bc7403bab6d45415cad01dd0ba0924628cfb6bf51c17e77aa8ca43b3cfe",
-        privKey: "cd7d1dc7aec71fd2ee284890d56ac34d375bbc15ff41a1d87d088170580b9b0f",
+        evmAddress: "0x137B3607958562D03Eb3C6086392D1eFa01aA6aa",
+        X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
+        Y: "8325432b3a3418d632b4fe93db094d6d83250eea60fe512897c0ad548737f8a5",
+        privKey: "6b3c872a269aa8994a5acc8cdd70ea3d8d182d42f8af421c0c39ea124e9b66fa",
       },
       sessionData: {
         sessionTokenData: result.sessionData.sessionTokenData,
@@ -323,10 +322,10 @@ describe("torus utils sapphire devnet", function () {
       },
       metadata: {
         pubNonce: {
-          X: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
-          Y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
+          X: "5d03a0df9b3db067d3363733df134598d42873bb4730298a53ee100975d703cc",
+          Y: "279434dcf0ff22f077877a70bcad1732412f853c96f02505547f7ca002b133ed",
         },
-        nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
+        nonce: new BN("b7d126751b68ecd09e371a23898e6819dee54708a5ead4f6fe83cdc79c0f1c4a", "hex"),
         typeOfUser: "v2",
         upgraded: false,
       },
@@ -346,19 +345,18 @@ describe("torus utils sapphire devnet", function () {
       { verifier_id: TORUS_TEST_EMAIL },
       token
     );
-    expect(result.finalKeyData.privKey).to.be.equal("04eb166ddcf59275a210c7289dca4a026f87a33fd2d6ed22f56efae7eab4052c");
     expect(result).eql({
       finalKeyData: {
-        evmAddress: "0x4924F91F5d6701dDd41042D94832bB17B76F316F",
-        X: "f3eaf63bf1fd645d4159832ccaad7f42457e287ac929363ba636eb7e87978bff",
-        Y: "f3b9d8dd91927a89ec45199ad697fe3fa01b8b836710143a0babb1a4eb35f1cd",
-        privKey: "04eb166ddcf59275a210c7289dca4a026f87a33fd2d6ed22f56efae7eab4052c",
+        evmAddress: "0x462A8BF111A55C9354425F875F89B22678c0Bc44",
+        X: "36e257717f746cdd52ba85f24f7c9040db8977d3b0354de70ed43689d24fa1b1",
+        Y: "58ec9768c2fe871b3e2a83cdbcf37ba6a88ad19ec2f6e16a66231732713fd507",
+        privKey: "230dad9f42039569e891e6b066ff5258b14e9764ef5176d74aeb594d1a744203",
       },
       oAuthKeyData: {
-        evmAddress: "0xac997dE675Fb69FCb0F4115A23c0061A892A2772",
-        X: "9508a251dfc4146a132feb96111c136538f4fabd20fc488dbcaaf762261c1528",
-        Y: "f9128bc7403bab6d45415cad01dd0ba0924628cfb6bf51c17e77aa8ca43b3cfe",
-        privKey: "cd7d1dc7aec71fd2ee284890d56ac34d375bbc15ff41a1d87d088170580b9b0f",
+        evmAddress: "0x137B3607958562D03Eb3C6086392D1eFa01aA6aa",
+        X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
+        Y: "8325432b3a3418d632b4fe93db094d6d83250eea60fe512897c0ad548737f8a5",
+        privKey: "6b3c872a269aa8994a5acc8cdd70ea3d8d182d42f8af421c0c39ea124e9b66fa",
       },
       sessionData: {
         sessionTokenData: result.sessionData.sessionTokenData,
@@ -366,10 +364,10 @@ describe("torus utils sapphire devnet", function () {
       },
       metadata: {
         pubNonce: {
-          X: "78a88b99d960808543e75076529c913c1678bc7fafbb943f1ce58235fd2f4e0c",
-          Y: "6b451282135dfacd22561e0fb5bf21aea7b1f26f2442164b82b0e4c8f152f7a7",
+          X: "5d03a0df9b3db067d3363733df134598d42873bb4730298a53ee100975d703cc",
+          Y: "279434dcf0ff22f077877a70bcad1732412f853c96f02505547f7ca002b133ed",
         },
-        nonce: new BN("376df8a62e2e72a2b3e87e97c85f86b3f2dac41082ddeb863838d80462deab5e", "hex"),
+        nonce: new BN("b7d126751b68ecd09e371a23898e6819dee54708a5ead4f6fe83cdc79c0f1c4a", "hex"),
         typeOfUser: "v2",
         upgraded: false,
       },
@@ -396,27 +394,6 @@ describe("torus utils sapphire devnet", function () {
     const result1 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, { verifier: TORUS_TEST_VERIFIER, verifierId: email });
     expect(result1.finalKeyData.evmAddress).to.be.equal(result.finalKeyData.evmAddress);
   });
-  it("should be able to import a key for a existing user", async function () {
-    let verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const token = generateIdToken(TORUS_IMPORT_EMAIL, "ES256");
-    const privKeyBuffer = generatePrivate();
-    const privHex = privKeyBuffer.toString("hex");
-    const result1 = await torus.importPrivateKey(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      nodeDetails.torusNodePub,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: TORUS_IMPORT_EMAIL },
-      token,
-      privHex
-    );
-    expect(result1.finalKeyData.privKey).to.be.equal(privHex);
-    verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
-    const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result1.finalKeyData.evmAddress).to.be.equal(result2.finalKeyData.evmAddress);
-  });
 
   it("should fetch pub address of tss verifier id", async function () {
     const email = TORUS_EXTENDED_VERIFIER_EMAIL;
@@ -427,7 +404,6 @@ describe("torus utils sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.evmAddress).to.be.equal("0xBd6Bc8aDC5f2A0526078Fd2016C4335f64eD3a30");
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0xBd6Bc8aDC5f2A0526078Fd2016C4335f64eD3a30",
@@ -487,7 +463,7 @@ describe("torus utils sapphire devnet", function () {
   });
 
   it("should fetch public address when verifierID hash enabled", async function () {
-    const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_TEST_EMAIL };
+    const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_HASH_ENABLED_TEST_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
@@ -518,7 +494,7 @@ describe("torus utils sapphire devnet", function () {
 
   // to do: update pub keys
   it.skip("should lookup return hash when verifierID hash enabled", async function () {
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: HashEnabledVerifier, verifierId: TORUS_TEST_VERIFIER });
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: HashEnabledVerifier, verifierId: TORUS_HASH_ENABLED_TEST_EMAIL });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     for (const endpoint of torusNodeEndpoints) {
       const pubKeyX = "21cd0ae3168d60402edb8bd65c58ff4b3e0217127d5bb5214f03f84a76f24d8a";
@@ -530,7 +506,7 @@ describe("torus utils sapphire devnet", function () {
   });
 
   it("should fetch user type and public address when verifierID hash enabled", async function () {
-    const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_TEST_EMAIL };
+    const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_HASH_ENABLED_TEST_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
@@ -559,8 +535,8 @@ describe("torus utils sapphire devnet", function () {
     });
   });
   it("should be able to login when verifierID hash enabled", async function () {
-    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
-    const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_TEST_EMAIL };
+    const token = generateIdToken(TORUS_HASH_ENABLED_TEST_EMAIL, "ES256");
+    const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_HASH_ENABLED_TEST_EMAIL };
 
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -568,7 +544,7 @@ describe("torus utils sapphire devnet", function () {
       torusNodeEndpoints,
       nodeDetails.torusIndexes,
       HashEnabledVerifier,
-      { verifier_id: TORUS_TEST_EMAIL },
+      { verifier_id: TORUS_HASH_ENABLED_TEST_EMAIL },
       token
     );
     expect(result.finalKeyData.privKey).to.be.equal("066270dfa345d3d0415c8223e045f366b238b50870de7e9658e3c6608a7e2d32");

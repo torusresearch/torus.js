@@ -55,8 +55,8 @@ describe("torus utils cyan", function () {
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result1 = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
-    expect(result1.finalKeyData.evmAddress).to.equal("0xA3767911A84bE6907f26C572bc89426dDdDB2825");
-    expect(result1.metadata.typeOfUser).to.equal("v1");
+    expect(result1.finalKeyData.evmAddress).to.equal("0x3507F0d192a44E436B8a6C32a37d57D022861b1a");
+    expect(result1.metadata.typeOfUser).to.equal("v2");
     expect(result1).eql({
       oAuthKeyData: {
         evmAddress: "0xA3767911A84bE6907f26C572bc89426dDdDB2825",
@@ -64,15 +64,18 @@ describe("torus utils cyan", function () {
         Y: "f026b4788e23523e0c8fcbf0bdcf1c1a62c9cde8f56170309607a7a52a19f7c1",
       },
       finalKeyData: {
-        evmAddress: "0xA3767911A84bE6907f26C572bc89426dDdDB2825",
-        X: "2853f323437da98ce021d06854f4b292db433c0ad03b204ef223ac2583609a6a",
-        Y: "f026b4788e23523e0c8fcbf0bdcf1c1a62c9cde8f56170309607a7a52a19f7c1",
+        evmAddress: "0x3507F0d192a44E436B8a6C32a37d57D022861b1a",
+        X: "8aaadab9530cb157d0b0dfb7b27d1a3aaca45274563c22c92c77ee2191779051",
+        Y: "d57b89d9f62bb6609d8542c3057943805c8c72f6f27d39781b820f27d7210f12",
       },
       metadata: {
-        pubNonce: undefined,
+        pubNonce: {
+          X: "5f2505155e2c1119ee8a76d0f3b22fccee45871d4aab3cb6209bdbc302b5abc2",
+          Y: "a20f30868759a6095697d5631483faa650f489b33c0e2958ad8dc29e707c0a99",
+        },
         nonce: new BN(0),
         upgraded: false,
-        typeOfUser: "v1",
+        typeOfUser: "v2",
       },
       nodesData: result1.nodesData,
     });

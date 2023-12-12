@@ -542,8 +542,8 @@ export async function retrieveOrImportShare(params: {
       if (!privateKey) throw new Error("Invalid private key returned");
       const oAuthKey = privateKey;
       const oAuthPubKey = derivePubKey(ecCurve, oAuthKey);
-      const oAuthPubkeyX = oAuthPubKey.getX().toString("hex");
-      const oAuthPubkeyY = oAuthPubKey.getY().toString("hex");
+      const oAuthPubkeyX = oAuthPubKey.getX().toString("hex", 64);
+      const oAuthPubkeyY = oAuthPubKey.getY().toString("hex", 64);
 
       let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
       let finalPubKey: curve.base.BasePoint;

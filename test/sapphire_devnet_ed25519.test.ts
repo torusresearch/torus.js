@@ -177,27 +177,6 @@ describe.skip("torus utils ed25519 sapphire devnet", function () {
     );
     expect(result.finalKeyData.privKey).to.be.equal("08f54f7c3622a44dd4090397c001d4904d14646222775b29c5e4611f797d75e9");
   });
-  it("should be able to import a key for a existing user", async function () {
-    let verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const token = generateIdToken(TORUS_IMPORT_EMAIL, "ES256");
-    const privKeyBuffer = new BN(generatePrivate()).umod(ec.curve.n);
-    const privHex = privKeyBuffer.toString("hex", 64);
-    const result1 = await torus.importPrivateKey(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      nodeDetails.torusNodePub,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: TORUS_IMPORT_EMAIL },
-      token,
-      privHex
-    );
-    expect(result1.finalKeyData.privKey).to.be.equal(privHex);
-    verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
-    const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result1.finalKeyData.evmAddress).to.be.equal(result2.finalKeyData.evmAddress);
-  });
 
   it("should fetch pub address of tss verifier id", async function () {
     const email = TORUS_EXTENDED_VERIFIER_EMAIL;
