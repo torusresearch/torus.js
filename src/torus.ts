@@ -17,6 +17,7 @@ import { config } from "./config";
 import {
   derivePubKey,
   encParamsBufToHex,
+  encryptionEC,
   generateAddressFromPrivKey,
   generateAddressFromPubKey,
   generateRandomPolynomial,
@@ -188,7 +189,7 @@ class Torus {
       nodeIndexesBn.push(new BN(nodeIndex));
     }
     const privKeyBn = key.getPrivate();
-    const randomNonce = new BN(generatePrivate());
+    const randomNonce = new BN(generatePrivate()).umod(this.ec.curve.n);
 
     const oAuthKey = privKeyBn.sub(randomNonce).umod(this.ec.curve.n);
     const oAuthPubKey = this.ec.keyFromPrivate(oAuthKey.toString("hex").padStart(64, "0")).getPublic();
@@ -203,8 +204,10 @@ class Torus {
       if (!nodePubkeys[i]) {
         throw new Error(`Missing node pub key for node index: ${nodeIndexesBn[i].toString("hex", 64)}`);
       }
-      const nodePubKey = this.ec.keyFromPublic({ x: nodePubkeys[i].X, y: nodePubkeys[i].Y });
-      encPromises.push(encrypt(Buffer.from(nodePubKey.getPublic().encodeCompressed("hex"), "hex"), Buffer.from(shareJson.share, "hex")));
+      const nodePubKey = encryptionEC.keyFromPublic({ x: nodePubkeys[i].X, y: nodePubkeys[i].Y });
+      encPromises.push(
+        encrypt(Buffer.from(nodePubKey.getPublic().encodeCompressed("hex"), "hex"), Buffer.from(shareJson.share.padStart(64, "0"), "hex"))
+      );
     }
     const encShares = await Promise.all(encPromises);
     for (let i = 0; i < nodeIndexesBn.length; i++) {

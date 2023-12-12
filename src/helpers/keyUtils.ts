@@ -1,5 +1,5 @@
 import BN from "bn.js";
-import { curve, ec } from "elliptic";
+import { curve, ec as EC } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 
 import log from "../loglevel";
@@ -31,7 +31,7 @@ export function toChecksumAddress(hexAddress: string): string {
   return ret;
 }
 
-export function generateAddressFromPrivKey(ecCurve: ec, privateKey: BN): string {
+export function generateAddressFromPrivKey(ecCurve: EC, privateKey: BN): string {
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64), "hex");
   const publicKey = key.getPublic().encode("hex", false).slice(2);
   log.info(publicKey, "public key");
@@ -39,7 +39,7 @@ export function generateAddressFromPrivKey(ecCurve: ec, privateKey: BN): string 
   return toChecksumAddress(evmAddressLower);
 }
 
-export function generateAddressFromPubKey(ecCurve: ec, publicKeyX: BN, publicKeyY: BN): string {
+export function generateAddressFromPubKey(ecCurve: EC, publicKeyX: BN, publicKeyY: BN): string {
   const key = ecCurve.keyFromPublic({ x: publicKeyX.toString("hex", 64), y: publicKeyY.toString("hex", 64) });
   const publicKey = key.getPublic().encode("hex", false).slice(2);
   log.info(key.getPublic().encode("hex", false), "public key");
@@ -47,13 +47,15 @@ export function generateAddressFromPubKey(ecCurve: ec, publicKeyX: BN, publicKey
   return toChecksumAddress(evmAddressLower);
 }
 
-export function getPostboxKeyFrom1OutOf1(ecCurve: ec, privKey: string, nonce: string): string {
+export function getPostboxKeyFrom1OutOf1(ecCurve: EC, privKey: string, nonce: string): string {
   const privKeyBN = new BN(privKey, 16);
   const nonceBN = new BN(nonce, 16);
   return privKeyBN.sub(nonceBN).umod(ecCurve.curve.n).toString("hex");
 }
 
-export function derivePubKey(ecCurve: ec, sk: BN): curve.base.BasePoint {
+export function derivePubKey(ecCurve: EC, sk: BN): curve.base.BasePoint {
   const skHex = sk.toString(16, 64);
   return ecCurve.keyFromPrivate(skHex).getPublic();
 }
+
+export const encryptionEC = new EC("secp256k1");

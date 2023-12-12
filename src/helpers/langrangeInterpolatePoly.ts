@@ -137,7 +137,7 @@ export function generateRandomPolynomial(ecCurve: EC, degree: number, secret?: B
     while (points[shareIndex.toString("hex", 64)] !== undefined) {
       shareIndex = generatePrivateExcludingIndexes([new BN(0)]);
     }
-    points[shareIndex.toString("hex", 64)] = new Point(shareIndex, new BN(generatePrivate()), ecCurve);
+    points[shareIndex.toString("hex", 64)] = new Point(shareIndex, new BN(generatePrivate()).umod(ecCurve.curve.n), ecCurve);
   }
   points["0"] = new Point(new BN(0), actualS, ecCurve);
   return lagrangeInterpolatePolynomial(ecCurve, Object.values(points));
