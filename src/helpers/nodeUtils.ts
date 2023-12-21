@@ -1,4 +1,4 @@
-import { LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import { INodePub, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -28,8 +28,8 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { Some } from "../some";
-import { kCombinations, normalizeKeysResult, thresholdSame } from "./common";
-import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
+import { getProxyCoordinatorEndpointIndex, kCombinations, normalizeKeysResult, thresholdSame } from "./common";
+import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generateShares, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
 
@@ -126,10 +126,14 @@ export async function retrieveOrImportShare(params: {
   network: string;
   clientId: string;
   endpoints: string[];
+  indexes: number[];
   verifier: string;
   verifierParams: VerifierParams;
   idToken: string;
-  importedShares?: ImportedShare[];
+  useDkg: boolean;
+  overrideExistingKey: boolean;
+  nodePubkeys: INodePub[];
+  newImportedShares?: ImportedShare[];
   extraParams: Record<string, unknown>;
 }): Promise<TorusKey> {
   const {
@@ -142,11 +146,15 @@ export async function retrieveOrImportShare(params: {
     network,
     clientId,
     endpoints,
+    nodePubkeys,
+    indexes,
     verifier,
     verifierParams,
     idToken,
-    importedShares,
+    overrideExistingKey,
+    newImportedShares,
     extraParams,
+    useDkg = true,
   } = params;
   await get<void>(
     allowHost,
@@ -169,12 +177,17 @@ export async function retrieveOrImportShare(params: {
   const pubKeyX = pubKey.slice(2, 66);
   const pubKeyY = pubKey.slice(66);
   const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
-  let isImportShareReq = false;
-  if (importedShares && importedShares.length > 0) {
-    if (importedShares.length !== endpoints.length) {
+  let finalImportedShares: ImportedShare[] = [];
+
+  if (newImportedShares.length > 0) {
+    if (newImportedShares.length !== endpoints.length) {
       throw new Error("Invalid imported shares length");
     }
-    isImportShareReq = true;
+    finalImportedShares = newImportedShares;
+  } else if (!useDkg) {
+    const importedKey = new BN(generatePrivate()).umod(ecCurve.curve.n);
+    const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, importedKey.toString(16, 64));
+    finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
 
   // make commitment requests to endpoints
@@ -197,6 +210,8 @@ export async function retrieveOrImportShare(params: {
         temppubx: pubKeyX,
         temppuby: pubKeyY,
         verifieridentifier: verifier,
+        verifier_id: verifierParams.verifier_id,
+        is_import_key_flow: true,
       }),
       null,
       { logTracingHeader: config.logRequestTracing }
@@ -217,17 +232,60 @@ export async function retrieveOrImportShare(params: {
       return true;
     });
 
-    // we need to get commitments from all endpoints for importing share
-    if (importedShares.length > 0 && completedRequests.length === endpoints.length) {
-      return Promise.resolve(resultArr);
-    } else if (importedShares.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
+    if (finalImportedShares.length > 0) {
+      // this case is for imported keys
+      // for imported keys registration we need to wait for all nodes to agree on commitment
+      // for existing imported keys we can rely on threshold nodes commitment
+      if (overrideExistingKey && completedRequests.length === endpoints.length) {
+        const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
+          if (resp && resp.result?.nodeindex === "1") {
+            return true;
+          }
+          return false;
+        });
+        if (requiredNodeResult) {
+          return Promise.resolve(resultArr);
+        }
+      } else if (!overrideExistingKey && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
+        // for import shares, proxy node response is required.
+        // proxy node returns metadata unlike dkg keys where node 1 is checked for metadata.
+        // if user's account already
+        const nodeSigs: CommitmentRequestResult[] = [];
+        for (let i = 0; i < completedRequests.length; i += 1) {
+          const x = completedRequests[i];
+          if (!x || typeof x !== "object" || x.error) {
+            continue;
+          }
+          if (x) nodeSigs.push((x as JRPCResponse<CommitmentRequestResult>).result);
+        }
+        const existingPubKey = thresholdSame(
+          nodeSigs.map((x) => x && x.pub_key_x),
+          ~~(endpoints.length / 2) + 1
+        );
+        const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
+        const requiredNodeIndex = indexes[proxyEndpointNum].toString(10);
+
+        // if not a existing key we need to wait for nodes to agree on commitment
+        if (existingPubKey || (!existingPubKey && completedRequests.length === endpoints.length)) {
+          const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
+            if (resp && resp.result?.nodeindex === requiredNodeIndex) {
+              return true;
+            }
+            return false;
+          });
+          if (requiredNodeResult) {
+            return Promise.resolve(resultArr);
+          }
+        }
+      }
+    } else if (completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
+      // this case is for dkg keys
       const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
         if (resp && resp.result?.nodeindex === "1") {
           return true;
         }
         return false;
       });
-
       if (requiredNodeResult) {
         return Promise.resolve(resultArr);
       }
@@ -246,17 +304,23 @@ export async function retrieveOrImportShare(params: {
         if (x) nodeSigs.push((x as JRPCResponse<CommitmentRequestResult>).result);
       }
 
-      if (isImportShareReq) {
-        const verifierIdStr = `${verifier}${verifierParams.verifier_id}`;
-        const hashedVerifierId = keccak256(Buffer.from(verifierIdStr, "utf8"));
-        const proxyEndpointNum = parseInt(hashedVerifierId, 16) % endpoints.length;
+      // if user's account already
+      const existingPubKey = thresholdSame(
+        nodeSigs.map((x) => x && x.pub_key_x),
+        ~~(endpoints.length / 2) + 1
+      );
+
+      // can only import shares if override existing key is allowed or for new non dkg registration
+      const canImportedShares = overrideExistingKey || (!useDkg && !existingPubKey);
+      if (canImportedShares) {
+        const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
         const items: Record<string, unknown>[] = [];
         for (let i = 0; i < endpoints.length; i += 1) {
           const x = responses[i];
           if (!x || typeof x !== "object" || x.error) {
             continue;
           }
-          const importedShare = importedShares[i];
+          const importedShare = finalImportedShares[i];
           items.push({
             ...verifierParams,
             idtoken: idToken,
@@ -376,7 +440,7 @@ export async function retrieveOrImportShare(params: {
           );
         }
 
-        const thresholdReqCount = importedShares.length > 0 ? endpoints.length : ~~(endpoints.length / 2) + 1;
+        const thresholdReqCount = ~~(endpoints.length / 2) + 1;
         // optimistically run lagrange interpolation once threshold number of shares have been received
         // this is matched against the user public key to ensure that shares are consistent
         // Note: no need of thresholdMetadataNonce for extended_verifier_id key

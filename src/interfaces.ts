@@ -62,6 +62,7 @@ export interface CommitmentRequestResult {
   nodepubx: string;
   nodepuby: string;
   nodeindex: string;
+  pub_key_x: string;
 }
 
 export interface JRPCResponse<T> {

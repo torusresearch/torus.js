@@ -12,7 +12,7 @@ import { generateIdToken, lookupVerifier } from "./helpers";
 const TORUS_TEST_EMAIL = "devnettestuser@tor.us";
 const TORUS_HASH_ENABLED_TEST_EMAIL = "saasas@tr.us";
 
-const TORUS_IMPORT_EMAIL = "Elena_Hermann@yahoo.com";
+const TORUS_IMPORT_EMAIL = "Sydnie.Lehner73@yahoo.com";
 
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
 
@@ -21,7 +21,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe("torus utils sapphire devnet", function () {
+describe.only("torus utils sapphire devnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -333,6 +333,48 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
+  it("should be able to login with non dkg keys", async function () {
+    const email = `atomicimporttest2`;
+    const token = generateIdToken(email, "ES256");
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token,
+      nodeDetails.torusNodePub,
+      {},
+      false
+    );
+
+    const publicResult = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+    expect(result.finalKeyData.X).eql(publicResult.finalKeyData.X);
+  });
+
+  it("should be able to login a new user with non dkg keys", async function () {
+    const email = `${faker.internet.email()}`;
+    const token = generateIdToken(email, "ES256");
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token,
+      nodeDetails.torusNodePub,
+      {},
+      false
+    );
+
+    const publicResult = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+
+    expect(result.finalKeyData.X).eql(publicResult.finalKeyData.X);
+  });
   it("should be able to login even when node is down", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });

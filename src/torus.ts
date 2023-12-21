@@ -7,20 +7,17 @@ import {
   TORUS_LEGACY_NETWORK_TYPE,
   TORUS_NETWORK_TYPE,
 } from "@toruslabs/constants";
-import { decrypt, Ecies, encrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
+import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
-import stringify from "json-stable-stringify";
 
 import { config } from "./config";
 import {
   derivePubKey,
-  encParamsBufToHex,
-  encryptionEC,
   generateAddressFromPrivKey,
   generateAddressFromPubKey,
-  generateRandomPolynomial,
+  generateShares,
   getMetadata,
   getNonce,
   getOrSetNonce,
@@ -38,12 +35,9 @@ import {
 import {
   CommitmentRequestResult,
   GetOrSetNonceResult,
-  ImportedShare,
   KeyType,
   LegacyShareRequestResult,
   LegacyVerifierLookupResponse,
-  NonceMetadataParams,
-  SetNonceData,
   TorusCtorOptions,
   TorusKey,
   TorusPublicKey,
@@ -136,9 +130,14 @@ class Torus {
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
-    extraParams: Record<string, unknown> = {}
+    nodePubkeys: INodePub[] = [],
+    extraParams: Record<string, unknown> = {},
+    useDkg = true
   ): Promise<TorusKey> {
     if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, this._keyType, extraParams);
+    if (!useDkg && nodePubkeys.length === 0) {
+      throw new Error("nodePubkeys param is required is useDkg is set to false");
+    }
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
@@ -149,10 +148,14 @@ class Torus {
       network: this.network,
       clientId: this.clientId,
       endpoints,
+      indexes,
       verifier,
       verifierParams,
       idToken,
-      importedShares: [],
+      useDkg,
+      newImportedShares: [],
+      overrideExistingKey: false,
+      nodePubkeys,
       extraParams,
     });
   }
@@ -180,52 +183,7 @@ class Torus {
     if (endpoints.length !== nodeIndexes.length) {
       throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
     }
-    const threshold = ~~(endpoints.length / 2) + 1;
-    const degree = threshold - 1;
-    const nodeIndexesBn: BN[] = [];
-
-    const key = this.ec.keyFromPrivate(newPrivateKey.padStart(64, "0"), "hex");
-    for (const nodeIndex of nodeIndexes) {
-      nodeIndexesBn.push(new BN(nodeIndex));
-    }
-    const privKeyBn = key.getPrivate();
-    const randomNonce = new BN(generatePrivate()).umod(this.ec.curve.n);
-
-    const oAuthKey = privKeyBn.sub(randomNonce).umod(this.ec.curve.n);
-    const oAuthPubKey = this.ec.keyFromPrivate(oAuthKey.toString("hex").padStart(64, "0")).getPublic();
-    const poly = generateRandomPolynomial(this.ec, degree, oAuthKey);
-    const shares = poly.generateShares(nodeIndexesBn);
-    const nonceParams = this.generateNonceMetadataParams("getOrSetNonce", oAuthKey, this._keyType, randomNonce);
-    const nonceData = Buffer.from(stringify(nonceParams.set_data), "utf8").toString("base64");
-    const sharesData: ImportedShare[] = [];
-    const encPromises: Promise<Ecies>[] = [];
-    for (let i = 0; i < nodeIndexesBn.length; i++) {
-      const shareJson = shares[nodeIndexesBn[i].toString("hex", 64)].toJSON() as Record<string, string>;
-      if (!nodePubkeys[i]) {
-        throw new Error(`Missing node pub key for node index: ${nodeIndexesBn[i].toString("hex", 64)}`);
-      }
-      const nodePubKey = encryptionEC.keyFromPublic({ x: nodePubkeys[i].X, y: nodePubkeys[i].Y });
-      encPromises.push(
-        encrypt(Buffer.from(nodePubKey.getPublic().encodeCompressed("hex"), "hex"), Buffer.from(shareJson.share.padStart(64, "0"), "hex"))
-      );
-    }
-    const encShares = await Promise.all(encPromises);
-    for (let i = 0; i < nodeIndexesBn.length; i++) {
-      const shareJson = shares[nodeIndexesBn[i].toString("hex", 64)].toJSON() as Record<string, string>;
-      const encParams = encShares[i];
-      const encParamsMetadata = encParamsBufToHex(encParams);
-      const shareData: ImportedShare = {
-        pub_key_x: oAuthPubKey.getX().toString("hex", 64),
-        pub_key_y: oAuthPubKey.getY().toString("hex", 64),
-        encrypted_share: encParamsMetadata.ciphertext,
-        encrypted_share_metadata: encParamsMetadata,
-        node_index: Number.parseInt(shareJson.shareIndex, 16),
-        key_type: this._keyType,
-        nonce_data: nonceData,
-        nonce_signature: nonceParams.signature,
-      };
-      sharesData.push(shareData);
-    }
+    const sharesData = await generateShares(this.ec, this._keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, newPrivateKey);
 
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
@@ -237,10 +195,14 @@ class Torus {
       network: this.network,
       clientId: this.clientId,
       endpoints,
+      indexes: nodeIndexes,
       verifier,
       verifierParams,
       idToken,
-      importedShares: sharesData,
+      useDkg: false,
+      overrideExistingKey: true,
+      newImportedShares: sharesData,
+      nodePubkeys,
       extraParams,
     });
   }
@@ -606,26 +568,6 @@ class Torus {
       });
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
-  }
-
-  private generateNonceMetadataParams(operation: string, privateKey: BN, keyType: KeyType, nonce?: BN): NonceMetadataParams {
-    const key = this.ec.keyFromPrivate(privateKey.toString("hex", 64));
-    const setData: Partial<SetNonceData> = {
-      operation,
-      timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
-    };
-
-    if (nonce) {
-      setData.data = nonce.toString("hex", 64);
-    }
-    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
-    return {
-      pub_key_X: key.getPublic().getX().toString("hex", 64),
-      pub_key_Y: key.getPublic().getY().toString("hex", 64),
-      set_data: setData,
-      key_type: keyType,
-      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
-    };
   }
 
   private async getNewPublicAddress(

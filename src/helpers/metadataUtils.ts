@@ -5,7 +5,7 @@ import { ec } from "elliptic";
 import stringify from "json-stable-stringify";
 import log from "loglevel";
 
-import { EciesHex, GetOrSetNonceResult, KeyType, MetadataParams } from "../interfaces";
+import { EciesHex, GetOrSetNonceResult, KeyType, MetadataParams, NonceMetadataParams, SetNonceData } from "../interfaces";
 import { encParamsHexToBuf } from "./common";
 import { keccak256 } from "./keyUtils";
 
@@ -92,4 +92,31 @@ export async function getNonce(
   privKey?: BN
 ): Promise<GetOrSetNonceResult> {
   return getOrSetNonce(legacyMetadataHost, ecCurve, keyType, serverTimeOffset, X, Y, privKey, true);
+}
+
+export function generateNonceMetadataParams(
+  ecCurve: ec,
+  serverTimeOffset: number,
+  operation: string,
+  privateKey: BN,
+  keyType: KeyType,
+  nonce?: BN
+): NonceMetadataParams {
+  const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64));
+  const setData: Partial<SetNonceData> = {
+    operation,
+    timestamp: new BN(~~(serverTimeOffset + Date.now() / 1000)).toString(16),
+  };
+
+  if (nonce) {
+    setData.data = nonce.toString("hex", 64);
+  }
+  const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+  return {
+    pub_key_X: key.getPublic().getX().toString("hex", 64),
+    pub_key_Y: key.getPublic().getY().toString("hex", 64),
+    set_data: setData,
+    key_type: keyType,
+    signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
+  };
 }
