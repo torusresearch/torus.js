@@ -97,7 +97,6 @@ describe.skip("torus utils ed25519 sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
-  // we are working on a new implementation for import sss keys, so skipping it for now.
   it("should fetch public address of imported user", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);

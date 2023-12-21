@@ -256,7 +256,7 @@ class Torus {
 
     // generate temporary private and public key that is used to secure receive shares
     const tmpKey = generatePrivate();
-    const pubKey = getPublic(tmpKey).toString("hex");
+    const pubKey = getPublic(tmpKey).toString("hex", 64);
     const pubKeyX = pubKey.slice(2, 66);
     const pubKeyY = pubKey.slice(66);
     const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
@@ -431,8 +431,8 @@ class Torus {
         if (!oAuthKey) throw new Error("Invalid private key returned");
 
         const oAuthPubKey = derivePubKey(this.ec, oAuthKey);
-        const oAuthKeyX = oAuthPubKey.getX().toString("hex");
-        const oAuthKeyY = oAuthPubKey.getY().toString("hex");
+        const oAuthKeyX = oAuthPubKey.getX().toString("hex", 64);
+        const oAuthKeyY = oAuthPubKey.getY().toString("hex", 64);
 
         let metadataNonce: BN;
         let finalPubKey: curve.base.BasePoint;
@@ -456,13 +456,13 @@ class Torus {
             // for imported keys in legacy networks
             metadataNonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: oAuthKeyX, pub_key_Y: oAuthKeyY });
             const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(this.ec.curve.n);
-            finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex"), "hex").getPublic();
+            finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex", 64), "hex").getPublic();
           }
         } else {
           // for imported keys in legacy networks
           metadataNonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: oAuthKeyX, pub_key_Y: oAuthKeyY });
           const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(this.ec.curve.n);
-          finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex"), "hex").getPublic();
+          finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex", 64), "hex").getPublic();
         }
 
         const oAuthKeyAddress = generateAddressFromPrivKey(this.ec, oAuthKey);

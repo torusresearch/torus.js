@@ -1,4 +1,5 @@
 import { Ecies } from "@toruslabs/eccrypto";
+import { BN } from "bn.js";
 import JsonStringify from "json-stable-stringify";
 
 import { EciesHex, VerifierLookupResponse } from "../interfaces";
@@ -89,6 +90,6 @@ export function encParamsHexToBuf(eciesData: Omit<EciesHex, "ciphertext">): Omit
 export function getProxyCoordinatorEndpointIndex(endpoints: string[], verifier: string, verifierId: string) {
   const verifierIdStr = `${verifier}${verifierId}`;
   const hashedVerifierId = keccak256(Buffer.from(verifierIdStr, "utf8"));
-  const proxyEndpointNum = parseInt(hashedVerifierId, 16) % endpoints.length;
+  const proxyEndpointNum = new BN(hashedVerifierId, "hex").mod(new BN(endpoints.length)).toNumber();
   return proxyEndpointNum;
 }
