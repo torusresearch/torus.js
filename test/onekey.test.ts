@@ -15,7 +15,7 @@ const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe.skip("torus onekey", function () {
+describe("torus onekey", function () {
   let torus: TorusUtils;
 
   beforeEach("one time execution before all tests", async function () {
