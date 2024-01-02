@@ -1,12 +1,11 @@
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
-import { generatePrivate } from "@toruslabs/eccrypto";
 import NodeManager from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 import { ec as EC } from "elliptic";
 import faker from "faker";
 
-import { keccak256 } from "../src";
+import { generatePrivateKey, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
 
@@ -21,7 +20,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe.skip("torus utils ed25519 sapphire devnet", function () {
+describe("torus utils ed25519 sapphire devnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -39,7 +38,7 @@ describe.skip("torus utils ed25519 sapphire devnet", function () {
   it("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
-    const privKeyBuffer = new BN(generatePrivate()).umod(ec.curve.n);
+    const privKeyBuffer = new BN(generatePrivateKey(ec, Buffer));
     const privHex = privKeyBuffer.toString("hex", 64);
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;

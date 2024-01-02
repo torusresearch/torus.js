@@ -29,7 +29,7 @@ import {
 import log from "../loglevel";
 import { Some } from "../some";
 import { getProxyCoordinatorEndpointIndex, kCombinations, normalizeKeysResult, thresholdSame } from "./common";
-import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generateShares, keccak256 } from "./keyUtils";
+import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generatePrivateKey, generateShares, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
 
@@ -185,7 +185,7 @@ export async function retrieveOrImportShare(params: {
     }
     finalImportedShares = newImportedShares;
   } else if (!useDkg) {
-    const importedKey = new BN(generatePrivate()).umod(ecCurve.curve.n);
+    const importedKey = new BN(generatePrivateKey(ecCurve, Buffer));
     const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, importedKey.toString(16, 64));
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }

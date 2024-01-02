@@ -1,5 +1,5 @@
 import { INodePub } from "@toruslabs/constants";
-import { Ecies, encrypt, generatePrivate } from "@toruslabs/eccrypto";
+import { Ecies, encrypt } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
@@ -13,6 +13,10 @@ export function keccak256(a: Buffer): string {
   const hash = Buffer.from(keccakHash(a)).toString("hex");
   return `0x${hash}`;
 }
+
+export const generatePrivateKey = (ecCurve: EC, buf: typeof Buffer): Buffer => {
+  return ecCurve.genKeyPair().getPrivate().toArrayLike(buf, "le", 32);
+};
 
 export function stripHexPrefix(str: string): string {
   return str.startsWith("0x") ? str.slice(2) : str;
@@ -83,7 +87,7 @@ export const generateShares = async (
     nodeIndexesBn.push(new BN(nodeIndex));
   }
   const privKeyBn = key.getPrivate();
-  const randomNonce = new BN(generatePrivate()).umod(ecCurve.curve.n);
+  const randomNonce = new BN(generatePrivateKey(ecCurve, Buffer));
   const oAuthKey = privKeyBn.sub(randomNonce).umod(ecCurve.curve.n);
   const oAuthPubKey = ecCurve.keyFromPrivate(oAuthKey.toString("hex").padStart(64, "0")).getPublic();
   const poly = generateRandomPolynomial(ecCurve, degree, oAuthKey);

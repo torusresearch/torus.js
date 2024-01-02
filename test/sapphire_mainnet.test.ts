@@ -1,11 +1,11 @@
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
-import { generatePrivate } from "@toruslabs/eccrypto";
 import NodeManager from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
+import { ec as EC } from "elliptic";
 import faker from "faker";
 
-import { keccak256 } from "../src";
+import { generatePrivateKey, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
 
@@ -61,7 +61,9 @@ describe("torus utils sapphire mainnet", function () {
   it.skip("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
-    const privKeyBuffer = generatePrivate();
+    const ec = new EC("secp256k1");
+
+    const privKeyBuffer = generatePrivateKey(ec, Buffer);
     const privHex = privKeyBuffer.toString("hex");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -81,7 +83,9 @@ describe("torus utils sapphire mainnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const token = generateIdToken(TORUS_IMPORT_EMAIL, "ES256");
-    const privKeyBuffer = generatePrivate();
+    const ec = new EC("secp256k1");
+
+    const privKeyBuffer = generatePrivateKey(ec, Buffer);
     const privHex = privKeyBuffer.toString("hex");
     const result1 = await torus.importPrivateKey(
       torusNodeEndpoints,
