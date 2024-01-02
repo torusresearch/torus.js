@@ -12,7 +12,7 @@ const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe.only("torus utils celeste", function () {
+describe("torus utils celeste", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -149,7 +149,7 @@ describe.only("torus utils celeste", function () {
     expect(metadata.upgraded).to.equal(false);
   });
 
-  it.only("should be able to login", async function () {
+  it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);

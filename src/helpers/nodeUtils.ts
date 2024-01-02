@@ -773,7 +773,7 @@ export const legacyKeyAssign = async ({
   const data = generateJsonRPCObject("KeyAssign", {
     verifier,
     verifier_id: verifierId.toString(),
-    key_type: keyType,
+    // key_type: keyType,  // NOTE: key type doesnt work for legacy networks and doesnt have to , so skipping it here.
   });
   try {
     const signedData = await post<SignerResponse>(

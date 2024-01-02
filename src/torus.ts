@@ -256,7 +256,7 @@ class Torus {
 
     // generate temporary private and public key that is used to secure receive shares
     const tmpKey = generatePrivate();
-    const pubKey = getPublic(tmpKey).toString("hex", 64);
+    const pubKey = getPublic(tmpKey).toString("hex");
     const pubKeyX = pubKey.slice(2, 66);
     const pubKeyY = pubKey.slice(66);
     const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
@@ -267,14 +267,13 @@ class Torus {
         endpoints[i],
         generateJsonRPCObject("CommitmentRequest", {
           messageprefix: "mug00",
-          keytype: keyType,
           tokencommitment: tokenCommitment.slice(2),
           temppubx: pubKeyX,
           temppuby: pubKeyY,
           verifieridentifier: verifier,
         })
       ).catch((err) => {
-        log.error("commitment", err);
+        log.error("commitment", err, endpoints[i]);
       });
       promiseArr.push(p);
     }
