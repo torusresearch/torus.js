@@ -67,7 +67,7 @@ class Torus {
 
   private legacyMetadataHost: string;
 
-  private _keyType: KeyType = "secp256k1";
+  private keyType: KeyType = "secp256k1";
 
   constructor({
     enableOneKey = false,
@@ -81,8 +81,8 @@ class Torus {
     if (!clientId) throw Error("Please provide a valid clientId in constructor");
     if (!network) throw Error("Please provide a valid network in constructor");
 
-    this._keyType = keyType;
-    this.ec = new EC(this._keyType);
+    this.keyType = keyType;
+    this.ec = new EC(this.keyType);
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.network = network;
     this.clientId = clientId;
@@ -134,7 +134,7 @@ class Torus {
     extraParams: Record<string, unknown> = {},
     useDkg = true
   ): Promise<TorusKey> {
-    if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, this._keyType, extraParams);
+    if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, this.keyType, extraParams);
     if (!useDkg && nodePubkeys.length === 0) {
       throw new Error("nodePubkeys param is required is useDkg is set to false");
     }
@@ -143,7 +143,7 @@ class Torus {
       serverTimeOffset: this.serverTimeOffset,
       enableOneKey: this.enableOneKey,
       ecCurve: this.ec,
-      keyType: this._keyType,
+      keyType: this.keyType,
       allowHost: this.allowHost,
       network: this.network,
       clientId: this.clientId,
@@ -183,14 +183,14 @@ class Torus {
     if (endpoints.length !== nodeIndexes.length) {
       throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
     }
-    const sharesData = await generateShares(this.ec, this._keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, newPrivateKey);
+    const sharesData = await generateShares(this.ec, this.keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, newPrivateKey);
 
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
       enableOneKey: this.enableOneKey,
       ecCurve: this.ec,
-      keyType: this._keyType,
+      keyType: this.keyType,
       allowHost: this.allowHost,
       network: this.network,
       clientId: this.clientId,
@@ -438,7 +438,7 @@ class Torus {
         let typeOfUser: UserType = "v1";
         let pubKeyNonceResult: { X: string; Y: string } | undefined;
         if (this.enableOneKey) {
-          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this._keyType, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
+          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.keyType, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {
@@ -530,7 +530,7 @@ class Torus {
     let finalKeyResult: LegacyVerifierLookupResponse | undefined;
     let isNewKey = false;
 
-    const { keyResult, errorResult } = (await legacyKeyLookup(endpoints, verifier, verifierId, this._keyType)) || {};
+    const { keyResult, errorResult } = (await legacyKeyLookup(endpoints, verifier, verifierId, this.keyType)) || {};
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
@@ -547,9 +547,9 @@ class Torus {
         signerHost: this.signerHost,
         network: this.network,
         clientId: this.clientId,
-        keyType: this._keyType,
+        keyType: this.keyType,
       });
-      const assignResult = await legacyWaitKeyLookup(endpoints, verifier, verifierId, this._keyType, 1000);
+      const assignResult = await legacyWaitKeyLookup(endpoints, verifier, verifierId, this.keyType, 1000);
       finalKeyResult = assignResult?.keyResult;
       isNewKey = true;
     } else if (keyResult) {
@@ -580,7 +580,7 @@ class Torus {
       network: this.network,
       verifier,
       verifierId,
-      keyType: this._keyType,
+      keyType: this.keyType,
       extendedVerifierId,
     });
     const { errorResult, keyResult, nodeIndexes = [] } = keyAssignResult;
@@ -685,7 +685,7 @@ class Torus {
 
     if (enableOneKey) {
       try {
-        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this._keyType, this.serverTimeOffset, X, Y, undefined, !isNewKey);
+        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.keyType, this.serverTimeOffset, X, Y, undefined, !isNewKey);
         nonce = new BN(nonceResult.nonce || "0", 16);
         typeOfUser = nonceResult.typeOfUser;
       } catch {
