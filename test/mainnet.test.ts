@@ -12,7 +12,7 @@ const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe("torus utils mainnet", function () {
+describe.only("torus utils mainnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -23,9 +23,9 @@ describe("torus utils mainnet", function () {
       network: TORUS_LEGACY_NETWORK.MAINNET,
     });
   });
-  it("should fetch public address", async function () {
-    const verifier = "google"; // any verifier
-    const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
+  it.only("should fetch public address", async function () {
+    const verifier = "tkey-auth0-email-passwordless"; // any verifier
+    const verifierDetails = { verifier, verifierId: "kebox22989@roborena.com" };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0x0C44AFBb5395a9e8d28DF18e1326aa0F16b9572A");
