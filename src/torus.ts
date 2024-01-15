@@ -130,14 +130,37 @@ class Torus {
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
-    nodePubkeys: INodePub[] = [],
+    nodePubkeys: INodePub[],
     extraParams: Record<string, unknown> = {},
-    useDkg = true
+    useDkg?: boolean
   ): Promise<TorusKey> {
-    if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, this.keyType, extraParams);
-    if (!useDkg && nodePubkeys.length === 0) {
-      throw new Error("nodePubkeys param is required is useDkg is set to false");
+    if (nodePubkeys.length === 0) {
+      throw new Error("nodePubkeys param is required");
     }
+
+    if (nodePubkeys.length !== indexes.length) {
+      throw new Error("nodePubkeys length must be same as indexes length");
+    }
+
+    if (nodePubkeys.length !== endpoints.length) {
+      throw new Error("nodePubkeys length must be same as endpoints length");
+    }
+    // dkg is used by default only for secp256k1 keys,
+    // for ed25519 keys import keys flows is the default
+    let shouldUseDkg;
+    if (typeof useDkg === "boolean") {
+      shouldUseDkg = useDkg;
+    } else if (this.keyType === "ed25519") {
+      shouldUseDkg = false;
+    } else {
+      shouldUseDkg = true;
+    }
+    if (!shouldUseDkg && nodePubkeys.length === 0) {
+      throw new Error("nodePubkeys param is required");
+    }
+
+    if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, this.keyType, extraParams);
+
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
@@ -152,7 +175,7 @@ class Torus {
       verifier,
       verifierParams,
       idToken,
-      useDkg,
+      useDkg: shouldUseDkg,
       newImportedShares: [],
       overrideExistingKey: false,
       nodePubkeys,

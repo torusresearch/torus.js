@@ -20,7 +20,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe("torus utils ed25519 sapphire devnet", function () {
+describe.only("torus utils ed25519 sapphire devnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -35,7 +35,7 @@ describe("torus utils ed25519 sapphire devnet", function () {
     TorusUtils.enableLogging(false);
   });
 
-  it("should be able to import a key for a new user", async function () {
+  it.only("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const privKeyBuffer = new BN(generatePrivateKey(ec, Buffer));
@@ -62,7 +62,8 @@ describe("torus utils ed25519 sapphire devnet", function () {
       nodeDetails.torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.privKey).to.be.equal("08f54f7c3622a44dd4090397c001d4904d14646222775b29c5e4611f797d75e9");
   });
@@ -171,7 +172,8 @@ describe("torus utils ed25519 sapphire devnet", function () {
       nodeDetails.torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.privKey).to.be.equal("08f54f7c3622a44dd4090397c001d4904d14646222775b29c5e4611f797d75e9");
   });
@@ -234,7 +236,8 @@ describe("torus utils ed25519 sapphire devnet", function () {
       nodeDetails.torusIndexes,
       TORUS_TEST_VERIFIER,
       { extended_verifier_id: tssVerifierId, verifier_id: email },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.privKey).to.not.equal(null);
     expect(result.oAuthKeyData.evmAddress).to.not.equal(null);
@@ -324,7 +327,8 @@ describe("torus utils ed25519 sapphire devnet", function () {
       nodeDetails.torusIndexes,
       HashEnabledVerifier,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result).eql({
       finalKeyData: {
@@ -373,7 +377,8 @@ describe("torus utils ed25519 sapphire devnet", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: email,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.evmAddress).to.not.equal(null);
     expect(result.finalKeyData.evmAddress).to.not.equal("");
