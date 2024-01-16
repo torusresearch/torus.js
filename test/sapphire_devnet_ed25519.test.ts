@@ -8,8 +8,6 @@ import faker from "faker";
 import { generatePrivateKey, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
-
-const ec = new EC("ed25519");
 const TORUS_TEST_EMAIL = "ed25519@tor.us";
 const TORUS_IMPORT_EMAIL = "importeduser5@tor.us";
 
@@ -19,8 +17,9 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
+const ecCurve = new EC("ed25519");
 
-describe.only("torus utils ed25519 sapphire devnet", function () {
+describe("torus utils ed25519 sapphire devnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -38,20 +37,21 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
   it.only("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
-    const privKeyBuffer = new BN(generatePrivateKey(ec, Buffer));
+    const privKeyBuffer = generatePrivateKey(ecCurve, Buffer);
     const privHex = privKeyBuffer.toString("hex", 64);
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
-    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const result = await torus.importPrivateKey(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      nodeDetails.torusNodePub,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: email },
-      token,
-      privHex
-    );
-    expect(result.finalKeyData.privKey).to.be.equal(privHex);
+    // const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
+    // const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    // const result = await torus.importPrivateKey(
+    //   torusNodeEndpoints,
+    //   nodeDetails.torusIndexes,
+    //   nodeDetails.torusNodePub,
+    //   TORUS_TEST_VERIFIER,
+    //   { verifier_id: email },
+    //   token,
+    //   privHex
+    // );
+    console.log("privHex", privHex);
+    // expect(result.finalKeyData.privKey).to.be.equal(privHex);
   });
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");

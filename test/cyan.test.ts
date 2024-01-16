@@ -160,8 +160,15 @@ describe("torus utils cyan", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: TORUS_TEST_EMAIL },
+      token,
+      torusNodePub
+    );
     delete result.sessionData;
     expect(result.finalKeyData.privKey).to.be.equal("5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8");
     expect(result).eql({
@@ -186,7 +193,7 @@ describe("torus utils cyan", function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
@@ -196,7 +203,8 @@ describe("torus utils cyan", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: TORUS_TEST_EMAIL,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      torusNodePub
     );
     delete result.sessionData;
 

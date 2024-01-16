@@ -15,7 +15,7 @@ export function keccak256(a: Buffer): string {
 }
 
 export const generatePrivateKey = (ecCurve: EC, buf: typeof Buffer): Buffer => {
-  return ecCurve.genKeyPair().getPrivate().toArrayLike(buf, "le", 32);
+  return ecCurve.genKeyPair().getPrivate().toArrayLike(buf, "be", 32);
 };
 
 export function stripHexPrefix(str: string): string {
