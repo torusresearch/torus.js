@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { ec as EC } from "elliptic";
 import faker from "faker";
 
-import { generatePrivateKey, keccak256 } from "../src";
+import { generatePrivateKey, generatePrivateKeyHex, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
 const TORUS_TEST_EMAIL = "ed25519@tor.us";
@@ -34,24 +34,62 @@ describe("torus utils ed25519 sapphire devnet", function () {
     TorusUtils.enableLogging(false);
   });
 
-  it.only("should be able to import a key for a new user", async function () {
+  // this works
+  it.only("should be able to import a key for a new user with le", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
-    const privKeyBuffer = generatePrivateKey(ecCurve, Buffer);
-    const privHex = privKeyBuffer.toString("hex", 64);
-    // const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
-    // const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    // const result = await torus.importPrivateKey(
-    //   torusNodeEndpoints,
-    //   nodeDetails.torusIndexes,
-    //   nodeDetails.torusNodePub,
-    //   TORUS_TEST_VERIFIER,
-    //   { verifier_id: email },
-    //   token,
-    //   privHex
-    // );
-    console.log("privHex", privHex);
-    // expect(result.finalKeyData.privKey).to.be.equal(privHex);
+    const privHex = new BN(generatePrivateKey(ecCurve, Buffer, "le"), "le").toString("hex", 64);
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.importPrivateKey(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      nodeDetails.torusNodePub,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token,
+      privHex
+    );
+    expect(result.finalKeyData.privKey).to.be.equal(privHex);
+  });
+
+  // this doesnt work
+  it.only("should be able to import a solana key for a new user", async function () {
+    const email = faker.internet.email();
+    const token = generateIdToken(email, "ES256");
+    // const privHex = generatePrivateKeyHex(ecCurve, Buffer, "le");
+    const privHex = "105640632be9a213259d69b3b68377569493a465afe2235afe303e370e385160";
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.importPrivateKey(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      nodeDetails.torusNodePub,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token,
+      privHex
+    );
+    expect(result.finalKeyData.privKey).to.be.equal(privHex);
+  });
+
+  // this doesnt work
+  it.only("should be able to import a le encoded for a new user", async function () {
+    const email = faker.internet.email();
+    const token = generateIdToken(email, "ES256");
+    const privHex = generatePrivateKeyHex(ecCurve, Buffer, "le");
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.importPrivateKey(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      nodeDetails.torusNodePub,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token,
+      privHex
+    );
+    expect(result.finalKeyData.privKey).to.be.equal(privHex);
   });
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");

@@ -14,8 +14,12 @@ export function keccak256(a: Buffer): string {
   return `0x${hash}`;
 }
 
-export const generatePrivateKey = (ecCurve: EC, buf: typeof Buffer): Buffer => {
-  return ecCurve.genKeyPair().getPrivate().toArrayLike(buf, "be", 32);
+export const generatePrivateKey = (ecCurve: EC, buf: typeof Buffer, endianness: "be" | "le" = "be"): Buffer => {
+  return ecCurve.genKeyPair().getPrivate().toArrayLike(buf, endianness, 32);
+};
+
+export const generatePrivateKeyHex = (ecCurve: EC, buf: typeof Buffer, endianness: "be" | "le" = "be"): string => {
+  return ecCurve.genKeyPair().getPrivate().toArrayLike(buf, endianness, 32).toString("hex", 0, 64);
 };
 
 export function stripHexPrefix(str: string): string {
