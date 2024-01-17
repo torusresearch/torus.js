@@ -2,7 +2,7 @@ import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import NodeManager from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
-import { ec as EC } from "elliptic";
+import { ec as EC, eddsa as ED } from "elliptic";
 import faker from "faker";
 
 import { generatePrivateKey, generatePrivateKeyHex, keccak256 } from "../src";
@@ -53,12 +53,24 @@ describe("torus utils ed25519 sapphire devnet", function () {
     expect(result.finalKeyData.privKey).to.be.equal(privHex);
   });
 
-  // this doesnt work
-  it.only("should be able to import a solana key for a new user", async function () {
+  // this works
+  it.only("should be able to import and export a solana key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
-    // const privHex = generatePrivateKeyHex(ecCurve, Buffer, "le");
-    const privHex = "105640632be9a213259d69b3b68377569493a465afe2235afe303e370e385160";
+
+    // Define test input.
+    const secretKeyHex =
+      "7366f15c7628695d76c4c8401353422a961e72d2571a1ad903e2d778761564640bbef840f2af561f90f4ab18e9218ef18d9dcc957a41daf4fa27fc5acaf18f5d";
+    const publicKeyHex = "0bbef840f2af561f90f4ab18e9218ef18d9dcc957a41daf4fa27fc5acaf18f5d";
+
+    // Convert secret key to BN.
+    const ed = new ED("ed25519");
+    const kp = ed.keyFromSecret(secretKeyHex.substring(0, 64));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const priv = ((kp as any).priv() as BN).umod(ecCurve.n);
+    const privHex = priv.toString("hex", 64);
+
+    // Import key.
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.importPrivateKey(
@@ -70,7 +82,15 @@ describe("torus utils ed25519 sapphire devnet", function () {
       token,
       privHex
     );
-    expect(result.finalKeyData.privKey).to.be.equal(privHex);
+
+    // Check result: public key.
+    const resultPubKey = ecCurve.keyFromPublic({ x: result.finalKeyData.X, y: result.finalKeyData.Y }).getPublic();
+    const resultPubKeyHex = Buffer.from(ed.encodePoint(resultPubKey)).toString("hex");
+    expect(publicKeyHex).to.be.equal(resultPubKeyHex);
+
+    // Check result: private key.
+    const resultPrivHex = result.finalKeyData.privKey!;
+    expect(privHex).to.be.equal(resultPrivHex);
   });
 
   // this doesnt work
@@ -91,6 +111,7 @@ describe("torus utils ed25519 sapphire devnet", function () {
     );
     expect(result.finalKeyData.privKey).to.be.equal(privHex);
   });
+
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
