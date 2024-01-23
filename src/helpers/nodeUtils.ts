@@ -44,6 +44,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
       generateJsonRPCObject(JRPC_METHODS.GET_OR_SET_KEY, {
+        distributed_metadata: true,
         verifier,
         verifier_id: verifierId.toString(),
         extended_verifier_id: extendedVerifierId,
@@ -265,6 +266,7 @@ export async function retrieveOrImportShare(params: {
             generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
               encrypted: "yes",
               use_temp: true,
+              distributed_metadata: true,
               item: [
                 {
                   ...verifierParams,
@@ -294,6 +296,7 @@ export async function retrieveOrImportShare(params: {
             generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
               encrypted: "yes",
               use_temp: true,
+              distributed_metadata: true,
               item: [
                 {
                   ...verifierParams,
@@ -678,6 +681,7 @@ export const legacyKeyAssign = async ({
   if (firstPoint !== undefined) initialPoint = firstPoint;
 
   const data = generateJsonRPCObject("KeyAssign", {
+    distributed_metadata: true,
     verifier,
     verifier_id: verifierId.toString(),
   });
