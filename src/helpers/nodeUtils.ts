@@ -60,15 +60,6 @@ export const GetPubKeyOrKeyAssign = async (params: {
   const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
     const lookupPubKeys = lookupResults.filter((x1) => {
       if (x1 && !x1.error) {
-        if (!nonceResult) {
-          // currently only one node returns metadata nonce
-          // other nodes returns empty object
-          // pubNonce must be available to derive the public key
-          const pubNonceX = (x1.result?.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
-          if (pubNonceX) {
-            nonceResult = x1.result.keys[0].nonce_data;
-          }
-        }
         return x1;
       }
       return false;
@@ -83,8 +74,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
       ~~(endpoints.length / 2) + 1
     );
 
-    // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
-    if ((keyResult && (nonceResult || extendedVerifierId || LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE])) || errorResult) {
+    if (keyResult || errorResult) {
       if (keyResult) {
         lookupResults.forEach((x1) => {
           if (x1 && x1.result) {
@@ -95,6 +85,16 @@ export const GetPubKeyOrKeyAssign = async (params: {
             if (currentNodePubKey === thresholdPubKey) {
               const nodeIndex = parseInt(x1.result.node_index);
               if (nodeIndex) nodeIndexes.push(nodeIndex);
+            }
+            // check for nonce result in response if not a extendedVerifierId and not a legacy network
+            if (!extendedVerifierId && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE] && !nonceResult) {
+              // currently only one node returns metadata nonce
+              // other nodes returns empty object
+              // pubNonce must be available to derive the public key
+              const pubNonceX = (x1.result?.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
+              if (pubNonceX && currentNodePubKey === thresholdPubKey) {
+                nonceResult = x1.result.keys[0].nonce_data;
+              }
             }
           }
         });
@@ -321,12 +321,6 @@ export async function retrieveOrImportShare(params: {
         });
         const pubkeys = shareResponses.map((x) => {
           if (x && x.result && x.result.keys[0].public_key) {
-            if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
-              const pubNonce = (x.result.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
-              if (pubNonce) {
-                thresholdNonceData = x.result.keys[0].nonce_data;
-              }
-            }
             return x.result.keys[0].public_key;
           }
           return undefined;
@@ -337,6 +331,17 @@ export async function retrieveOrImportShare(params: {
         if (!thresholdPublicKey) {
           throw new Error("invalid result from nodes, threshold number of public key results are not matching");
         }
+
+        shareResponses.forEach((x) => {
+          const requiredShareResponse = x && x.result && x.result.keys[0].public_key && x.result.keys[0];
+          if (requiredShareResponse && !thresholdNonceData && !verifierParams.extended_verifier_id) {
+            const currentPubKey = requiredShareResponse.public_key;
+            const pubNonce = (requiredShareResponse.nonce_data as v2NonceResultType)?.pubNonce?.x;
+            if (pubNonce && currentPubKey.X === thresholdPublicKey.X) {
+              thresholdNonceData = requiredShareResponse.nonce_data;
+            }
+          }
+        });
 
         // if both thresholdNonceData and extended_verifier_id are not available
         // then we need to throw other wise address would be incorrect.
