@@ -64,6 +64,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
       }
       return false;
     });
+
     const errorResult = thresholdSame(
       lookupPubKeys.map((x2) => x2 && x2.error),
       ~~(endpoints.length / 2) + 1
@@ -74,7 +75,24 @@ export const GetPubKeyOrKeyAssign = async (params: {
       ~~(endpoints.length / 2) + 1
     );
 
-    if (keyResult || errorResult) {
+    // check for nonce result in response if not a extendedVerifierId and not a legacy network
+    if (keyResult && !nonceResult && !extendedVerifierId && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
+      for (let i = 0; i < lookupResults.length; i++) {
+        const x1 = lookupResults[i];
+        if (x1 && !x1.error) {
+          const currentNodePubKey = x1.result.keys[0].pub_key_X.toLowerCase();
+          const thresholdPubKey = keyResult.keys[0].pub_key_X.toLowerCase();
+          const pubNonceX = (x1.result?.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
+          if (pubNonceX && currentNodePubKey === thresholdPubKey) {
+            nonceResult = x1.result.keys[0].nonce_data;
+            break;
+          }
+        }
+      }
+    }
+
+    // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
+    if ((keyResult && (nonceResult || extendedVerifierId || LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE])) || errorResult) {
       if (keyResult) {
         lookupResults.forEach((x1) => {
           if (x1 && x1.result) {
@@ -85,16 +103,6 @@ export const GetPubKeyOrKeyAssign = async (params: {
             if (currentNodePubKey === thresholdPubKey) {
               const nodeIndex = parseInt(x1.result.node_index);
               if (nodeIndex) nodeIndexes.push(nodeIndex);
-            }
-            // check for nonce result in response if not a extendedVerifierId and not a legacy network
-            if (!extendedVerifierId && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE] && !nonceResult) {
-              // currently only one node returns metadata nonce
-              // other nodes returns empty object
-              // pubNonce must be available to derive the public key
-              const pubNonceX = (x1.result?.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
-              if (pubNonceX && currentNodePubKey === thresholdPubKey) {
-                nonceResult = x1.result.keys[0].nonce_data;
-              }
             }
           }
         });
