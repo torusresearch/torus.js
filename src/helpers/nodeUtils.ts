@@ -681,7 +681,6 @@ export const legacyKeyAssign = async ({
   if (firstPoint !== undefined) initialPoint = firstPoint;
 
   const data = generateJsonRPCObject("KeyAssign", {
-    distributed_metadata: true,
     verifier,
     verifier_id: verifierId.toString(),
   });
