@@ -13,13 +13,14 @@ export const normalizeKeysResult = (result: VerifierLookupResponse) => {
     is_new_key: result.is_new_key,
   };
   if (result && result.keys && result.keys.length > 0) {
-    finalResult.keys = result.keys.map((key) => {
-      return {
-        pub_key_X: key.pub_key_X,
-        pub_key_Y: key.pub_key_Y,
-        address: key.address,
-      };
-    });
+    const finalKey = result.keys[0];
+    finalResult.keys = [
+      {
+        pub_key_X: finalKey.pub_key_X,
+        pub_key_Y: finalKey.pub_key_Y,
+        address: finalKey.address,
+      },
+    ];
   }
   return finalResult;
 };

@@ -44,6 +44,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
       generateJsonRPCObject(JRPC_METHODS.GET_OR_SET_KEY, {
+        distributed_metadata: true,
         verifier,
         verifier_id: verifierId.toString(),
         extended_verifier_id: extendedVerifierId,
@@ -60,19 +61,11 @@ export const GetPubKeyOrKeyAssign = async (params: {
   const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
     const lookupPubKeys = lookupResults.filter((x1) => {
       if (x1 && !x1.error) {
-        if (!nonceResult) {
-          // currently only one node returns metadata nonce
-          // other nodes returns empty object
-          // pubNonce must be available to derive the public key
-          const pubNonceX = (x1.result?.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
-          if (pubNonceX) {
-            nonceResult = x1.result.keys[0].nonce_data;
-          }
-        }
         return x1;
       }
       return false;
     });
+
     const errorResult = thresholdSame(
       lookupPubKeys.map((x2) => x2 && x2.error),
       ~~(endpoints.length / 2) + 1
@@ -82,6 +75,22 @@ export const GetPubKeyOrKeyAssign = async (params: {
       lookupPubKeys.map((x3) => x3 && normalizeKeysResult(x3.result)),
       ~~(endpoints.length / 2) + 1
     );
+
+    // check for nonce result in response if not a extendedVerifierId and not a legacy network
+    if (keyResult && !nonceResult && !extendedVerifierId && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
+      for (let i = 0; i < lookupResults.length; i++) {
+        const x1 = lookupResults[i];
+        if (x1 && !x1.error) {
+          const currentNodePubKey = x1.result.keys[0].pub_key_X.toLowerCase();
+          const thresholdPubKey = keyResult.keys[0].pub_key_X.toLowerCase();
+          const pubNonceX = (x1.result?.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
+          if (pubNonceX && currentNodePubKey === thresholdPubKey) {
+            nonceResult = x1.result.keys[0].nonce_data;
+            break;
+          }
+        }
+      }
+    }
 
     // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
     if ((keyResult && (nonceResult || extendedVerifierId || LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE])) || errorResult) {
@@ -257,6 +266,7 @@ export async function retrieveOrImportShare(params: {
             generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
               encrypted: "yes",
               use_temp: true,
+              distributed_metadata: true,
               item: [
                 {
                   ...verifierParams,
@@ -286,6 +296,7 @@ export async function retrieveOrImportShare(params: {
             generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
               encrypted: "yes",
               use_temp: true,
+              distributed_metadata: true,
               item: [
                 {
                   ...verifierParams,
@@ -321,12 +332,6 @@ export async function retrieveOrImportShare(params: {
         });
         const pubkeys = shareResponses.map((x) => {
           if (x && x.result && x.result.keys[0].public_key) {
-            if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
-              const pubNonce = (x.result.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
-              if (pubNonce) {
-                thresholdNonceData = x.result.keys[0].nonce_data;
-              }
-            }
             return x.result.keys[0].public_key;
           }
           return undefined;
@@ -337,6 +342,17 @@ export async function retrieveOrImportShare(params: {
         if (!thresholdPublicKey) {
           throw new Error("invalid result from nodes, threshold number of public key results are not matching");
         }
+
+        shareResponses.forEach((x) => {
+          const requiredShareResponse = x && x.result && x.result.keys[0].public_key && x.result.keys[0];
+          if (requiredShareResponse && !thresholdNonceData && !verifierParams.extended_verifier_id) {
+            const currentPubKey = requiredShareResponse.public_key;
+            const pubNonce = (requiredShareResponse.nonce_data as v2NonceResultType)?.pubNonce?.x;
+            if (pubNonce && currentPubKey.X === thresholdPublicKey.X) {
+              thresholdNonceData = requiredShareResponse.nonce_data;
+            }
+          }
+        });
 
         // if both thresholdNonceData and extended_verifier_id are not available
         // then we need to throw other wise address would be incorrect.
@@ -665,6 +681,7 @@ export const legacyKeyAssign = async ({
   if (firstPoint !== undefined) initialPoint = firstPoint;
 
   const data = generateJsonRPCObject("KeyAssign", {
+    distributed_metadata: true,
     verifier,
     verifier_id: verifierId.toString(),
   });
