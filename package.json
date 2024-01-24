@@ -17,8 +17,7 @@
     "prepare": "husky install"
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "peerDependencies": {
     "@babel/runtime": "7.x"
