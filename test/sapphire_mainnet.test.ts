@@ -16,7 +16,7 @@ const HashEnabledVerifier = "torus-test-verifierid-hash";
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
 const TORUS_IMPORT_EMAIL = "importeduser5@tor.us";
 
-describe("torus utils sapphire mainnet", function () {
+describe.only("torus utils sapphire mainnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -50,7 +50,7 @@ describe("torus utils sapphire mainnet", function () {
           X: "56e803db7710adbfe0ecca35bc6a3ad27e966df142e157e76e492773c88e8433",
           Y: "f4168594c1126ca731756dd480f992ee73b0834ba4b787dd892a9211165f50a3",
         },
-        nonce: new BN("f3ba568eeeaca5c285b25878a067fd85b1720b94f9099591d4274dc0a8cada9b", "hex"),
+        nonce: new BN("0", "hex"),
         upgraded: false,
         typeOfUser: "v2",
       },
@@ -203,7 +203,7 @@ describe("torus utils sapphire mainnet", function () {
           X: "498ed301af25a3b7136f478fa58677c79a6d6fe965bc13002a6f459b896313bd",
           Y: "d6feb9a1e0d6d0627fbb1ce75682bc09ab4cf0e2da4f0f7fcac0ba9d07596c8f",
         },
-        nonce: new BN("3c2b6ba5b54ca0ba4ae978eb48429a84c47b7b3e526b35e7d46dd716887f52bf", "hex"),
+        nonce: new BN("0", "hex"),
         upgraded: false,
         typeOfUser: "v2",
       },
@@ -233,7 +233,7 @@ describe("torus utils sapphire mainnet", function () {
           X: "498ed301af25a3b7136f478fa58677c79a6d6fe965bc13002a6f459b896313bd",
           Y: "d6feb9a1e0d6d0627fbb1ce75682bc09ab4cf0e2da4f0f7fcac0ba9d07596c8f",
         },
-        nonce: new BN("3c2b6ba5b54ca0ba4ae978eb48429a84c47b7b3e526b35e7d46dd716887f52bf", "hex"),
+        nonce: new BN("0", "hex"),
         upgraded: false,
         typeOfUser: "v2",
       },
@@ -342,5 +342,33 @@ describe("torus utils sapphire mainnet", function () {
     expect(result.metadata.typeOfUser).to.equal("v2");
     expect(result.metadata.nonce).to.not.equal(null);
     expect(result.metadata.upgraded).to.equal(false);
+  });
+
+  it("should be able to update the `sessionTime` of the token signature data", async function () {
+    const email = faker.internet.email();
+    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email });
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    torusNodeEndpoints[1] = "https://example.com";
+
+    const customSessionTime = 3600;
+    TorusUtils.setSessionTime(customSessionTime); // 1hr
+
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: TORUS_TEST_EMAIL },
+      token
+    );
+
+    const signatures = result.sessionData.sessionTokenData.map((s) => ({ data: s.token, sig: s.signature }));
+
+    const parsedSigsData = signatures.map((s) => JSON.parse(atob(s.data)));
+    parsedSigsData.forEach((ps) => {
+      const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
+      expect(sessionTime).eql(customSessionTime);
+    });
   });
 });

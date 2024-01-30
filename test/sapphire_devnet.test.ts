@@ -373,6 +373,34 @@ describe("torus utils sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
+
+  it("should be able to update the `sessionTime` of the token signature data", async function () {
+    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    torusNodeEndpoints[1] = "https://example.com";
+
+    const customSessionTime = 3600;
+    TorusUtils.setSessionTime(customSessionTime); // 1hr
+
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: TORUS_TEST_EMAIL },
+      token
+    );
+
+    const signatures = result.sessionData.sessionTokenData.map((s) => ({ data: s.token, sig: s.signature }));
+
+    const parsedSigsData = signatures.map((s) => JSON.parse(atob(s.data)));
+    parsedSigsData.forEach((ps) => {
+      const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
+      expect(sessionTime).eql(customSessionTime);
+    });
+  });
+
   it.skip("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");

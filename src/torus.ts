@@ -54,6 +54,8 @@ import { Some } from "./some";
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
+  private static sessionTime: number = 86400; // 86400 = 24 hour
+
   public allowHost: string;
 
   public serverTimeOffset: number;
@@ -104,6 +106,10 @@ class Torus {
     setEmbedHost(embedHost);
   }
 
+  static setSessionTime(sessionTime: number): void {
+    Torus.sessionTime = sessionTime;
+  }
+
   static isGetOrSetNonceError(err: unknown): boolean {
     return err instanceof GetOrSetNonceError;
   }
@@ -137,7 +143,10 @@ class Torus {
       verifierParams,
       idToken,
       importedShares: [],
-      extraParams,
+      extraParams: {
+        ...extraParams,
+        session_token_exp_second: Torus.sessionTime,
+      },
     });
   }
 
@@ -222,7 +231,10 @@ class Torus {
       verifierParams,
       idToken,
       importedShares: sharesData,
-      extraParams,
+      extraParams: {
+        ...extraParams,
+        session_token_exp_second: Torus.sessionTime,
+      },
     });
   }
 
