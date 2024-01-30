@@ -54,7 +54,7 @@ import { Some } from "./some";
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
-  private static sessionTime: number = 2480; // 2480s = 24 hour
+  private static sessionTime: number = 86400; // 86400 = 24 hour
 
   public allowHost: string;
 
