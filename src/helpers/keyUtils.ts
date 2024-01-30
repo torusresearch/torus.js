@@ -2,8 +2,6 @@ import BN from "bn.js";
 import { ec } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 
-import log from "../loglevel";
-
 export function keccak256(a: Buffer): string {
   const hash = Buffer.from(keccakHash(a)).toString("hex");
   return `0x${hash}`;
@@ -34,7 +32,6 @@ export function toChecksumAddress(hexAddress: string): string {
 export function generateAddressFromPrivKey(ecCurve: ec, privateKey: BN): string {
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64), "hex");
   const publicKey = key.getPublic().encode("hex", false).slice(2);
-  log.info(publicKey, "public key");
   const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
   return toChecksumAddress(evmAddressLower);
 }
@@ -42,7 +39,6 @@ export function generateAddressFromPrivKey(ecCurve: ec, privateKey: BN): string 
 export function generateAddressFromPubKey(ecCurve: ec, publicKeyX: BN, publicKeyY: BN): string {
   const key = ecCurve.keyFromPublic({ x: publicKeyX.toString("hex", 64), y: publicKeyY.toString("hex", 64) });
   const publicKey = key.getPublic().encode("hex", false).slice(2);
-  log.info(key.getPublic().encode("hex", false), "public key");
   const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
   return toChecksumAddress(evmAddressLower);
 }
