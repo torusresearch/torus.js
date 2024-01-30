@@ -1,5 +1,41 @@
+// {
+//   "extends": "@toruslabs/config/tsconfig.default.json",
+//   "include": ["src", "test"],
+//   "compilerOptions": {},
+//   "ts-node": {
+//     "compilerOptions": {
+//       "module": "CommonJS",
+//       "target": "ES2015",
+//     }
+//   }
+// }
+
 {
-  "extends": "@toruslabs/config/tsconfig.default.json",
-  "include": ["src", "test"],
-  "compilerOptions": {}
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "strict": true,
+    "module": "esnext",
+    "target": "esnext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "noImplicitThis": true,
+    "declaration": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "isolatedModules": true,
+    "noImplicitAny": true,
+    "strictNullChecks": false,
+    "skipLibCheck": true
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS",
+      "target": "ES2015"
+    }
+  }
 }
