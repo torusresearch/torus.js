@@ -1,6 +1,6 @@
 {
   "name": "@toruslabs/torus.js",
-  "version": "12.1.0",
+  "version": "12.1.1",
   "description": "Handle communication with torus nodes",
   "main": "dist/torusUtils.cjs.js",
   "module": "dist/torusUtils.esm.js",
@@ -17,8 +17,7 @@
     "prepare": "husky install"
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "peerDependencies": {
     "@babel/runtime": "7.x"
@@ -26,7 +25,7 @@
   "dependencies": {
     "@toruslabs/constants": "^13.1.0",
     "@toruslabs/eccrypto": "^4.0.0",
-    "@toruslabs/http-helpers": "^5.0.0",
+    "@toruslabs/http-helpers": "^6.0.0",
     "bn.js": "^5.2.1",
     "elliptic": "^6.5.4",
     "ethereum-cryptography": "^2.1.2",
