@@ -176,7 +176,8 @@ describe("torus utils sapphire mainnet", function () {
       nodeDetails.torusIndexes,
       TORUS_TEST_VERIFIER,
       { extended_verifier_id: tssVerifierId, verifier_id: email },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.privKey).to.not.equal(null);
     expect(result.oAuthKeyData.evmAddress).to.not.equal(null);
@@ -255,7 +256,8 @@ describe("torus utils sapphire mainnet", function () {
       nodeDetails.torusIndexes,
       HashEnabledVerifier,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.privKey).to.be.equal("13941ecd812b08d8a33a20bc975f0cd1c3f82de25b20c0c863ba5f21580b65f6");
     expect(result).eql({
@@ -291,8 +293,15 @@ describe("torus utils sapphire mainnet", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: TORUS_TEST_EMAIL },
+      token,
+      torusNodePub
+    );
     expect(result.finalKeyData.privKey).to.be.equal("dfb39b84e0c64b8c44605151bf8670ae6eda232056265434729b6a8a50fa3419");
     expect(result).eql({
       finalKeyData: {
@@ -338,7 +347,8 @@ describe("torus utils sapphire mainnet", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: email,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.evmAddress).to.not.equal(null);
     expect(result.finalKeyData.evmAddress).to.not.equal("");

@@ -13,7 +13,7 @@ export type v2NonceResultType = { typeOfUser: "v2"; nonce?: string; pubNonce: { 
 
 export type v1NonceResultType = { typeOfUser: "v1"; nonce?: string };
 export type GetOrSetNonceResult = v2NonceResultType | v1NonceResultType;
-export type KeyType = "secp256k1" | "ed25519";
+export type KeyType = "secp256k1";
 
 export interface SetNonceData {
   operation: string;

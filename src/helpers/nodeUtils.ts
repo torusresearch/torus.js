@@ -621,7 +621,7 @@ export async function retrieveOrImportShare(params: {
         finalPubKey = ecCurve.keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
         if (enableOneKey) {
-          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, keyType, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
+          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {

@@ -132,7 +132,7 @@ class Torus {
     idToken: string,
     nodePubkeys: INodePub[],
     extraParams: Record<string, unknown> = {},
-    useDkg?: boolean
+    useDkg: boolean = true
   ): Promise<TorusKey> {
     if (nodePubkeys.length === 0) {
       throw new Error("nodePubkeys param is required");
@@ -144,19 +144,6 @@ class Torus {
 
     if (nodePubkeys.length !== endpoints.length) {
       throw new Error("nodePubkeys length must be same as endpoints length");
-    }
-    // dkg is used by default only for secp256k1 keys,
-    // for ed25519 keys import keys flows is the default
-    let shouldUseDkg;
-    if (typeof useDkg === "boolean") {
-      shouldUseDkg = useDkg;
-    } else if (this.keyType === "ed25519") {
-      shouldUseDkg = false;
-    } else {
-      shouldUseDkg = true;
-    }
-    if (!shouldUseDkg && nodePubkeys.length === 0) {
-      throw new Error("nodePubkeys param is required");
     }
 
     if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, this.keyType, extraParams);
@@ -175,7 +162,7 @@ class Torus {
       verifier,
       verifierParams,
       idToken,
-      useDkg: shouldUseDkg,
+      useDkg,
       newImportedShares: [],
       overrideExistingKey: false,
       nodePubkeys,
@@ -461,7 +448,7 @@ class Torus {
         let typeOfUser: UserType = "v1";
         let pubKeyNonceResult: { X: string; Y: string } | undefined;
         if (this.enableOneKey) {
-          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.keyType, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
+          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {
@@ -708,7 +695,7 @@ class Torus {
 
     if (enableOneKey) {
       try {
-        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.keyType, this.serverTimeOffset, X, Y, undefined, !isNewKey);
+        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, X, Y, undefined, !isNewKey);
         nonce = new BN(nonceResult.nonce || "0", 16);
         typeOfUser = nonceResult.typeOfUser;
       } catch {
