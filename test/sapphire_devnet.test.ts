@@ -442,7 +442,8 @@ describe("torus utils sapphire devnet", function () {
     const parsedSigsData = signatures.map((s) => JSON.parse(atob(s.data)));
     parsedSigsData.forEach((ps) => {
       const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
-      expect(sessionTime).eql(customSessionTime);
+      const sessionTimeVariance = customSessionTime - sessionTime <= 1; // there can be some variance of 1 sec as we are doing floor op here.
+      expect(sessionTimeVariance).eql(true);
     });
   });
 

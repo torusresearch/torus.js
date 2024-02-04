@@ -15,7 +15,7 @@ const TORUS_TEST_AGGREGATE_VERIFIER = "torus-aggregate-sapphire-mainnet";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
 
-describe.only("torus utils sapphire mainnet", function () {
+describe("torus utils sapphire mainnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -386,7 +386,8 @@ describe.only("torus utils sapphire mainnet", function () {
     const parsedSigsData = signatures.map((s) => JSON.parse(atob(s.data)));
     parsedSigsData.forEach((ps) => {
       const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
-      expect(sessionTime).eql(customSessionTime);
+      const sessionTimeVariance = customSessionTime - sessionTime <= 1; // there can be some variance of 1 sec as we are doing floor op here.
+      expect(sessionTimeVariance).eql(true);
     });
   });
 });
