@@ -1,13 +1,14 @@
-import { LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import { INodePub, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
-import { curve, ec } from "elliptic";
+import { curve as curveUtils, ec } from "elliptic";
 
 import { config } from "../config";
 import { JRPC_METHODS } from "../constants";
 import {
   CommitmentRequestResult,
+  CurveType,
   GetOrSetNonceResult,
   ImportedShare,
   ImportShareRequestResult,
@@ -27,8 +28,8 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { Some } from "../some";
-import { kCombinations, normalizeKeysResult, thresholdSame } from "./common";
-import { generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
+import { getProxyCoordinatorEndpointIndex, kCombinations, normalizeKeysResult, thresholdSame } from "./common";
+import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generatePrivateKey, generateShares, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
 
@@ -37,9 +38,10 @@ export const GetPubKeyOrKeyAssign = async (params: {
   network: TORUS_NETWORK_TYPE;
   verifier: string;
   verifierId: string;
+  curve: CurveType;
   extendedVerifierId?: string;
 }): Promise<KeyLookupResult> => {
-  const { endpoints, network, verifier, verifierId, extendedVerifierId } = params;
+  const { endpoints, network, verifier, verifierId, extendedVerifierId, curve } = params;
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
@@ -49,6 +51,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
         verifier_id: verifierId.toString(),
         extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
+        key_type: curve,
         fetch_node_index: true,
       }),
       null,
@@ -127,14 +130,19 @@ export async function retrieveOrImportShare(params: {
   serverTimeOffset: number;
   enableOneKey: boolean;
   ecCurve: ec;
+  curve: CurveType;
   allowHost: string;
   network: string;
   clientId: string;
   endpoints: string[];
+  indexes: number[];
   verifier: string;
   verifierParams: VerifierParams;
   idToken: string;
-  importedShares?: ImportedShare[];
+  useDkg: boolean;
+  overrideExistingKey: boolean;
+  nodePubkeys: INodePub[];
+  newImportedShares?: ImportedShare[];
   extraParams: Record<string, unknown>;
 }): Promise<TorusKey> {
   const {
@@ -142,15 +150,20 @@ export async function retrieveOrImportShare(params: {
     serverTimeOffset,
     enableOneKey,
     ecCurve,
+    curve,
     allowHost,
     network,
     clientId,
     endpoints,
+    nodePubkeys,
+    indexes,
     verifier,
     verifierParams,
     idToken,
-    importedShares,
+    overrideExistingKey,
+    newImportedShares,
     extraParams,
+    useDkg = true,
   } = params;
   await get<void>(
     allowHost,
@@ -173,12 +186,17 @@ export async function retrieveOrImportShare(params: {
   const pubKeyX = pubKey.slice(2, 66);
   const pubKeyY = pubKey.slice(66);
   const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
-  let isImportShareReq = false;
-  if (importedShares && importedShares.length > 0) {
-    if (importedShares.length !== endpoints.length) {
+  let finalImportedShares: ImportedShare[] = [];
+
+  if (newImportedShares.length > 0) {
+    if (newImportedShares.length !== endpoints.length) {
       throw new Error("Invalid imported shares length");
     }
-    isImportShareReq = true;
+    finalImportedShares = newImportedShares;
+  } else if (!useDkg) {
+    const importedKey = new BN(generatePrivateKey(ecCurve, Buffer));
+    const generatedShares = await generateShares(ecCurve, curve, serverTimeOffset, indexes, nodePubkeys, importedKey.toString(16, 64));
+    finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
 
   // make commitment requests to endpoints
@@ -196,10 +214,13 @@ export async function retrieveOrImportShare(params: {
       endpoints[i],
       generateJsonRPCObject(JRPC_METHODS.COMMITMENT_REQUEST, {
         messageprefix: "mug00",
+        keytype: curve,
         tokencommitment: tokenCommitment.slice(2),
         temppubx: pubKeyX,
         temppuby: pubKeyY,
         verifieridentifier: verifier,
+        verifier_id: verifierParams.verifier_id,
+        is_import_key_flow: true,
       }),
       null,
       { logTracingHeader: config.logRequestTracing }
@@ -220,17 +241,60 @@ export async function retrieveOrImportShare(params: {
       return true;
     });
 
-    // we need to get commitments from all endpoints for importing share
-    if (importedShares.length > 0 && completedRequests.length === endpoints.length) {
-      return Promise.resolve(resultArr);
-    } else if (importedShares.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
+    if (finalImportedShares.length > 0) {
+      // this case is for imported keys
+      // for imported keys registration we need to wait for all nodes to agree on commitment
+      // for existing imported keys we can rely on threshold nodes commitment
+      if (overrideExistingKey && completedRequests.length === endpoints.length) {
+        const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
+          if (resp && resp.result?.nodeindex === "1") {
+            return true;
+          }
+          return false;
+        });
+        if (requiredNodeResult) {
+          return Promise.resolve(resultArr);
+        }
+      } else if (!overrideExistingKey && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
+        // for import shares, proxy node response is required.
+        // proxy node returns metadata unlike dkg keys where node 1 is checked for metadata.
+        // if user's account already
+        const nodeSigs: CommitmentRequestResult[] = [];
+        for (let i = 0; i < completedRequests.length; i += 1) {
+          const x = completedRequests[i];
+          if (!x || typeof x !== "object" || x.error) {
+            continue;
+          }
+          if (x) nodeSigs.push((x as JRPCResponse<CommitmentRequestResult>).result);
+        }
+        const existingPubKey = thresholdSame(
+          nodeSigs.map((x) => x && x.pub_key_x),
+          ~~(endpoints.length / 2) + 1
+        );
+        const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
+        const requiredNodeIndex = indexes[proxyEndpointNum].toString(10);
+
+        // if not a existing key we need to wait for nodes to agree on commitment
+        if (existingPubKey || (!existingPubKey && completedRequests.length === endpoints.length)) {
+          const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
+            if (resp && resp.result?.nodeindex === requiredNodeIndex) {
+              return true;
+            }
+            return false;
+          });
+          if (requiredNodeResult) {
+            return Promise.resolve(resultArr);
+          }
+        }
+      }
+    } else if (completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
+      // this case is for dkg keys
       const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
         if (resp && resp.result?.nodeindex === "1") {
           return true;
         }
         return false;
       });
-
       if (requiredNodeResult) {
         return Promise.resolve(resultArr);
       }
@@ -239,58 +303,69 @@ export async function retrieveOrImportShare(params: {
     return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
   })
     .then((responses) => {
-      const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult>>[] = [];
+      const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult> | JRPCResponse<ShareRequestResult[]>>[] = [];
       const nodeSigs: CommitmentRequestResult[] = [];
       for (let i = 0; i < responses.length; i += 1) {
         const x = responses[i];
-        if (!x || typeof x !== "object") {
-          continue;
-        }
-        if (x.error) {
+        if (!x || typeof x !== "object" || x.error) {
           continue;
         }
         if (x) nodeSigs.push((x as JRPCResponse<CommitmentRequestResult>).result);
       }
-      for (let i = 0; i < endpoints.length; i += 1) {
-        const x = responses[i];
-        if (!x || typeof x !== "object") {
-          continue;
+
+      // if user's account already
+      const existingPubKey = thresholdSame(
+        nodeSigs.map((x) => x && x.pub_key_x),
+        ~~(endpoints.length / 2) + 1
+      );
+
+      // can only import shares if override existing key is allowed or for new non dkg registration
+      const canImportedShares = overrideExistingKey || (!useDkg && !existingPubKey);
+      if (canImportedShares) {
+        const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
+        const items: Record<string, unknown>[] = [];
+        for (let i = 0; i < endpoints.length; i += 1) {
+          const x = responses[i];
+          if (!x || typeof x !== "object" || x.error) {
+            continue;
+          }
+          const importedShare = finalImportedShares[i];
+          items.push({
+            ...verifierParams,
+            idtoken: idToken,
+            nodesignatures: nodeSigs,
+            verifieridentifier: verifier,
+            pub_key_x: importedShare.pub_key_x,
+            pub_key_y: importedShare.pub_key_y,
+            encrypted_share: importedShare.encrypted_share,
+            encrypted_share_metadata: importedShare.encrypted_share_metadata,
+            node_index: importedShare.node_index,
+            key_type: importedShare.key_type,
+            nonce_data: importedShare.nonce_data,
+            nonce_signature: importedShare.nonce_signature,
+            sss_endpoint: endpoints[i],
+            ...extraParams,
+          });
         }
-        if (x.error) {
-          continue;
-        }
-        if (isImportShareReq) {
-          const importedShare = importedShares[i];
-          const p = post<JRPCResponse<ImportShareRequestResult>>(
-            endpoints[i],
-            generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARE, {
-              encrypted: "yes",
-              use_temp: true,
-              distributed_metadata: true,
-              item: [
-                {
-                  ...verifierParams,
-                  idtoken: idToken,
-                  nodesignatures: nodeSigs,
-                  verifieridentifier: verifier,
-                  pub_key_x: importedShare.pub_key_x,
-                  pub_key_y: importedShare.pub_key_y,
-                  encrypted_share: importedShare.encrypted_share,
-                  encrypted_share_metadata: importedShare.encrypted_share_metadata,
-                  node_index: importedShare.node_index,
-                  key_type: importedShare.key_type,
-                  nonce_data: importedShare.nonce_data,
-                  nonce_signature: importedShare.nonce_signature,
-                  ...extraParams,
-                },
-              ],
-              one_key_flow: true,
-            }),
-            null,
-            { logTracingHeader: config.logRequestTracing }
-          ).catch((err) => log.error("share req", err));
-          promiseArrRequest.push(p);
-        } else {
+        const p = post<JRPCResponse<ImportShareRequestResult[]>>(
+          endpoints[proxyEndpointNum],
+          generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARES, {
+            encrypted: "yes",
+            use_temp: true,
+            item: items,
+            key_type: curve,
+            one_key_flow: true,
+          }),
+          null,
+          { logTracingHeader: config.logRequestTracing }
+        ).catch((err) => log.error("share req", err));
+        promiseArrRequest.push(p);
+      } else {
+        for (let i = 0; i < endpoints.length; i += 1) {
+          const x = responses[i];
+          if (!x || typeof x !== "object" || x.error) {
+            continue;
+          }
           const p = post<JRPCResponse<ShareRequestResult>>(
             endpoints[i],
             generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
@@ -301,6 +376,7 @@ export async function retrieveOrImportShare(params: {
                 {
                   ...verifierParams,
                   idtoken: idToken,
+                  key_type: curve,
                   nodesignatures: nodeSigs,
                   verifieridentifier: verifier,
                   ...extraParams,
@@ -316,10 +392,26 @@ export async function retrieveOrImportShare(params: {
       }
       let thresholdNonceData: GetOrSetNonceResult;
       return Some<
-        void | JRPCResponse<ShareRequestResult>,
+        void | JRPCResponse<ShareRequestResult> | JRPCResponse<ShareRequestResult[]>,
         | { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult; nodeIndexes: BN[]; isNewKey: boolean }
         | undefined
-      >(promiseArrRequest, async (shareResponses, sharedState) => {
+      >(promiseArrRequest, async (shareResponseResult, sharedState) => {
+        let shareResponses: (void | JRPCResponse<ShareRequestResult>)[] = [];
+        // for import shares case, where result is an array
+        if (shareResponseResult.length === 1 && shareResponseResult[0] && Array.isArray(shareResponseResult[0].result)) {
+          // this is for import shares
+          const importedSharesResult = shareResponseResult[0];
+          shareResponseResult[0].result.forEach((res) => {
+            shareResponses.push({
+              id: importedSharesResult.id,
+              jsonrpc: "2.0",
+              result: res,
+              error: importedSharesResult.error,
+            });
+          });
+        } else {
+          shareResponses = shareResponseResult as (void | JRPCResponse<ShareRequestResult>)[];
+        }
         // check if threshold number of nodes have returned the same user public key
         const completedRequests = shareResponses.filter((x) => {
           if (!x || typeof x !== "object") {
@@ -362,10 +454,11 @@ export async function retrieveOrImportShare(params: {
           );
         }
 
-        const thresholdReqCount = importedShares.length > 0 ? endpoints.length : ~~(endpoints.length / 2) + 1;
+        const thresholdReqCount = ~~(endpoints.length / 2) + 1;
         // optimistically run lagrange interpolation once threshold number of shares have been received
         // this is matched against the user public key to ensure that shares are consistent
         // Note: no need of thresholdMetadataNonce for extended_verifier_id key
+
         if (
           completedRequests.length >= thresholdReqCount &&
           thresholdPublicKey &&
@@ -480,7 +573,9 @@ export async function retrieveOrImportShare(params: {
 
           const decryptedShares = sharesResolved.reduce(
             (acc, curr, index) => {
-              if (curr) acc.push({ index: nodeIndexes[index], value: new BN(curr) });
+              if (curr) {
+                acc.push({ index: nodeIndexes[index], value: new BN(curr) });
+              }
               return acc;
             },
             [] as { index: BN; value: BN }[]
@@ -496,13 +591,11 @@ export async function retrieveOrImportShare(params: {
             const indices = currentCombiShares.map((x) => x.index);
             const derivedPrivateKey = lagrangeInterpolation(ecCurve, shares, indices);
             if (!derivedPrivateKey) continue;
-            const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), "hex")).toString("hex");
-            const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-            const decryptedPubKeyY = decryptedPubKey.slice(66);
-            if (
-              new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
-              new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
-            ) {
+            const decryptedPubKey = derivePubKey(ecCurve, derivedPrivateKey);
+            const decryptedPubKeyX = decryptedPubKey.getX();
+            const decryptedPubKeyY = decryptedPubKey.getY();
+
+            if (decryptedPubKeyX.cmp(new BN(thresholdPublicKey.X, 16)) === 0 && decryptedPubKeyY.cmp(new BN(thresholdPublicKey.Y, 16)) === 0) {
               privateKey = derivedPrivateKey;
               break;
             }
@@ -511,6 +604,7 @@ export async function retrieveOrImportShare(params: {
           if (privateKey === undefined || privateKey === null) {
             throw new Error("could not derive private key");
           }
+
           const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
           return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey: thresholdIsNewKey === "true" };
@@ -523,11 +617,12 @@ export async function retrieveOrImportShare(params: {
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oAuthKey = privateKey;
-      const oAuthPubKey = getPublic(Buffer.from(oAuthKey.toString(16, 64), "hex")).toString("hex");
-      const oAuthPubkeyX = oAuthPubKey.slice(2, 66);
-      const oAuthPubkeyY = oAuthPubKey.slice(66);
+      const oAuthPubKey = derivePubKey(ecCurve, oAuthKey);
+      const oAuthPubkeyX = oAuthPubKey.getX().toString("hex", 64);
+      const oAuthPubkeyY = oAuthPubKey.getY().toString("hex", 64);
+
       let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
-      let finalPubKey: curve.base.BasePoint;
+      let finalPubKey: curveUtils.base.BasePoint;
       let pubNonce: { X: string; Y: string } | undefined;
       let typeOfUser: UserType = "v1";
       // extended_verifier_id is only exception for torus-test-health verifier
@@ -629,13 +724,19 @@ export async function retrieveOrImportShare(params: {
     });
 }
 
-export const legacyKeyLookup = async (endpoints: string[], verifier: string, verifierId: string): Promise<LegacyKeyLookupResult> => {
+export const legacyKeyLookup = async (
+  endpoints: string[],
+  verifier: string,
+  verifierId: string,
+  curve: CurveType
+): Promise<LegacyKeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<LegacyVerifierLookupResponse>>(
       x,
       generateJsonRPCObject("VerifierLookupRequest", {
         verifier,
         verifier_id: verifierId.toString(),
+        key_type: curve,
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
@@ -666,6 +767,7 @@ export const legacyKeyAssign = async ({
   signerHost,
   network,
   clientId,
+  curve,
 }: KeyAssignInput): Promise<void> => {
   let nodeNum: number;
   let initialPoint: number | undefined;
@@ -682,6 +784,7 @@ export const legacyKeyAssign = async ({
   const data = generateJsonRPCObject("KeyAssign", {
     verifier,
     verifier_id: verifierId.toString(),
+    // key_type: keyType,  // NOTE: key type doesnt work for legacy networks and doesnt have to , so skipping it here.
   });
   try {
     const signedData = await post<SignerResponse>(
@@ -738,6 +841,7 @@ export const legacyKeyAssign = async ({
         signerHost,
         network,
         clientId,
+        curve,
       });
     throw new Error(
       `Sorry, the Torus Network that powers Web3Auth is currently very busy.
@@ -747,9 +851,15 @@ export const legacyKeyAssign = async ({
   }
 };
 
-export const legacyWaitKeyLookup = (endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<LegacyKeyLookupResult> =>
+export const legacyWaitKeyLookup = (
+  endpoints: string[],
+  verifier: string,
+  verifierId: string,
+  curve: CurveType,
+  timeout: number
+): Promise<LegacyKeyLookupResult> =>
   new Promise((resolve, reject) => {
     setTimeout(() => {
-      legacyKeyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject);
+      legacyKeyLookup(endpoints, verifier, verifierId, curve).then(resolve).catch(reject);
     }, timeout);
   });

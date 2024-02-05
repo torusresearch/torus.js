@@ -1,11 +1,11 @@
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
-import { generatePrivate } from "@toruslabs/eccrypto";
 import NodeManager from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
+import { ec as EC } from "elliptic";
 import faker from "faker";
 
-import { keccak256 } from "../src";
+import { generatePrivateKey, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
 
@@ -14,9 +14,8 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-aggregate-sapphire-mainnet";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
-const TORUS_IMPORT_EMAIL = "importeduser5@tor.us";
 
-describe.only("torus utils sapphire mainnet", function () {
+describe("torus utils sapphire mainnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -61,7 +60,9 @@ describe.only("torus utils sapphire mainnet", function () {
   it("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
-    const privKeyBuffer = generatePrivate();
+    const ec = new EC("secp256k1");
+
+    const privKeyBuffer = generatePrivateKey(ec, Buffer);
     const privHex = privKeyBuffer.toString("hex");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -75,27 +76,33 @@ describe.only("torus utils sapphire mainnet", function () {
       privHex
     );
     expect(result.finalKeyData.privKey).to.be.equal(privHex);
-  });
-  it.skip("should be able to import a key for a existing user", async function () {
-    let verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const token = generateIdToken(TORUS_IMPORT_EMAIL, "ES256");
-    const privKeyBuffer = generatePrivate();
-    const privHex = privKeyBuffer.toString("hex");
-    const result1 = await torus.importPrivateKey(
+
+    const { finalKeyData } = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, {
+      verifier: TORUS_TEST_VERIFIER,
+      verifierId: email,
+    });
+    expect(result.finalKeyData.evmAddress).to.be.equal(finalKeyData.evmAddress);
+
+    const privKeyBufferNew = generatePrivateKey(ec, Buffer);
+    const privHexNew = privKeyBufferNew.toString("hex");
+    const tokenNew = generateIdToken(email, "ES256");
+
+    const resultNew = await torus.importPrivateKey(
       torusNodeEndpoints,
       nodeDetails.torusIndexes,
       nodeDetails.torusNodePub,
       TORUS_TEST_VERIFIER,
-      { verifier_id: TORUS_IMPORT_EMAIL },
-      token,
-      privHex
+      { verifier_id: email },
+      tokenNew,
+      privHexNew
     );
-    expect(result1.finalKeyData.privKey).to.be.equal(privHex);
-    verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
-    const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result1.finalKeyData.evmAddress).to.be.equal(result2.finalKeyData.evmAddress);
+    expect(resultNew.finalKeyData.privKey).to.be.equal(privHexNew);
+
+    const { finalKeyData: finalKeyDataNew } = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, {
+      verifier: TORUS_TEST_VERIFIER,
+      verifierId: email,
+    });
+    expect(resultNew.finalKeyData.evmAddress).to.be.equal(finalKeyDataNew.evmAddress);
   });
 
   it("should be able to key assign", async function () {
@@ -172,7 +179,8 @@ describe.only("torus utils sapphire mainnet", function () {
       nodeDetails.torusIndexes,
       TORUS_TEST_VERIFIER,
       { extended_verifier_id: tssVerifierId, verifier_id: email },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.privKey).to.not.equal(null);
     expect(result.oAuthKeyData.evmAddress).to.not.equal(null);
@@ -251,7 +259,8 @@ describe.only("torus utils sapphire mainnet", function () {
       nodeDetails.torusIndexes,
       HashEnabledVerifier,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.privKey).to.be.equal("13941ecd812b08d8a33a20bc975f0cd1c3f82de25b20c0c863ba5f21580b65f6");
     expect(result).eql({
@@ -287,8 +296,15 @@ describe.only("torus utils sapphire mainnet", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: TORUS_TEST_EMAIL },
+      token,
+      torusNodePub
+    );
     expect(result.finalKeyData.privKey).to.be.equal("dfb39b84e0c64b8c44605151bf8670ae6eda232056265434729b6a8a50fa3419");
     expect(result).eql({
       finalKeyData: {
@@ -334,7 +350,8 @@ describe.only("torus utils sapphire mainnet", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: email,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.evmAddress).to.not.equal(null);
     expect(result.finalKeyData.evmAddress).to.not.equal("");
@@ -360,7 +377,8 @@ describe.only("torus utils sapphire mainnet", function () {
       nodeDetails.torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
 
     const signatures = result.sessionData.sessionTokenData.map((s) => ({ data: s.token, sig: s.signature }));
@@ -368,7 +386,8 @@ describe.only("torus utils sapphire mainnet", function () {
     const parsedSigsData = signatures.map((s) => JSON.parse(atob(s.data)));
     parsedSigsData.forEach((ps) => {
       const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
-      expect(sessionTime).eql(customSessionTime);
+      const sessionTimeVariance = customSessionTime - sessionTime <= 1; // there can be some variance of 1 sec as we are doing floor op here.
+      expect(sessionTimeVariance).eql(true);
     });
   });
 });

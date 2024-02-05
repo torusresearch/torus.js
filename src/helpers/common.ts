@@ -1,7 +1,9 @@
 import { Ecies } from "@toruslabs/eccrypto";
+import { BN } from "bn.js";
 import JsonStringify from "json-stable-stringify";
 
 import { EciesHex, VerifierLookupResponse } from "../interfaces";
+import { keccak256 } from "./keyUtils";
 
 // this function normalizes the result from nodes before passing the result to threshold check function
 // For ex: some fields returns by nodes might be different from each other
@@ -83,4 +85,11 @@ export function encParamsHexToBuf(eciesData: Omit<EciesHex, "ciphertext">): Omit
     iv: Buffer.from(eciesData.iv, "hex"),
     mac: Buffer.from(eciesData.mac, "hex"),
   };
+}
+
+export function getProxyCoordinatorEndpointIndex(endpoints: string[], verifier: string, verifierId: string) {
+  const verifierIdStr = `${verifier}${verifierId}`;
+  const hashedVerifierId = keccak256(Buffer.from(verifierIdStr, "utf8")).slice(2);
+  const proxyEndpointNum = new BN(hashedVerifierId, "hex").mod(new BN(endpoints.length)).toNumber();
+  return proxyEndpointNum;
 }

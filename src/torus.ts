@@ -7,18 +7,17 @@ import {
   TORUS_LEGACY_NETWORK_TYPE,
   TORUS_NETWORK_TYPE,
 } from "@toruslabs/constants";
-import { decrypt, Ecies, encrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
+import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
-import { curve, ec as EC } from "elliptic";
-import stringify from "json-stable-stringify";
+import { curve as curveUtils, ec as EC } from "elliptic";
 
 import { config } from "./config";
 import {
-  encParamsBufToHex,
+  derivePubKey,
   generateAddressFromPrivKey,
   generateAddressFromPubKey,
-  generateRandomPolynomial,
+  generateShares,
   getMetadata,
   getNonce,
   getOrSetNonce,
@@ -35,12 +34,10 @@ import {
 } from "./helpers";
 import {
   CommitmentRequestResult,
+  CurveType,
   GetOrSetNonceResult,
-  ImportedShare,
   LegacyShareRequestResult,
   LegacyVerifierLookupResponse,
-  NonceMetadataParams,
-  SetNonceData,
   TorusCtorOptions,
   TorusKey,
   TorusPublicKey,
@@ -72,10 +69,22 @@ class Torus {
 
   private legacyMetadataHost: string;
 
-  constructor({ enableOneKey = false, clientId, network, serverTimeOffset = 0, allowHost, legacyMetadataHost }: TorusCtorOptions) {
+  private curve: CurveType = "secp256k1";
+
+  constructor({
+    enableOneKey = false,
+    clientId,
+    network,
+    serverTimeOffset = 0,
+    allowHost,
+    legacyMetadataHost,
+    curve = "secp256k1",
+  }: TorusCtorOptions) {
     if (!clientId) throw Error("Please provide a valid clientId in constructor");
     if (!network) throw Error("Please provide a valid network in constructor");
-    this.ec = new EC("secp256k1");
+
+    this.curve = curve;
+    this.ec = new EC(this.curve);
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.network = network;
     this.clientId = clientId;
@@ -127,22 +136,42 @@ class Torus {
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
-    extraParams: Record<string, unknown> = {}
+    nodePubkeys: INodePub[],
+    extraParams: Record<string, unknown> = {},
+    useDkg: boolean = true
   ): Promise<TorusKey> {
-    if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, extraParams);
+    if (nodePubkeys.length === 0) {
+      throw new Error("nodePubkeys param is required");
+    }
+
+    if (nodePubkeys.length !== indexes.length) {
+      throw new Error("nodePubkeys length must be same as indexes length");
+    }
+
+    if (nodePubkeys.length !== endpoints.length) {
+      throw new Error("nodePubkeys length must be same as endpoints length");
+    }
+
+    if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, this.curve, extraParams);
+
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
       enableOneKey: this.enableOneKey,
       ecCurve: this.ec,
+      curve: this.curve,
       allowHost: this.allowHost,
       network: this.network,
       clientId: this.clientId,
       endpoints,
+      indexes,
       verifier,
       verifierParams,
       idToken,
-      importedShares: [],
+      useDkg,
+      newImportedShares: [],
+      overrideExistingKey: false,
+      nodePubkeys,
       extraParams: {
         ...extraParams,
         session_token_exp_second: Torus.sessionTime,
@@ -173,64 +202,26 @@ class Torus {
     if (endpoints.length !== nodeIndexes.length) {
       throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
     }
-    const threshold = ~~(endpoints.length / 2) + 1;
-    const degree = threshold - 1;
-    const nodeIndexesBn: BN[] = [];
-
-    const key = this.ec.keyFromPrivate(newPrivateKey.padStart(64, "0"), "hex");
-    for (const nodeIndex of nodeIndexes) {
-      nodeIndexesBn.push(new BN(nodeIndex));
-    }
-    const privKeyBn = key.getPrivate();
-    const randomNonce = new BN(generatePrivate());
-
-    const oAuthKey = privKeyBn.sub(randomNonce).umod(this.ec.curve.n);
-    const oAuthPubKey = this.ec.keyFromPrivate(oAuthKey.toString("hex").padStart(64, "0")).getPublic();
-    const poly = generateRandomPolynomial(this.ec, degree, oAuthKey);
-    const shares = poly.generateShares(nodeIndexesBn);
-    const nonceParams = this.generateNonceMetadataParams("getOrSetNonce", oAuthKey, randomNonce);
-    const nonceData = Buffer.from(stringify(nonceParams.set_data), "utf8").toString("base64");
-    const sharesData: ImportedShare[] = [];
-    const encPromises: Promise<Ecies>[] = [];
-    for (let i = 0; i < nodeIndexesBn.length; i++) {
-      const shareJson = shares[nodeIndexesBn[i].toString("hex", 64)].toJSON() as Record<string, string>;
-      if (!nodePubkeys[i]) {
-        throw new Error(`Missing node pub key for node index: ${nodeIndexesBn[i].toString("hex", 64)}`);
-      }
-      const nodePubKey = this.ec.keyFromPublic({ x: nodePubkeys[i].X, y: nodePubkeys[i].Y });
-      encPromises.push(encrypt(Buffer.from(nodePubKey.getPublic().encodeCompressed("hex"), "hex"), Buffer.from(shareJson.share, "hex")));
-    }
-    const encShares = await Promise.all(encPromises);
-    for (let i = 0; i < nodeIndexesBn.length; i++) {
-      const shareJson = shares[nodeIndexesBn[i].toString("hex", 64)].toJSON() as Record<string, string>;
-      const encParams = encShares[i];
-      const encParamsMetadata = encParamsBufToHex(encParams);
-      const shareData: ImportedShare = {
-        pub_key_x: oAuthPubKey.getX().toString("hex", 64),
-        pub_key_y: oAuthPubKey.getY().toString("hex", 64),
-        encrypted_share: encParamsMetadata.ciphertext,
-        encrypted_share_metadata: encParamsMetadata,
-        node_index: Number.parseInt(shareJson.shareIndex, 16),
-        key_type: "secp256k1",
-        nonce_data: nonceData,
-        nonce_signature: nonceParams.signature,
-      };
-      sharesData.push(shareData);
-    }
+    const sharesData = await generateShares(this.ec, this.curve, this.serverTimeOffset, nodeIndexes, nodePubkeys, newPrivateKey);
 
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
       enableOneKey: this.enableOneKey,
       ecCurve: this.ec,
+      curve: this.curve,
       allowHost: this.allowHost,
       network: this.network,
       clientId: this.clientId,
       endpoints,
+      indexes: nodeIndexes,
       verifier,
       verifierParams,
       idToken,
-      importedShares: sharesData,
+      useDkg: false,
+      overrideExistingKey: true,
+      newImportedShares: sharesData,
+      nodePubkeys,
       extraParams: {
         ...extraParams,
         session_token_exp_second: Torus.sessionTime,
@@ -258,6 +249,7 @@ class Torus {
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
+    curve: CurveType,
     extraParams: Record<string, unknown> = {}
   ): Promise<TorusKey> {
     const promiseArr = [];
@@ -303,7 +295,7 @@ class Torus {
           verifieridentifier: verifier,
         })
       ).catch((err) => {
-        log.error("commitment", err);
+        log.error("commitment", err, endpoints[i]);
       });
       promiseArr.push(p);
     }
@@ -356,7 +348,9 @@ class Torus {
             endpoints[i],
             generateJsonRPCObject("ShareRequest", {
               encrypted: "yes",
-              item: [{ ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, ...extraParams }],
+              item: [
+                { ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, key_type: curve, ...extraParams },
+              ],
             })
           ).catch((err) => log.error("share req", err));
           promiseArrRequest.push(p);
@@ -437,13 +431,10 @@ class Torus {
               const indices = currentCombiShares.map((x) => x.index);
               const derivedPrivateKey = lagrangeInterpolation(this.ec, shares, indices);
               if (!derivedPrivateKey) continue;
-              const decryptedPubKey = getPublic(Buffer.from(derivedPrivateKey.toString(16, 64), "hex")).toString("hex");
-              const decryptedPubKeyX = decryptedPubKey.slice(2, 66);
-              const decryptedPubKeyY = decryptedPubKey.slice(66);
-              if (
-                new BN(decryptedPubKeyX, 16).cmp(new BN(thresholdPublicKey.X, 16)) === 0 &&
-                new BN(decryptedPubKeyY, 16).cmp(new BN(thresholdPublicKey.Y, 16)) === 0
-              ) {
+              const decryptedPubKey = derivePubKey(this.ec, derivedPrivateKey);
+              const decryptedPubKeyX = decryptedPubKey.getX();
+              const decryptedPubKeyY = decryptedPubKey.getY();
+              if (decryptedPubKeyX.cmp(new BN(thresholdPublicKey.X, 16)) === 0 && decryptedPubKeyY.cmp(new BN(thresholdPublicKey.Y, 16)) === 0) {
                 privateKey = derivedPrivateKey;
                 break;
               }
@@ -459,11 +450,13 @@ class Torus {
       .then(async (returnedKey) => {
         const oAuthKey = returnedKey;
         if (!oAuthKey) throw new Error("Invalid private key returned");
-        const oAuthPubKey = getPublic(Buffer.from(oAuthKey.toString(16, 64), "hex")).toString("hex");
-        const oAuthKeyX = oAuthPubKey.slice(2, 66);
-        const oAuthKeyY = oAuthPubKey.slice(66);
+
+        const oAuthPubKey = derivePubKey(this.ec, oAuthKey);
+        const oAuthKeyX = oAuthPubKey.getX().toString("hex", 64);
+        const oAuthKeyY = oAuthPubKey.getY().toString("hex", 64);
+
         let metadataNonce: BN;
-        let finalPubKey: curve.base.BasePoint;
+        let finalPubKey: curveUtils.base.BasePoint;
         let typeOfUser: UserType = "v1";
         let pubKeyNonceResult: { X: string; Y: string } | undefined;
         if (this.enableOneKey) {
@@ -484,13 +477,13 @@ class Torus {
             // for imported keys in legacy networks
             metadataNonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: oAuthKeyX, pub_key_Y: oAuthKeyY });
             const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(this.ec.curve.n);
-            finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex"), "hex").getPublic();
+            finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex", 64), "hex").getPublic();
           }
         } else {
           // for imported keys in legacy networks
           metadataNonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: oAuthKeyX, pub_key_Y: oAuthKeyY });
           const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(this.ec.curve.n);
-          finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex"), "hex").getPublic();
+          finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex", 64), "hex").getPublic();
         }
 
         const oAuthKeyAddress = generateAddressFromPrivKey(this.ec, oAuthKey);
@@ -556,7 +549,7 @@ class Torus {
     let finalKeyResult: LegacyVerifierLookupResponse | undefined;
     let isNewKey = false;
 
-    const { keyResult, errorResult } = (await legacyKeyLookup(endpoints, verifier, verifierId)) || {};
+    const { keyResult, errorResult } = (await legacyKeyLookup(endpoints, verifier, verifierId, this.curve)) || {};
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
@@ -573,8 +566,9 @@ class Torus {
         signerHost: this.signerHost,
         network: this.network,
         clientId: this.clientId,
+        curve: this.curve,
       });
-      const assignResult = await legacyWaitKeyLookup(endpoints, verifier, verifierId, 1000);
+      const assignResult = await legacyWaitKeyLookup(endpoints, verifier, verifierId, this.curve, 1000);
       finalKeyResult = assignResult?.keyResult;
       isNewKey = true;
     } else if (keyResult) {
@@ -593,25 +587,6 @@ class Torus {
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
   }
 
-  private generateNonceMetadataParams(operation: string, privateKey: BN, nonce?: BN): NonceMetadataParams {
-    const key = this.ec.keyFromPrivate(privateKey.toString("hex", 64));
-    const setData: Partial<SetNonceData> = {
-      operation,
-      timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
-    };
-
-    if (nonce) {
-      setData.data = nonce.toString("hex", 64);
-    }
-    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
-    return {
-      pub_key_X: key.getPublic().getX().toString("hex", 64),
-      pub_key_Y: key.getPublic().getY().toString("hex", 64),
-      set_data: setData,
-      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
-    };
-  }
-
   private async getNewPublicAddress(
     endpoints: string[],
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
@@ -622,6 +597,7 @@ class Torus {
       network: this.network,
       verifier,
       verifierId,
+      curve: this.curve,
       extendedVerifierId,
     });
     const { errorResult, keyResult, nodeIndexes = [] } = keyAssignResult;
@@ -646,8 +622,8 @@ class Torus {
     const { pub_key_X: X, pub_key_Y: Y } = keyResult.keys[0];
     let pubNonce: { X: string; Y: string } | undefined;
     const nonce = new BN(nonceResult?.nonce || "0", 16);
-    let oAuthPubKey: curve.base.BasePoint;
-    let finalPubKey: curve.base.BasePoint;
+    let oAuthPubKey: curveUtils.base.BasePoint;
+    let finalPubKey: curveUtils.base.BasePoint;
     if (extendedVerifierId) {
       // for tss key no need to add pub nonce
       finalPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
@@ -716,7 +692,7 @@ class Torus {
     const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
     let nonceResult: GetOrSetNonceResult;
     let nonce: BN;
-    let finalPubKey: curve.base.BasePoint;
+    let finalPubKey: curveUtils.base.BasePoint;
     let typeOfUser: GetOrSetNonceResult["typeOfUser"];
     let pubNonce: { X: string; Y: string } | undefined;
 

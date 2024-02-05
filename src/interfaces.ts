@@ -13,6 +13,7 @@ export type v2NonceResultType = { typeOfUser: "v2"; nonce?: string; pubNonce: { 
 
 export type v1NonceResultType = { typeOfUser: "v1"; nonce?: string };
 export type GetOrSetNonceResult = v2NonceResultType | v1NonceResultType;
+export type CurveType = "secp256k1";
 
 export interface SetNonceData {
   operation: string;
@@ -26,11 +27,13 @@ export interface NonceMetadataParams {
   pub_key_Y: string;
   set_data: Partial<SetNonceData>;
   signature: string;
+  key_type?: CurveType;
 }
 
 export interface TorusCtorOptions {
   clientId: string;
   network: TORUS_NETWORK_TYPE;
+  curve?: CurveType;
   enableOneKey?: boolean;
   serverTimeOffset?: number;
   allowHost?: string;
@@ -59,6 +62,7 @@ export interface CommitmentRequestResult {
   nodepubx: string;
   nodepuby: string;
   nodeindex: string;
+  pub_key_x: string;
 }
 
 export interface JRPCResponse<T> {
@@ -99,6 +103,7 @@ export interface KeyAssignInput {
   signerHost: string;
   network: string;
   clientId: string;
+  curve: CurveType;
 }
 
 export type EciesHex = {
@@ -222,6 +227,7 @@ export interface MetadataParams {
   namespace?: string;
   pub_key_X: string;
   pub_key_Y: string;
+  key_type?: CurveType;
   set_data: {
     data: "getNonce" | "getOrSetNonce" | string;
     timestamp: string;

@@ -1,11 +1,11 @@
 import { TORUS_LEGACY_NETWORK, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
-import { generatePrivate } from "@toruslabs/eccrypto";
 import NodeManager from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
+import { ec as EC } from "elliptic";
 import faker from "faker";
 
-import { keccak256 } from "../src";
+import { generatePrivateKey, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
 
@@ -87,13 +87,14 @@ describe("torus utils sapphire devnet", function () {
       network: TORUS_LEGACY_NETWORK.TESTNET,
       clientId: "YOUR_CLIENT_ID",
     });
-    const { torusNodeSSSEndpoints: torusNodeEndpoints, torusIndexes } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeSSSEndpoints: torusNodeEndpoints, torusIndexes, torusNodePub } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await legacyTorus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: email },
-      token
+      token,
+      torusNodePub
     );
     expect(retrieveSharesResponse.finalKeyData.privKey).to.be.equal("dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9");
     delete retrieveSharesResponse.sessionData;
@@ -300,7 +301,8 @@ describe("torus utils sapphire devnet", function () {
       nodeDetails.torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result).eql({
       finalKeyData: {
@@ -332,6 +334,48 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
+  it("should be able to login with non dkg keys", async function () {
+    const email = `atomicimporttest2`;
+    const token = generateIdToken(email, "ES256");
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token,
+      nodeDetails.torusNodePub,
+      {},
+      false
+    );
+
+    const publicResult = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+    expect(result.finalKeyData.X).eql(publicResult.finalKeyData.X);
+  });
+
+  it("should be able to login a new user with non dkg keys", async function () {
+    const email = `${faker.internet.email()}`;
+    const token = generateIdToken(email, "ES256");
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token,
+      nodeDetails.torusNodePub,
+      {},
+      false
+    );
+
+    const publicResult = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+
+    expect(result.finalKeyData.X).eql(publicResult.finalKeyData.X);
+  });
   it("should be able to login even when node is down", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
@@ -342,7 +386,8 @@ describe("torus utils sapphire devnet", function () {
       nodeDetails.torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result).eql({
       finalKeyData: {
@@ -373,7 +418,6 @@ describe("torus utils sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
-
   it("should be able to update the `sessionTime` of the token signature data", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
 
@@ -389,7 +433,8 @@ describe("torus utils sapphire devnet", function () {
       nodeDetails.torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
 
     const signatures = result.sessionData.sessionTokenData.map((s) => ({ data: s.token, sig: s.signature }));
@@ -397,15 +442,17 @@ describe("torus utils sapphire devnet", function () {
     const parsedSigsData = signatures.map((s) => JSON.parse(atob(s.data)));
     parsedSigsData.forEach((ps) => {
       const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
-      expect(sessionTime).eql(customSessionTime);
+      const sessionTimeVariance = customSessionTime - sessionTime <= 1; // there can be some variance of 1 sec as we are doing floor op here.
+      expect(sessionTimeVariance).eql(true);
     });
   });
 
-  it.skip("should be able to import a key for a new user", async function () {
+  it("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
+    const ec = new EC("secp256k1");
 
-    const privKeyBuffer = generatePrivate();
+    const privKeyBuffer = generatePrivateKey(ec, Buffer);
     const privHex = privKeyBuffer.toString("hex");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -481,7 +528,8 @@ describe("torus utils sapphire devnet", function () {
       nodeDetails.torusIndexes,
       TORUS_TEST_VERIFIER,
       { extended_verifier_id: tssVerifierId, verifier_id: email },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.privKey).to.not.equal(null);
     expect(result.oAuthKeyData.evmAddress).to.not.equal(null);
@@ -573,7 +621,8 @@ describe("torus utils sapphire devnet", function () {
       nodeDetails.torusIndexes,
       HashEnabledVerifier,
       { verifier_id: TORUS_HASH_ENABLED_TEST_EMAIL },
-      token
+      token,
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.privKey).to.be.equal("066270dfa345d3d0415c8223e045f366b238b50870de7e9658e3c6608a7e2d32");
     expect(result).eql({
@@ -623,7 +672,8 @@ describe("torus utils sapphire devnet", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: email,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.evmAddress).to.not.equal(null);
     expect(result.finalKeyData.evmAddress).to.not.equal("");

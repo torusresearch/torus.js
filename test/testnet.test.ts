@@ -160,8 +160,15 @@ describe("torus utils migrated testnet on sapphire", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: TORUS_TEST_EMAIL },
+      token,
+      torusNodePub
+    );
     expect(result.finalKeyData.privKey).to.be.equal("9b0fb017db14a0a25ed51f78a258713c8ae88b5e58a43acb70b22f9e2ee138e3");
     expect(result).eql({
       finalKeyData: {
@@ -189,7 +196,7 @@ describe("torus utils migrated testnet on sapphire", function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
@@ -199,7 +206,8 @@ describe("torus utils migrated testnet on sapphire", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: TORUS_TEST_EMAIL,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      torusNodePub
     );
     expect(result.metadata.typeOfUser).to.be.equal("v1");
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x938a40E155d118BD31E439A9d92D67bd55317965");
