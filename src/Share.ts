@@ -19,8 +19,8 @@ class Share {
 
   toJSON(): StringifiedType {
     return {
-      share: this.share.toString("hex", 64),
-      shareIndex: this.shareIndex.toString("hex", 64),
+      share: this.share.toString("hex"),
+      shareIndex: this.shareIndex.toString("hex"),
     };
   }
 }

@@ -3,7 +3,7 @@ import { BN } from "bn.js";
 import JsonStringify from "json-stable-stringify";
 
 import { EciesHex, VerifierLookupResponse } from "../interfaces";
-import { keccak256 } from ".";
+import { keccak256 } from "./keyUtils";
 
 // this function normalizes the result from nodes before passing the result to threshold check function
 // For ex: some fields returns by nodes might be different from each other

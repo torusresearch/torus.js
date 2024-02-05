@@ -2,19 +2,19 @@ import { INodePub, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_N
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
-import { curve, ec } from "elliptic";
+import { curve as curveUtils, ec } from "elliptic";
 
 import { config } from "../config";
 import { JRPC_METHODS } from "../constants";
 import {
   CommitmentRequestResult,
+  CurveType,
   GetOrSetNonceResult,
   ImportedShare,
   ImportShareRequestResult,
   JRPCResponse,
   KeyAssignInput,
   KeyLookupResult,
-  KeyType,
   LegacyKeyLookupResult,
   LegacyVerifierLookupResponse,
   SessionToken,
@@ -38,10 +38,10 @@ export const GetPubKeyOrKeyAssign = async (params: {
   network: TORUS_NETWORK_TYPE;
   verifier: string;
   verifierId: string;
-  keyType: KeyType;
+  curve: CurveType;
   extendedVerifierId?: string;
 }): Promise<KeyLookupResult> => {
-  const { endpoints, network, verifier, verifierId, extendedVerifierId, keyType } = params;
+  const { endpoints, network, verifier, verifierId, extendedVerifierId, curve } = params;
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
@@ -51,7 +51,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
         verifier_id: verifierId.toString(),
         extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
-        key_type: keyType,
+        key_type: curve,
         fetch_node_index: true,
       }),
       null,
@@ -130,7 +130,7 @@ export async function retrieveOrImportShare(params: {
   serverTimeOffset: number;
   enableOneKey: boolean;
   ecCurve: ec;
-  keyType: KeyType;
+  curve: CurveType;
   allowHost: string;
   network: string;
   clientId: string;
@@ -150,7 +150,7 @@ export async function retrieveOrImportShare(params: {
     serverTimeOffset,
     enableOneKey,
     ecCurve,
-    keyType,
+    curve,
     allowHost,
     network,
     clientId,
@@ -195,7 +195,7 @@ export async function retrieveOrImportShare(params: {
     finalImportedShares = newImportedShares;
   } else if (!useDkg) {
     const importedKey = new BN(generatePrivateKey(ecCurve, Buffer));
-    const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, importedKey.toString(16, 64));
+    const generatedShares = await generateShares(ecCurve, curve, serverTimeOffset, indexes, nodePubkeys, importedKey.toString(16, 64));
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
 
@@ -214,7 +214,7 @@ export async function retrieveOrImportShare(params: {
       endpoints[i],
       generateJsonRPCObject(JRPC_METHODS.COMMITMENT_REQUEST, {
         messageprefix: "mug00",
-        keytype: keyType,
+        keytype: curve,
         tokencommitment: tokenCommitment.slice(2),
         temppubx: pubKeyX,
         temppuby: pubKeyY,
@@ -353,7 +353,7 @@ export async function retrieveOrImportShare(params: {
             encrypted: "yes",
             use_temp: true,
             item: items,
-            key_type: keyType,
+            key_type: curve,
             one_key_flow: true,
           }),
           null,
@@ -376,7 +376,7 @@ export async function retrieveOrImportShare(params: {
                 {
                   ...verifierParams,
                   idtoken: idToken,
-                  key_type: keyType,
+                  key_type: curve,
                   nodesignatures: nodeSigs,
                   verifieridentifier: verifier,
                   ...extraParams,
@@ -624,7 +624,7 @@ export async function retrieveOrImportShare(params: {
       const oAuthPubkeyY = oAuthPubKey.getY().toString("hex", 64);
 
       let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
-      let finalPubKey: curve.base.BasePoint;
+      let finalPubKey: curveUtils.base.BasePoint;
       let pubNonce: { X: string; Y: string } | undefined;
       let typeOfUser: UserType = "v1";
       // extended_verifier_id is only exception for torus-test-health verifier
@@ -730,7 +730,7 @@ export const legacyKeyLookup = async (
   endpoints: string[],
   verifier: string,
   verifierId: string,
-  keyType: KeyType
+  curve: CurveType
 ): Promise<LegacyKeyLookupResult> => {
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<LegacyVerifierLookupResponse>>(
@@ -738,7 +738,7 @@ export const legacyKeyLookup = async (
       generateJsonRPCObject("VerifierLookupRequest", {
         verifier,
         verifier_id: verifierId.toString(),
-        key_type: keyType,
+        key_type: curve,
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
@@ -769,7 +769,7 @@ export const legacyKeyAssign = async ({
   signerHost,
   network,
   clientId,
-  keyType,
+  curve,
 }: KeyAssignInput): Promise<void> => {
   let nodeNum: number;
   let initialPoint: number | undefined;
@@ -844,7 +844,7 @@ export const legacyKeyAssign = async ({
         signerHost,
         network,
         clientId,
-        keyType,
+        curve,
       });
     throw new Error(
       `Sorry, the Torus Network that powers Web3Auth is currently very busy.
@@ -858,11 +858,11 @@ export const legacyWaitKeyLookup = (
   endpoints: string[],
   verifier: string,
   verifierId: string,
-  keyType: KeyType,
+  curve: CurveType,
   timeout: number
 ): Promise<LegacyKeyLookupResult> =>
   new Promise((resolve, reject) => {
     setTimeout(() => {
-      legacyKeyLookup(endpoints, verifier, verifierId, keyType).then(resolve).catch(reject);
+      legacyKeyLookup(endpoints, verifier, verifierId, curve).then(resolve).catch(reject);
     }, timeout);
   });

@@ -5,7 +5,7 @@ import { ec } from "elliptic";
 import stringify from "json-stable-stringify";
 import log from "loglevel";
 
-import { EciesHex, GetOrSetNonceResult, KeyType, MetadataParams, NonceMetadataParams, SetNonceData } from "../interfaces";
+import { CurveType, EciesHex, GetOrSetNonceResult, MetadataParams, NonceMetadataParams, SetNonceData } from "../interfaces";
 import { encParamsHexToBuf } from "./common";
 import { keccak256 } from "./keyUtils";
 
@@ -96,7 +96,7 @@ export function generateNonceMetadataParams(
   serverTimeOffset: number,
   operation: string,
   privateKey: BN,
-  keyType: KeyType,
+  curve: CurveType,
   nonce?: BN
 ): NonceMetadataParams {
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64));
@@ -113,7 +113,7 @@ export function generateNonceMetadataParams(
     pub_key_X: key.getPublic().getX().toString("hex", 64),
     pub_key_Y: key.getPublic().getY().toString("hex", 64),
     set_data: setData,
-    key_type: keyType,
+    key_type: curve,
     signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
   };
 }

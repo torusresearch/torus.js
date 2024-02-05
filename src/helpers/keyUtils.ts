@@ -1,13 +1,15 @@
 import { INodePub } from "@toruslabs/constants";
 import { Ecies, encrypt } from "@toruslabs/eccrypto";
 import BN from "bn.js";
-import { curve, ec as EC } from "elliptic";
+import { curve as curveUtils, ec as EC } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 import stringify from "json-stable-stringify";
 
-import { ImportedShare, KeyType } from "..";
+import { CurveType, ImportedShare } from "../interfaces";
 import log from "../loglevel";
-import { encParamsBufToHex, generateNonceMetadataParams, generateRandomPolynomial } from ".";
+import { encParamsBufToHex } from "./common";
+import { generateRandomPolynomial } from "./langrangeInterpolatePoly";
+import { generateNonceMetadataParams } from "./metadataUtils";
 
 export function keccak256(a: Buffer): string {
   const hash = Buffer.from(keccakHash(a)).toString("hex");
@@ -64,7 +66,7 @@ export function getPostboxKeyFrom1OutOf1(ecCurve: EC, privKey: string, nonce: st
   return privKeyBN.sub(nonceBN).umod(ecCurve.curve.n).toString("hex");
 }
 
-export function derivePubKey(ecCurve: EC, sk: BN): curve.base.BasePoint {
+export function derivePubKey(ecCurve: EC, sk: BN): curveUtils.base.BasePoint {
   const skHex = sk.toString(16, 64);
   return ecCurve.keyFromPrivate(skHex).getPublic();
 }
@@ -73,7 +75,7 @@ export const encryptionEC = new EC("secp256k1");
 
 export const generateShares = async (
   ecCurve: EC,
-  keyType: KeyType,
+  curve: CurveType,
   serverTimeOffset: number,
   nodeIndexes: number[],
   nodePubkeys: INodePub[],
@@ -94,7 +96,7 @@ export const generateShares = async (
   const oAuthPubKey = ecCurve.keyFromPrivate(oAuthKey.toString("hex").padStart(64, "0")).getPublic();
   const poly = generateRandomPolynomial(ecCurve, degree, oAuthKey);
   const shares = poly.generateShares(nodeIndexesBn);
-  const nonceParams = generateNonceMetadataParams(ecCurve, serverTimeOffset, "getOrSetNonce", oAuthKey, keyType, randomNonce);
+  const nonceParams = generateNonceMetadataParams(ecCurve, serverTimeOffset, "getOrSetNonce", oAuthKey, curve, randomNonce);
   const nonceData = Buffer.from(stringify(nonceParams.set_data), "utf8").toString("base64");
   const sharesData: ImportedShare[] = [];
   const encPromises: Promise<Ecies>[] = [];
@@ -119,7 +121,7 @@ export const generateShares = async (
       encrypted_share: encParamsMetadata.ciphertext,
       encrypted_share_metadata: encParamsMetadata,
       node_index: Number.parseInt(shareJson.shareIndex, 16),
-      key_type: keyType,
+      key_type: curve,
       nonce_data: nonceData,
       nonce_signature: nonceParams.signature,
     };

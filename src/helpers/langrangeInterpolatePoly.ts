@@ -4,7 +4,7 @@ import { ec as EC } from "elliptic";
 import Point from "../Point";
 import Polynomial from "../Polynomial";
 import Share from "../Share";
-import { generatePrivateKey } from ".";
+import { generatePrivateKey } from "./keyUtils";
 
 function generatePrivateExcludingIndexes(shareIndexes: BN[], ecCurve: EC): BN {
   const key = new BN(generatePrivateKey(ecCurve, Buffer));
