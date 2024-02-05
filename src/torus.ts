@@ -401,7 +401,7 @@ class Torus {
                     decrypt(tmpKey, {
                       ...metadata,
                       ciphertext: Buffer.from(Buffer.from(firstKey.Share, "base64").toString("binary").padStart(64, "0"), "hex"),
-                    }).catch((err) => log.debug("share decryption", err))
+                    }).catch((err) => log.error("share decryption", err))
                   );
                 } else {
                   sharePromises.push(Promise.resolve(Buffer.from(firstKey.Share.padStart(64, "0"), "hex")));
@@ -506,7 +506,6 @@ class Torus {
         let finalEvmAddress = "";
         if (finalPubKey) {
           finalEvmAddress = generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY());
-          log.debug("> torus.js/retrieveShares", { finalEvmAddress });
         } else {
           throw new Error("Invalid public key, this might be a bug, please report this to web3auth team");
         }
@@ -547,8 +546,6 @@ class Torus {
     { verifier, verifierId }: { verifier: string; verifierId: string },
     enableOneKey: boolean
   ): Promise<TorusPublicKey> {
-    log.debug("> torus.js/getPublicAddress", { endpoints, torusNodePubs, verifier, verifierId });
-
     let finalKeyResult: LegacyVerifierLookupResponse | undefined;
     let isNewKey = false;
 
@@ -579,7 +576,6 @@ class Torus {
     } else {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
     }
-    log.debug("> torus.js/getPublicAddress", { finalKeyResult, isNewKey });
 
     if (finalKeyResult) {
       return this.formatLegacyPublicKeyData({
@@ -596,7 +592,6 @@ class Torus {
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
     enableOneKey: boolean
   ): Promise<TorusPublicKey> {
-    log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId });
     const keyAssignResult = await GetPubKeyOrKeyAssign({
       endpoints,
       network: this.network,
@@ -616,7 +611,6 @@ class Torus {
     if (errorResult) {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
     }
-    log.debug("> torus.js/getPublicAddress", { keyResult });
     if (!keyResult?.keys) {
       throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
     }
@@ -659,7 +653,6 @@ class Torus {
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
     const oAuthAddress = generateAddressFromPubKey(this.ec, oAuthPubKey.getX(), oAuthPubKey.getY());
-    log.debug("> torus.js/getPublicAddress, oAuthKeyData", { X: oAuthX, Y: oAuthY, oAuthAddress, nonce: nonce?.toString(16), pubNonce });
 
     if (!finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
@@ -743,7 +736,6 @@ class Torus {
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
     const oAuthAddress = generateAddressFromPubKey(this.ec, oAuthPubKey.getX(), oAuthPubKey.getY());
-    log.debug("> torus.js/getPublicAddress, oAuthKeyData", { X: oAuthX, Y: oAuthY, oAuthAddress, nonce: nonce?.toString(16), pubNonce });
 
     if (typeOfUser === "v2" && !finalPubKey) {
       throw new Error("Unable to derive finalPubKey");

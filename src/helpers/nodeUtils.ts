@@ -489,7 +489,7 @@ export async function retrieveOrImportShare(params: {
               if (sessionTokenSigMetadata && sessionTokenSigMetadata[0]?.ephemPublicKey) {
                 sessionTokenSigPromises.push(
                   decryptNodeData(sessionTokenSigMetadata[0], sessionTokenSigs[0], sessionAuthKey).catch((err) =>
-                    log.debug("session sig decryption", err)
+                    log.error("session sig decryption", err)
                   )
                 );
               } else {
@@ -504,7 +504,7 @@ export async function retrieveOrImportShare(params: {
               if (sessionTokenMetadata && sessionTokenMetadata[0]?.ephemPublicKey) {
                 sessionTokenPromises.push(
                   decryptNodeData(sessionTokenMetadata[0], sessionTokens[0], sessionAuthKey).catch((err) =>
-                    log.debug("session token sig decryption", err)
+                    log.error("session token sig decryption", err)
                   )
                 );
               } else {
@@ -524,9 +524,7 @@ export async function retrieveOrImportShare(params: {
                     latestKey.share_metadata,
                     Buffer.from(latestKey.share, "base64").toString("binary").padStart(64, "0"),
                     sessionAuthKey
-                  ).catch((err) => {
-                    log.debug("share decryption", err);
-                  })
+                  ).catch((err) => log.error("share decryption", err))
                 );
               }
             } else {
@@ -682,7 +680,7 @@ export async function retrieveOrImportShare(params: {
       // deriving address from pub key coz pubkey is always available
       // but finalPrivKey won't be available for  v2 user upgraded to 2/n
       const finalEvmAddress = generateAddressFromPubKey(ecCurve, finalPubKey.getX(), finalPubKey.getY());
-      log.debug("> torus.js/retrieveShares", { finalEvmAddress });
+
       let finalPrivKey = ""; // it is empty for v2 user upgraded to 2/n
       if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
         const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
@@ -776,7 +774,6 @@ export const legacyKeyAssign = async ({
   if (lastPoint === undefined) {
     nodeNum = Math.floor(Math.random() * endpoints.length);
     // nodeNum = endpoints.indexOf("https://torus-node.binancex.dev/jrpc");
-    log.info("keyassign", nodeNum, endpoints[nodeNum]);
     initialPoint = nodeNum;
   } else {
     nodeNum = lastPoint % endpoints.length;
