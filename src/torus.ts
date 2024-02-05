@@ -266,10 +266,10 @@ class Torus {
       {
         headers: {
           verifier,
-          verifierId: verifierParams.verifier_id,
+          verifierid: verifierParams.verifier_id,
           network: this.network,
-          clientId: this.clientId,
-          enableGating: "true",
+          clientid: this.clientId,
+          enablegating: "true",
         },
       },
       { useAPIKey: true }

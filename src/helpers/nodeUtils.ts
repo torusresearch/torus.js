@@ -157,10 +157,10 @@ export async function retrieveOrImportShare(params: {
     {
       headers: {
         verifier,
-        verifierId: verifierParams.verifier_id,
+        verifierid: verifierParams.verifier_id,
         network,
-        clientId,
-        enableGating: "true",
+        clientid: clientId,
+        enablegating: "true",
       },
     },
     { useAPIKey: true }
@@ -689,10 +689,10 @@ export const legacyKeyAssign = async ({
       data,
       {
         headers: {
-          pubKeyX: torusNodePubs[nodeNum].X,
-          pubKeyY: torusNodePubs[nodeNum].Y,
+          pubkeyx: torusNodePubs[nodeNum].X,
+          pubkeyy: torusNodePubs[nodeNum].Y,
           network,
-          clientId,
+          clientid: clientId,
         },
       },
       { useAPIKey: true }
