@@ -587,7 +587,7 @@ class Torus {
         finalKeyResult,
         isNewKey,
         enableOneKey,
-        serverTimeOffset: keyResult.server_time_offset,
+        serverTimeOffset: keyResult?.server_time_offset,
       });
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);

@@ -151,6 +151,7 @@ export async function retrieveOrImportShare(params: {
     idToken,
     importedShares,
     extraParams,
+    serverTimeOffset,
   } = params;
   await get<void>(
     allowHost,
@@ -397,11 +398,11 @@ export async function retrieveOrImportShare(params: {
               session_token_sig_metadata: sessionTokenSigMetadata,
               keys,
               is_new_key: isNewKey,
-              server_time_offset: serverTimeOffset,
+              server_time_offset: serverTimeOffsetResponse,
             } = currentShareResponse.result;
 
             isNewKeyResponses.push(isNewKey);
-            serverTimeOffsetResponses.push(serverTimeOffset);
+            serverTimeOffsetResponses.push(serverTimeOffsetResponse);
 
             if (sessionTokenSigs?.length > 0) {
               // decrypt sessionSig if enc metadata is sent
@@ -526,15 +527,14 @@ export async function retrieveOrImportShare(params: {
           const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
           // Convert each string timestamp to a number
-          const serverOffsetTime = serverTimeOffsetResponses.map((timestamp) => parseInt(timestamp, 10));
-
+          const serverOffsetTimes = serverTimeOffsetResponses.map((timestamp) => parseInt(timestamp, 10));
           return {
             privateKey,
             sessionTokenData,
             thresholdNonceData,
             nodeIndexes,
             isNewKey: thresholdIsNewKey === "true",
-            serverTimeOffsetResponse: Math.max(...serverOffsetTime),
+            serverTimeOffsetResponse: serverTimeOffset || Math.max(...serverOffsetTimes),
           };
         }
         throw new Error("Invalid");
@@ -560,8 +560,7 @@ export async function retrieveOrImportShare(params: {
         finalPubKey = ecCurve.keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
         if (enableOneKey) {
-          const serverTimeOffsetValue = this.serverTimeOffset || serverTimeOffsetResponse;
-          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffsetValue, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
+          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffsetResponse, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {

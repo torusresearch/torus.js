@@ -1,6 +1,7 @@
 import { TORUS_LEGACY_NETWORK, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { generatePrivate } from "@toruslabs/eccrypto";
 import NodeManager from "@toruslabs/fetch-node-details";
+import { fail } from "assert";
 import BN from "bn.js";
 import { expect } from "chai";
 import faker from "faker";
@@ -372,6 +373,55 @@ describe("torus utils sapphire devnet", function () {
       },
       nodesData: result.nodesData,
     });
+  });
+
+  it("should fail at get or set nonce when server time offset is expired", async function () {
+    const email = "himanshu@tor.us";
+    const verifier = "google-lrc";
+    const token = generateIdToken(email, "ES256");
+
+    const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
+      network: TORUS_LEGACY_NETWORK.TESTNET,
+    });
+
+    const verifierDetails = { verifier, verifierId: email };
+    const legacyTorus = new TorusUtils({
+      network: TORUS_LEGACY_NETWORK.TESTNET,
+      clientId: "YOUR_CLIENT_ID",
+      enableOneKey: true,
+      serverTimeOffset: -100,
+    });
+    const { torusNodeSSSEndpoints: torusNodeEndpoints, torusIndexes } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    try {
+      await legacyTorus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token);
+      fail("should not reach here");
+    } catch (err) {
+      expect(err.status).to.equal(403);
+    }
+  });
+
+  it("should pass at get or set nonce when server time offset is not passed with default time offset", async function () {
+    const email = "himanshu@tor.us";
+    const verifier = "google-lrc";
+    const token = generateIdToken(email, "ES256");
+
+    const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
+      network: TORUS_LEGACY_NETWORK.TESTNET,
+    });
+
+    const verifierDetails = { verifier, verifierId: email };
+    const legacyTorus = new TorusUtils({
+      network: TORUS_LEGACY_NETWORK.TESTNET,
+      clientId: "YOUR_CLIENT_ID",
+      enableOneKey: true,
+    });
+    const { torusNodeSSSEndpoints: torusNodeEndpoints, torusIndexes } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    try {
+      const response = await legacyTorus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token);
+      expect(response.metadata.typeOfUser).to.equal("v2");
+    } catch (err) {
+      fail("should not reach here");
+    }
   });
 
   it("should be able to update the `sessionTime` of the token signature data", async function () {
