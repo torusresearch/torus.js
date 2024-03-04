@@ -50,6 +50,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
         extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
         fetch_node_index: true,
+        client_time: Math.floor(Date.now() / 1000).toString(),
       }),
       null,
       { logTracingHeader: config.logRequestTracing }
@@ -284,6 +285,7 @@ export async function retrieveOrImportShare(params: {
                 },
               ],
               one_key_flow: true,
+              client_time: Math.floor(Date.now() / 1000).toString(),
             }),
             null,
             { logTracingHeader: config.logRequestTracing }
@@ -305,6 +307,7 @@ export async function retrieveOrImportShare(params: {
                   ...extraParams,
                 },
               ],
+              client_time: Math.floor(Date.now() / 1000).toString(),
               one_key_flow: true,
             }),
             null,
@@ -523,16 +526,15 @@ export async function retrieveOrImportShare(params: {
           const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
           // Convert each string timestamp to a number
-          const epochTimes = serverTimeOffsetResponses.map((timestamp) => parseInt(timestamp, 10));
+          const serverOffsetTime = serverTimeOffsetResponses.map((timestamp) => parseInt(timestamp, 10));
 
-          // console.log(epochTimes); // Output: 1709299134
           return {
             privateKey,
             sessionTokenData,
             thresholdNonceData,
             nodeIndexes,
             isNewKey: thresholdIsNewKey === "true",
-            serverTimeOffsetResponse: Math.max(...epochTimes),
+            serverTimeOffsetResponse: Math.max(...serverOffsetTime),
           };
         }
         throw new Error("Invalid");
@@ -657,6 +659,7 @@ export const legacyKeyLookup = async (endpoints: string[], verifier: string, ver
       generateJsonRPCObject("VerifierLookupRequest", {
         verifier,
         verifier_id: verifierId.toString(),
+        client_time: Math.floor(Date.now() / 1000).toString(),
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
