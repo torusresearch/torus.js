@@ -139,7 +139,6 @@ export async function retrieveOrImportShare(params: {
 }): Promise<TorusKey> {
   const {
     legacyMetadataHost,
-    serverTimeOffset,
     enableOneKey,
     ecCurve,
     allowHost,
@@ -317,7 +316,14 @@ export async function retrieveOrImportShare(params: {
       let thresholdNonceData: GetOrSetNonceResult;
       return Some<
         void | JRPCResponse<ShareRequestResult>,
-        | { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult; nodeIndexes: BN[]; isNewKey: boolean }
+        | {
+            privateKey: BN;
+            sessionTokenData: SessionToken[];
+            thresholdNonceData: GetOrSetNonceResult;
+            nodeIndexes: BN[];
+            isNewKey: boolean;
+            serverTimeOffsetResponse?: number;
+          }
         | undefined
       >(promiseArrRequest, async (shareResponses, sharedState) => {
         // check if threshold number of nodes have returned the same user public key
@@ -377,6 +383,7 @@ export async function retrieveOrImportShare(params: {
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
           const isNewKeyResponses: string[] = [];
+          const serverTimeOffsetResponses: string[] = [];
 
           for (let i = 0; i < completedRequests.length; i += 1) {
             const currentShareResponse = completedRequests[i] as JRPCResponse<ShareRequestResult>;
@@ -387,9 +394,11 @@ export async function retrieveOrImportShare(params: {
               session_token_sig_metadata: sessionTokenSigMetadata,
               keys,
               is_new_key: isNewKey,
+              server_time_offset: serverTimeOffset,
             } = currentShareResponse.result;
 
             isNewKeyResponses.push(isNewKey);
+            serverTimeOffsetResponses.push(serverTimeOffset);
 
             if (sessionTokenSigs?.length > 0) {
               // decrypt sessionSig if enc metadata is sent
@@ -513,13 +522,24 @@ export async function retrieveOrImportShare(params: {
           }
           const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
-          return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey: thresholdIsNewKey === "true" };
+          // Convert each string timestamp to a number
+          const epochTimes = serverTimeOffsetResponses.map((timestamp) => parseInt(timestamp, 10));
+
+          // console.log(epochTimes); // Output: 1709299134
+          return {
+            privateKey,
+            sessionTokenData,
+            thresholdNonceData,
+            nodeIndexes,
+            isNewKey: thresholdIsNewKey === "true",
+            serverTimeOffsetResponse: Math.max(...epochTimes),
+          };
         }
         throw new Error("Invalid");
       });
     })
     .then(async (res) => {
-      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey } = res;
+      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey, serverTimeOffsetResponse } = res;
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oAuthKey = privateKey;
@@ -538,7 +558,8 @@ export async function retrieveOrImportShare(params: {
         finalPubKey = ecCurve.keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
         if (enableOneKey) {
-          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
+          const serverTimeOffsetValue = this.serverTimeOffset || serverTimeOffsetResponse;
+          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffsetValue, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {

@@ -582,12 +582,12 @@ class Torus {
     } else {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
     }
-
     if (finalKeyResult) {
       return this.formatLegacyPublicKeyData({
         finalKeyResult,
         isNewKey,
         enableOneKey,
+        serverTimeOffset: keyResult.server_time_offset,
       });
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
@@ -659,6 +659,7 @@ class Torus {
         finalKeyResult: {
           keys: keyResult.keys,
         },
+        serverTimeOffset: keyResult.server_time_offset,
       });
     } else {
       const v2NonceResult = nonceResult as v2NonceResultType;
@@ -711,8 +712,9 @@ class Torus {
     finalKeyResult: LegacyVerifierLookupResponse;
     enableOneKey: boolean;
     isNewKey: boolean;
+    serverTimeOffset: string;
   }): Promise<TorusPublicKey> {
-    const { finalKeyResult, enableOneKey, isNewKey } = params;
+    const { finalKeyResult, enableOneKey, isNewKey, serverTimeOffset } = params;
     const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
     let nonceResult: GetOrSetNonceResult;
     let nonce: BN;
@@ -722,9 +724,10 @@ class Torus {
 
     const oAuthPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
 
+    const serverTimeOffsetValue = this.serverTimeOffset || parseInt(serverTimeOffset);
     if (enableOneKey) {
       try {
-        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.serverTimeOffset, X, Y, undefined, !isNewKey);
+        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, serverTimeOffsetValue, X, Y, undefined, !isNewKey);
         nonce = new BN(nonceResult.nonce || "0", 16);
         typeOfUser = nonceResult.typeOfUser;
       } catch {
