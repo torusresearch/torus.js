@@ -407,7 +407,7 @@ export async function retrieveOrImportShare(params: {
             } = currentShareResponse.result;
 
             isNewKeyResponses.push(isNewKey);
-            serverTimeOffsetResponses.push(serverTimeOffsetResponse);
+            serverTimeOffsetResponses.push(serverTimeOffsetResponse || "0");
 
             if (sessionTokenSigs?.length > 0) {
               // decrypt sessionSig if enc metadata is sent
@@ -533,6 +533,7 @@ export async function retrieveOrImportShare(params: {
 
           // Convert each string timestamp to a number
           const serverOffsetTimes = serverTimeOffsetResponses.map((timestamp) => Number.parseInt(timestamp, 10));
+
           return {
             privateKey,
             sessionTokenData,
