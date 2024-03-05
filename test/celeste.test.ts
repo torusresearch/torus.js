@@ -29,6 +29,7 @@ describe("torus utils celeste", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0xeC80FB9aB308Be1789Bd3f9317962D5505A4A242");
+    expect(result.metadata.serverTimeOffset).lessThan(20);
     delete result.metadata.serverTimeOffset;
 
     expect(result).eql({
@@ -59,6 +60,7 @@ describe("torus utils celeste", function () {
     const result1 = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result1.finalKeyData.evmAddress).to.equal("0xeC80FB9aB308Be1789Bd3f9317962D5505A4A242");
     expect(result1.metadata.typeOfUser).to.equal("v1");
+    expect(result1.metadata.serverTimeOffset).lessThan(20);
     delete result1.metadata.serverTimeOffset;
 
     expect(result1).eql({
@@ -163,6 +165,8 @@ describe("torus utils celeste", function () {
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
     expect(result.finalKeyData.privKey).to.be.equal("0ae056aa938080c9e8bf6641261619e09fd510c91bb5aad14b0de9742085a914");
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+
     delete result.metadata.serverTimeOffset;
 
     expect(result).eql({
@@ -200,6 +204,8 @@ describe("torus utils celeste", function () {
       },
       hashedIdToken.substring(2)
     );
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+
     delete result.metadata.serverTimeOffset;
 
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x535Eb1AefFAc6f699A2a1A5846482d7b5b2BD564");

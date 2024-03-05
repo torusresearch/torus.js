@@ -30,6 +30,7 @@ describe("torus utils migrated testnet on sapphire", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0x9bcBAde70546c0796c00323CD1b97fa0a425A506");
+    expect(result.metadata.serverTimeOffset).lessThan(20);
     delete result.metadata.serverTimeOffset;
 
     expect(result).eql({
@@ -60,6 +61,8 @@ describe("torus utils migrated testnet on sapphire", function () {
     const result1 = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result1.finalKeyData.evmAddress).to.equal("0xf5804f608C233b9cdA5952E46EB86C9037fd6842");
     expect(result1.metadata.typeOfUser).to.equal("v2");
+    expect(result1.metadata.serverTimeOffset).lessThan(20);
+
     delete result1.metadata.serverTimeOffset;
 
     expect(result1).eql({
@@ -94,6 +97,8 @@ describe("torus utils migrated testnet on sapphire", function () {
     })) as TorusPublicKey;
     expect(result2.finalKeyData.evmAddress).to.equal("0xE91200d82029603d73d6E307DbCbd9A7D0129d8D");
     expect(result2.metadata.typeOfUser).to.equal("v2");
+    expect(result2.metadata.serverTimeOffset).lessThan(20);
+
     delete result2.metadata.serverTimeOffset;
 
     expect(result2).eql({
@@ -172,6 +177,7 @@ describe("torus utils migrated testnet on sapphire", function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    expect(result.metadata.serverTimeOffset).lessThan(20);
     delete result.metadata.serverTimeOffset;
 
     expect(result.finalKeyData.privKey).to.be.equal("9b0fb017db14a0a25ed51f78a258713c8ae88b5e58a43acb70b22f9e2ee138e3");
@@ -213,6 +219,7 @@ describe("torus utils migrated testnet on sapphire", function () {
       },
       hashedIdToken.substring(2)
     );
+    expect(result.metadata.serverTimeOffset).lessThan(20);
     delete result.metadata.serverTimeOffset;
 
     expect(result.metadata.typeOfUser).to.be.equal("v1");
