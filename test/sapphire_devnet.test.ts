@@ -413,7 +413,7 @@ describe("torus utils sapphire devnet", function () {
     const parsedSigsData = signatures.map((s) => JSON.parse(atob(s.data)));
     parsedSigsData.forEach((ps) => {
       const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
-      expect(sessionTime).eql(customSessionTime);
+      expect(sessionTime).greaterThan(customSessionTime - 5); // giving a latency leeway of 5 seconds
     });
   });
 

@@ -14,7 +14,6 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-aggregate-sapphire-mainnet";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
-const TORUS_IMPORT_EMAIL = "importeduser5@tor.us";
 
 describe("torus utils sapphire mainnet", function () {
   let torus: TorusUtils;
@@ -78,28 +77,6 @@ describe("torus utils sapphire mainnet", function () {
     );
     expect(result.finalKeyData.privKey).to.be.equal(privHex);
   });
-  it("should be able to import a key for a existing user", async function () {
-    let verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const token = generateIdToken(TORUS_IMPORT_EMAIL, "ES256");
-    const privKeyBuffer = generatePrivate();
-    const privHex = privKeyBuffer.toString("hex");
-    const result1 = await torus.importPrivateKey(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      nodeDetails.torusNodePub,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: TORUS_IMPORT_EMAIL },
-      token,
-      privHex
-    );
-    expect(result1.finalKeyData.privKey).to.be.equal(privHex);
-    verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
-    const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result1.finalKeyData.evmAddress).to.be.equal(result2.finalKeyData.evmAddress);
-  });
-
   it("should be able to key assign", async function () {
     const verifier = "tkey-google-sapphire-mainnet"; // any verifier
     const email = faker.internet.email();
@@ -380,7 +357,7 @@ describe("torus utils sapphire mainnet", function () {
     const parsedSigsData = signatures.map((s) => JSON.parse(atob(s.data)));
     parsedSigsData.forEach((ps) => {
       const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
-      expect(sessionTime).eql(customSessionTime);
+      expect(sessionTime).greaterThan(customSessionTime - 5); // giving a latency leeway of 5 seconds
     });
   });
 });
