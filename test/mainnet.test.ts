@@ -29,6 +29,8 @@ describe("torus utils mainnet", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0x0C44AFBb5395a9e8d28DF18e1326aa0F16b9572A");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x0C44AFBb5395a9e8d28DF18e1326aa0F16b9572A",
@@ -56,6 +58,8 @@ describe("torus utils mainnet", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result1 = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result1.metadata.typeOfUser).to.equal("v2");
+    delete result1.metadata.serverTimeOffset;
+
     expect(result1).eql({
       oAuthKeyData: {
         evmAddress: "0x0C44AFBb5395a9e8d28DF18e1326aa0F16b9572A",
@@ -86,6 +90,8 @@ describe("torus utils mainnet", function () {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     });
+    delete result2.metadata.serverTimeOffset;
+
     expect(result2.finalKeyData.evmAddress).to.equal("0xFf669A15bFFcf32D3C5B40bE9E5d409d60D43526");
     expect(result2.metadata.typeOfUser).to.equal("v2");
     expect(result2).eql({
@@ -117,6 +123,8 @@ describe("torus utils mainnet", function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     });
+    delete result3.metadata.serverTimeOffset;
+
     expect(result3.metadata.typeOfUser).to.equal("v2");
     expect(result3).eql({
       oAuthKeyData: {
@@ -164,6 +172,7 @@ describe("torus utils mainnet", function () {
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
     delete result.sessionData;
+    delete result.metadata.serverTimeOffset;
 
     expect(result).eql({
       finalKeyData: {
@@ -202,6 +211,7 @@ describe("torus utils mainnet", function () {
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
     expect(result.finalKeyData.evmAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
     delete result.sessionData;
+    delete result.metadata.serverTimeOffset;
 
     expect(result).eql({
       finalKeyData: {

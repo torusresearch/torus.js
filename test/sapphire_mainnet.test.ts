@@ -16,7 +16,7 @@ const HashEnabledVerifier = "torus-test-verifierid-hash";
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
 const TORUS_IMPORT_EMAIL = "importeduser5@tor.us";
 
-describe.only("torus utils sapphire mainnet", function () {
+describe("torus utils sapphire mainnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -34,6 +34,8 @@ describe.only("torus utils sapphire mainnet", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0x327b2742768B436d09153429E762FADB54413Ded");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0xb1a49C6E50a1fC961259a8c388EAf5953FA5152b",
@@ -76,7 +78,7 @@ describe.only("torus utils sapphire mainnet", function () {
     );
     expect(result.finalKeyData.privKey).to.be.equal(privHex);
   });
-  it.skip("should be able to import a key for a existing user", async function () {
+  it("should be able to import a key for a existing user", async function () {
     let verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -138,6 +140,8 @@ describe.only("torus utils sapphire mainnet", function () {
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.be.equal("0x98EC5b049c5C0Dc818C69e95CF43534AEB80261A");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x98EC5b049c5C0Dc818C69e95CF43534AEB80261A",
@@ -187,6 +191,8 @@ describe.only("torus utils sapphire mainnet", function () {
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0xCb76F4C8cbAe524997787B57efeeD99f6D3BD5AB");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0xeBe48BE7693a36Ff562D18c4494AC4496A45EaaC",
@@ -217,6 +223,8 @@ describe.only("torus utils sapphire mainnet", function () {
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0xCb76F4C8cbAe524997787B57efeeD99f6D3BD5AB");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0xeBe48BE7693a36Ff562D18c4494AC4496A45EaaC",
@@ -254,6 +262,8 @@ describe.only("torus utils sapphire mainnet", function () {
       token
     );
     expect(result.finalKeyData.privKey).to.be.equal("13941ecd812b08d8a33a20bc975f0cd1c3f82de25b20c0c863ba5f21580b65f6");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       finalKeyData: {
         evmAddress: "0xCb76F4C8cbAe524997787B57efeeD99f6D3BD5AB",
@@ -290,6 +300,8 @@ describe.only("torus utils sapphire mainnet", function () {
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
     expect(result.finalKeyData.privKey).to.be.equal("dfb39b84e0c64b8c44605151bf8670ae6eda232056265434729b6a8a50fa3419");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       finalKeyData: {
         evmAddress: "0x70520A7F04868ACad901683699Fa32765C9F6871",
