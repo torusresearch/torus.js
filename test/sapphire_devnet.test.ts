@@ -414,6 +414,7 @@ describe("torus utils sapphire devnet", function () {
     parsedSigsData.forEach((ps) => {
       const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
       expect(sessionTime).greaterThan(customSessionTime - 5); // giving a latency leeway of 5 seconds
+      expect(sessionTime).lessThanOrEqual(customSessionTime);
     });
   });
 
