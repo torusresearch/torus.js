@@ -104,3 +104,23 @@ export function encParamsHexToBuf(eciesData: Omit<EciesHex, "ciphertext">): Omit
     mac: Buffer.from(eciesData.mac, "hex"),
   };
 }
+
+export function calculateMedian(arr: number[]): number {
+  const arrSize = arr.length;
+
+  if (arrSize === 0) return 0;
+  const sortedArr = arr.sort(function (a, b) {
+    return a - b;
+  });
+
+  // odd length
+  if (arrSize % 2 !== 0) {
+    return sortedArr[Math.floor(arrSize / 2)];
+  }
+
+  // return average of two mid values in case of even arrSize
+  const mid1 = sortedArr[arrSize / 2 - 1];
+
+  const mid2 = sortedArr[arrSize / 2];
+  return (mid1 + mid2) / 2;
+}

@@ -29,6 +29,7 @@ describe("torus utils aqua", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0xDfA967285AC699A70DA340F60d00DB19A272639d");
+    expect(result.metadata.serverTimeOffset).lessThan(20);
     delete result.metadata.serverTimeOffset;
 
     expect(result).eql({
@@ -58,6 +59,7 @@ describe("torus utils aqua", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result1 = (await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
     expect(result1.metadata.typeOfUser).to.equal("v2");
+    expect(result1.metadata.serverTimeOffset).lessThan(20);
     delete result1.metadata.serverTimeOffset;
 
     expect(result1).eql({
@@ -91,6 +93,7 @@ describe("torus utils aqua", function () {
       verifierId: v2TestEmail,
     })) as TorusPublicKey;
     expect(result2.metadata.typeOfUser).to.equal("v2");
+    expect(result2.metadata.serverTimeOffset).lessThan(20);
     delete result2.metadata.serverTimeOffset;
 
     expect(result2).eql({
@@ -122,6 +125,7 @@ describe("torus utils aqua", function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     })) as TorusPublicKey;
+    expect(result3.metadata.serverTimeOffset).lessThan(20);
     delete result3.metadata.serverTimeOffset;
 
     expect(result3.metadata.typeOfUser).to.equal("v2");
@@ -169,6 +173,7 @@ describe("torus utils aqua", function () {
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
     expect(result.finalKeyData.privKey).to.be.equal("f726ce4ac79ae4475d72633c94769a8817aff35eebe2d4790aed7b5d8a84aa1d");
+    expect(result.metadata.serverTimeOffset).lessThan(20);
     delete result.metadata.serverTimeOffset;
 
     expect(result).eql({
@@ -206,6 +211,7 @@ describe("torus utils aqua", function () {
       },
       hashedIdToken.substring(2)
     );
+    expect(result.metadata.serverTimeOffset).lessThan(20);
     delete result.metadata.serverTimeOffset;
 
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x5b58d8a16fDA79172cd42Dc3068d5CEf26a5C81D");
