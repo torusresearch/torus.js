@@ -29,6 +29,8 @@ describe("torus utils aqua", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0xDfA967285AC699A70DA340F60d00DB19A272639d");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0xDfA967285AC699A70DA340F60d00DB19A272639d",
@@ -56,6 +58,8 @@ describe("torus utils aqua", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result1 = (await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
     expect(result1.metadata.typeOfUser).to.equal("v2");
+    delete result1.metadata.serverTimeOffset;
+
     expect(result1).eql({
       oAuthKeyData: {
         evmAddress: "0xDfA967285AC699A70DA340F60d00DB19A272639d",
@@ -87,6 +91,8 @@ describe("torus utils aqua", function () {
       verifierId: v2TestEmail,
     })) as TorusPublicKey;
     expect(result2.metadata.typeOfUser).to.equal("v2");
+    delete result2.metadata.serverTimeOffset;
+
     expect(result2).eql({
       oAuthKeyData: {
         evmAddress: "0x4ea5260fF85678A2a326D08DF9C44d1f559a5828",
@@ -116,6 +122,8 @@ describe("torus utils aqua", function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     })) as TorusPublicKey;
+    delete result3.metadata.serverTimeOffset;
+
     expect(result3.metadata.typeOfUser).to.equal("v2");
     expect(result3).eql({
       oAuthKeyData: {
@@ -161,6 +169,8 @@ describe("torus utils aqua", function () {
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
     expect(result.finalKeyData.privKey).to.be.equal("f726ce4ac79ae4475d72633c94769a8817aff35eebe2d4790aed7b5d8a84aa1d");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       finalKeyData: {
         evmAddress: "0x9EBE51e49d8e201b40cAA4405f5E0B86d9D27195",
@@ -196,6 +206,7 @@ describe("torus utils aqua", function () {
       },
       hashedIdToken.substring(2)
     );
+    delete result.metadata.serverTimeOffset;
 
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x5b58d8a16fDA79172cd42Dc3068d5CEf26a5C81D");
     expect(result.finalKeyData.evmAddress).to.be.equal("0x5b58d8a16fDA79172cd42Dc3068d5CEf26a5C81D");

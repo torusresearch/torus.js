@@ -39,6 +39,7 @@ export interface TorusCtorOptions {
 
 export interface LegacyVerifierLookupResponse {
   keys: { pub_key_X: string; pub_key_Y: string; address: string }[];
+  server_time_offset?: string;
 }
 
 export interface VerifierLookupResponse {
@@ -51,6 +52,7 @@ export interface VerifierLookupResponse {
   }[];
   is_new_key: boolean;
   node_index: string;
+  server_time_offset?: string;
 }
 
 export interface CommitmentRequestResult {
@@ -73,13 +75,15 @@ export interface JRPCResponse<T> {
 }
 
 export interface LegacyKeyLookupResult {
-  keyResult: Pick<LegacyVerifierLookupResponse, "keys">;
+  keyResult: Pick<LegacyVerifierLookupResponse, "keys" | "server_time_offset">;
   errorResult: JRPCResponse<LegacyVerifierLookupResponse>["error"];
+  serverTimeOffset: number;
 }
 
 export interface KeyLookupResult {
   keyResult: Pick<VerifierLookupResponse, "keys" | "is_new_key">;
   nodeIndexes: number[];
+  serverTimeOffset: number;
   errorResult: JRPCResponse<VerifierLookupResponse>["error"];
   nonceResult?: GetOrSetNonceResult;
 }
@@ -134,6 +138,7 @@ export interface KeyAssignment {
 
 export interface LegacyShareRequestResult {
   keys: LegacyKeyAssignment[];
+  server_time_offset?: string;
 }
 
 export interface ShareRequestResult {
@@ -147,6 +152,7 @@ export interface ShareRequestResult {
   node_pubx: string;
   node_puby: string;
   is_new_key: string;
+  server_time_offset?: string;
 }
 
 export interface ImportedShare {
@@ -183,6 +189,7 @@ export interface TorusPublicKey {
     nonce?: BN;
     typeOfUser: UserType;
     upgraded: boolean | null;
+    serverTimeOffset: number;
   };
   nodesData: {
     nodeIndexes: number[];

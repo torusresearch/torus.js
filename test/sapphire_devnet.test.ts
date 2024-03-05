@@ -52,6 +52,7 @@ describe("torus utils sapphire devnet", function () {
     const publicKeyData = await legacyTorus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(publicKeyData.metadata.typeOfUser).to.equal("v1");
     expect(publicKeyData.finalKeyData.evmAddress).to.equal("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
+    delete publicKeyData.metadata.serverTimeOffset;
     expect(publicKeyData).eql({
       oAuthKeyData: {
         evmAddress: "0xf1e76fcDD28b5AA06De01de508fF21589aB9017E",
@@ -97,6 +98,8 @@ describe("torus utils sapphire devnet", function () {
     );
     expect(retrieveSharesResponse.finalKeyData.privKey).to.be.equal("dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9");
     delete retrieveSharesResponse.sessionData;
+    delete retrieveSharesResponse.metadata.serverTimeOffset;
+
     expect(retrieveSharesResponse).eql({
       oAuthKeyData: {
         evmAddress: "0xbeFfcC367D741C53A63F50eA805c1e93d3C64fEc",
@@ -143,6 +146,7 @@ describe("torus utils sapphire devnet", function () {
     });
     expect(result.finalKeyData.evmAddress).to.equal("0xE91200d82029603d73d6E307DbCbd9A7D0129d8D");
     expect(result.metadata.typeOfUser).to.equal("v2");
+    delete result.metadata.serverTimeOffset;
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x376597141d8d219553378313d18590F373B09795",
@@ -174,6 +178,7 @@ describe("torus utils sapphire devnet", function () {
     });
     expect(data.metadata.typeOfUser).to.equal("v2");
     expect(data.finalKeyData.evmAddress).to.equal("0x1016DA7c47A04C76036637Ea02AcF1d29c64a456");
+    delete data.metadata.serverTimeOffset;
     expect(data).eql({
       oAuthKeyData: {
         evmAddress: "0xd45383fbF04BccFa0450d7d8ee453ca86b7C6544",
@@ -203,6 +208,8 @@ describe("torus utils sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x137B3607958562D03Eb3C6086392D1eFa01aA6aa",
@@ -246,7 +253,10 @@ describe("torus utils sapphire devnet", function () {
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
 
     const result1 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+    delete result1.metadata.serverTimeOffset;
     const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+    delete result2.metadata.serverTimeOffset;
+
     expect(result1.finalKeyData).eql(result2.finalKeyData);
     expect(result1.oAuthKeyData).eql(result2.oAuthKeyData);
     expect(result1.metadata).eql(result2.metadata);
@@ -257,6 +267,8 @@ describe("torus utils sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x137B3607958562D03Eb3C6086392D1eFa01aA6aa",
@@ -302,6 +314,8 @@ describe("torus utils sapphire devnet", function () {
       { verifier_id: TORUS_TEST_EMAIL },
       token
     );
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       finalKeyData: {
         evmAddress: "0x462A8BF111A55C9354425F875F89B22678c0Bc44",
@@ -344,6 +358,8 @@ describe("torus utils sapphire devnet", function () {
       { verifier_id: TORUS_TEST_EMAIL },
       token
     );
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       finalKeyData: {
         evmAddress: "0x462A8BF111A55C9354425F875F89B22678c0Bc44",
@@ -397,7 +413,8 @@ describe("torus utils sapphire devnet", function () {
     const parsedSigsData = signatures.map((s) => JSON.parse(atob(s.data)));
     parsedSigsData.forEach((ps) => {
       const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
-      expect(sessionTime).eql(customSessionTime);
+      expect(sessionTime).greaterThan(customSessionTime - 5); // giving a latency leeway of 5 seconds
+      expect(sessionTime).lessThanOrEqual(customSessionTime);
     });
   });
 
@@ -432,6 +449,8 @@ describe("torus utils sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0xBd6Bc8aDC5f2A0526078Fd2016C4335f64eD3a30",
@@ -496,6 +515,8 @@ describe("torus utils sapphire devnet", function () {
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0xF79b5ffA48463eba839ee9C97D61c6063a96DA03");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x4135ad20D2E9ACF37D64E7A6bD8AC34170d51219",
@@ -539,6 +560,8 @@ describe("torus utils sapphire devnet", function () {
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0xF79b5ffA48463eba839ee9C97D61c6063a96DA03");
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x4135ad20D2E9ACF37D64E7A6bD8AC34170d51219",
@@ -575,6 +598,8 @@ describe("torus utils sapphire devnet", function () {
       { verifier_id: TORUS_HASH_ENABLED_TEST_EMAIL },
       token
     );
+    delete result.metadata.serverTimeOffset;
+
     expect(result.finalKeyData.privKey).to.be.equal("066270dfa345d3d0415c8223e045f366b238b50870de7e9658e3c6608a7e2d32");
     expect(result).eql({
       finalKeyData: {
@@ -625,6 +650,8 @@ describe("torus utils sapphire devnet", function () {
       },
       hashedIdToken.substring(2)
     );
+    delete result.metadata.serverTimeOffset;
+
     expect(result.finalKeyData.evmAddress).to.not.equal(null);
     expect(result.finalKeyData.evmAddress).to.not.equal("");
     expect(result.oAuthKeyData.evmAddress).to.not.equal(null);

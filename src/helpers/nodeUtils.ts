@@ -27,7 +27,7 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { Some } from "../some";
-import { kCombinations, normalizeKeysResult, thresholdSame } from "./common";
+import { kCombinations, normalizeKeysResult, normalizeLegacyKeysResult, thresholdSame } from "./common";
 import { generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
@@ -50,6 +50,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
         extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
         fetch_node_index: true,
+        client_time: Math.floor(Date.now() / 1000).toString(),
       }),
       null,
       { logTracingHeader: config.logRequestTracing }
@@ -92,6 +93,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
       }
     }
 
+    const serverTimeOffsets: number[] = [];
     // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
     if ((keyResult && (nonceResult || extendedVerifierId || LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE])) || errorResult) {
       if (keyResult) {
@@ -105,10 +107,14 @@ export const GetPubKeyOrKeyAssign = async (params: {
               const nodeIndex = parseInt(x1.result.node_index);
               if (nodeIndex) nodeIndexes.push(nodeIndex);
             }
+            const serverTimeOffset = x1.result.server_time_offset ? parseInt(x1.result.server_time_offset, 10) : 0;
+            serverTimeOffsets.push(serverTimeOffset);
           }
         });
       }
-      return Promise.resolve({ keyResult, nodeIndexes, errorResult, nonceResult });
+
+      const serverTimeOffset = Math.max(...serverTimeOffsets);
+      return Promise.resolve({ keyResult, serverTimeOffset, nodeIndexes, errorResult, nonceResult });
     }
     return Promise.reject(
       new Error(
@@ -139,7 +145,6 @@ export async function retrieveOrImportShare(params: {
 }): Promise<TorusKey> {
   const {
     legacyMetadataHost,
-    serverTimeOffset,
     enableOneKey,
     ecCurve,
     allowHost,
@@ -151,6 +156,7 @@ export async function retrieveOrImportShare(params: {
     idToken,
     importedShares,
     extraParams,
+    serverTimeOffset,
   } = params;
   await get<void>(
     allowHost,
@@ -285,6 +291,7 @@ export async function retrieveOrImportShare(params: {
                 },
               ],
               one_key_flow: true,
+              client_time: Math.floor(Date.now() / 1000).toString(),
             }),
             null,
             { logTracingHeader: config.logRequestTracing }
@@ -306,6 +313,7 @@ export async function retrieveOrImportShare(params: {
                   ...extraParams,
                 },
               ],
+              client_time: Math.floor(Date.now() / 1000).toString(),
               one_key_flow: true,
             }),
             null,
@@ -317,7 +325,14 @@ export async function retrieveOrImportShare(params: {
       let thresholdNonceData: GetOrSetNonceResult;
       return Some<
         void | JRPCResponse<ShareRequestResult>,
-        | { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult; nodeIndexes: BN[]; isNewKey: boolean }
+        | {
+            privateKey: BN;
+            sessionTokenData: SessionToken[];
+            thresholdNonceData: GetOrSetNonceResult;
+            nodeIndexes: BN[];
+            isNewKey: boolean;
+            serverTimeOffsetResponse?: number;
+          }
         | undefined
       >(promiseArrRequest, async (shareResponses, sharedState) => {
         // check if threshold number of nodes have returned the same user public key
@@ -377,6 +392,7 @@ export async function retrieveOrImportShare(params: {
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
           const isNewKeyResponses: string[] = [];
+          const serverTimeOffsetResponses: string[] = [];
 
           for (let i = 0; i < completedRequests.length; i += 1) {
             const currentShareResponse = completedRequests[i] as JRPCResponse<ShareRequestResult>;
@@ -387,9 +403,11 @@ export async function retrieveOrImportShare(params: {
               session_token_sig_metadata: sessionTokenSigMetadata,
               keys,
               is_new_key: isNewKey,
+              server_time_offset: serverTimeOffsetResponse,
             } = currentShareResponse.result;
 
             isNewKeyResponses.push(isNewKey);
+            serverTimeOffsetResponses.push(serverTimeOffsetResponse);
 
             if (sessionTokenSigs?.length > 0) {
               // decrypt sessionSig if enc metadata is sent
@@ -513,13 +531,22 @@ export async function retrieveOrImportShare(params: {
           }
           const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
-          return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey: thresholdIsNewKey === "true" };
+          // Convert each string timestamp to a number
+          const serverOffsetTimes = serverTimeOffsetResponses.map((timestamp) => parseInt(timestamp, 10));
+          return {
+            privateKey,
+            sessionTokenData,
+            thresholdNonceData,
+            nodeIndexes,
+            isNewKey: thresholdIsNewKey === "true",
+            serverTimeOffsetResponse: serverTimeOffset || Math.max(...serverOffsetTimes),
+          };
         }
         throw new Error("Invalid");
       });
     })
     .then(async (res) => {
-      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey } = res;
+      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey, serverTimeOffsetResponse } = res;
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oAuthKey = privateKey;
@@ -538,7 +565,7 @@ export async function retrieveOrImportShare(params: {
         finalPubKey = ecCurve.keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
         if (enableOneKey) {
-          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
+          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffsetResponse, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {
@@ -621,6 +648,7 @@ export async function retrieveOrImportShare(params: {
           nonce: metadataNonce,
           typeOfUser,
           upgraded: isUpgraded,
+          serverTimeOffset: serverTimeOffsetResponse,
         },
         nodesData: {
           nodeIndexes: nodeIndexes.map((x) => x.toNumber()),
@@ -636,6 +664,7 @@ export const legacyKeyLookup = async (endpoints: string[], verifier: string, ver
       generateJsonRPCObject("VerifierLookupRequest", {
         verifier,
         verifier_id: verifierId.toString(),
+        client_time: Math.floor(Date.now() / 1000).toString(),
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
@@ -646,11 +675,25 @@ export const legacyKeyLookup = async (endpoints: string[], verifier: string, ver
       ~~(endpoints.length / 2) + 1
     );
     const keyResult = thresholdSame(
-      lookupShares.map((x3) => x3 && x3.result),
+      lookupShares.map((x3) => x3 && normalizeLegacyKeysResult(x3.result)),
       ~~(endpoints.length / 2) + 1
     );
+
+    const serverTimeOffsets: number[] = [];
+    // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
+    if (keyResult) {
+      lookupResults.forEach((x1) => {
+        if (x1 && x1.result) {
+          const timeOffSet = x1.result.server_time_offset;
+          const serverTimeOffset = timeOffSet ? parseInt(timeOffSet, 10) : 0;
+          serverTimeOffsets.push(serverTimeOffset);
+        }
+      });
+    }
+
+    const serverTimeOffset = Math.max(...serverTimeOffsets);
     if (keyResult || errorResult) {
-      return Promise.resolve({ keyResult, errorResult });
+      return Promise.resolve({ keyResult, errorResult, serverTimeOffset });
     }
     return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`));
   });
