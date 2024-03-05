@@ -27,7 +27,7 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { Some } from "../some";
-import { kCombinations, normalizeKeysResult, normalizeLegacyKeysResult, thresholdSame } from "./common";
+import { calculateMedian, kCombinations, normalizeKeysResult, normalizeLegacyKeysResult, thresholdSame } from "./common";
 import { generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
@@ -104,16 +104,16 @@ export const GetPubKeyOrKeyAssign = async (params: {
             // push only those indexes for nodes who are returning pub key matching with threshold pub key.
             // this check is important when different nodes have different keys assigned to a user.
             if (currentNodePubKey === thresholdPubKey) {
-              const nodeIndex = parseInt(x1.result.node_index);
+              const nodeIndex = Number.parseInt(x1.result.node_index);
               if (nodeIndex) nodeIndexes.push(nodeIndex);
             }
-            const serverTimeOffset = x1.result.server_time_offset ? parseInt(x1.result.server_time_offset, 10) : 0;
+            const serverTimeOffset = x1.result.server_time_offset ? Number.parseInt(x1.result.server_time_offset, 10) : 0;
             serverTimeOffsets.push(serverTimeOffset);
           }
         });
       }
 
-      const serverTimeOffset = Math.max(...serverTimeOffsets);
+      const serverTimeOffset = keyResult ? calculateMedian(serverTimeOffsets) : 0;
       return Promise.resolve({ keyResult, serverTimeOffset, nodeIndexes, errorResult, nonceResult });
     }
     return Promise.reject(
@@ -532,14 +532,14 @@ export async function retrieveOrImportShare(params: {
           const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
           // Convert each string timestamp to a number
-          const serverOffsetTimes = serverTimeOffsetResponses.map((timestamp) => parseInt(timestamp, 10));
+          const serverOffsetTimes = serverTimeOffsetResponses.map((timestamp) => Number.parseInt(timestamp, 10));
           return {
             privateKey,
             sessionTokenData,
             thresholdNonceData,
             nodeIndexes,
             isNewKey: thresholdIsNewKey === "true",
-            serverTimeOffsetResponse: serverTimeOffset || Math.max(...serverOffsetTimes),
+            serverTimeOffsetResponse: serverTimeOffset || calculateMedian(serverOffsetTimes),
           };
         }
         throw new Error("Invalid");
@@ -685,14 +685,14 @@ export const legacyKeyLookup = async (endpoints: string[], verifier: string, ver
       lookupResults.forEach((x1) => {
         if (x1 && x1.result) {
           const timeOffSet = x1.result.server_time_offset;
-          const serverTimeOffset = timeOffSet ? parseInt(timeOffSet, 10) : 0;
+          const serverTimeOffset = timeOffSet ? Number.parseInt(timeOffSet, 10) : 0;
           serverTimeOffsets.push(serverTimeOffset);
         }
       });
     }
 
-    const serverTimeOffset = Math.max(...serverTimeOffsets);
     if (keyResult || errorResult) {
+      const serverTimeOffset = keyResult ? calculateMedian(serverTimeOffsets) : 0;
       return Promise.resolve({ keyResult, errorResult, serverTimeOffset });
     }
     return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`));

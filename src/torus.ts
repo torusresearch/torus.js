@@ -15,6 +15,7 @@ import stringify from "json-stable-stringify";
 
 import { config } from "./config";
 import {
+  calculateMedian,
   encParamsBufToHex,
   generateAddressFromPrivKey,
   generateAddressFromPubKey,
@@ -404,7 +405,7 @@ class Torus {
             for (let i = 0; i < shareResponses.length; i += 1) {
               const currentShareResponse = shareResponses[i] as JRPCResponse<LegacyShareRequestResult>;
               const timeOffSet = currentShareResponse?.result?.server_time_offset;
-              const parsedTimeOffset = timeOffSet ? parseInt(timeOffSet, 10) : 0;
+              const parsedTimeOffset = timeOffSet ? Number.parseInt(timeOffSet, 10) : 0;
               serverTimeOffsets.push(parsedTimeOffset);
               if (currentShareResponse?.result?.keys?.length > 0) {
                 currentShareResponse.result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)));
@@ -464,7 +465,7 @@ class Torus {
             if (privateKey === undefined || privateKey === null) {
               throw new Error("could not derive private key");
             }
-            return { privateKey, serverTimeOffset: this.serverTimeOffset || Math.max(...serverTimeOffsets) };
+            return { privateKey, serverTimeOffset: this.serverTimeOffset || calculateMedian(serverTimeOffsets) };
           }
           throw new Error("invalid");
         });
