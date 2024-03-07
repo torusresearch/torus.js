@@ -10,7 +10,6 @@ import { generateIdToken } from "./helpers";
 
 const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
-const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
 describe("torus utils mainnet", function () {
   let torus: TorusUtils;
@@ -23,9 +22,9 @@ describe("torus utils mainnet", function () {
       network: TORUS_LEGACY_NETWORK.MAINNET,
     });
   });
-  it("should fetch public address", async function () {
-    const verifier = "google"; // any verifier
-    const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
+  it("should fetch public address mainnet", async function () {
+    const verifier = "gooddollar-google-auth0"; // any verifier
+    const verifierDetails = { verifier, verifierId: "alexcyberneticist@gmail.com" };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0x0C44AFBb5395a9e8d28DF18e1326aa0F16b9572A");
@@ -181,22 +180,27 @@ describe("torus utils mainnet", function () {
     });
   });
 
-  it("should be able to aggregate login", async function () {
-    const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+  it("should be able to aggregate login mainnet", async function () {
+    const idToken = "TODO";
+
+    const verifier = "gooddollar-google-auth0";
+    const verifierId = "alexcyberneticist@gmail.com";
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
-    const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
+    const verifierDetails = { verifier, verifierId };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
-      TORUS_TEST_AGGREGATE_VERIFIER,
+      verifier,
       {
-        verify_params: [{ verifier_id: TORUS_TEST_EMAIL, idtoken: idToken }],
-        sub_verifier_ids: [TORUS_TEST_VERIFIER],
-        verifier_id: TORUS_TEST_EMAIL,
+        verify_params: [{ verifier_id: verifierId, idtoken: idToken }],
+        sub_verifier_ids: ["google"],
+        verifier_id: verifierId,
       },
       hashedIdToken.substring(2)
     );
+    // eslint-disable-next-line no-console
+    console.log(result);
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
     expect(result.finalKeyData.evmAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
     expect(result).eql({
