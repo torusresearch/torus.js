@@ -5,9 +5,10 @@ import { curve, ec as EC } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 import stringify from "json-stable-stringify";
 
-import { ImportedShare, KeyType } from "..";
-import log from "../loglevel";
-import { encParamsBufToHex, generateNonceMetadataParams, generateRandomPolynomial } from ".";
+import { ImportedShare, KeyType } from "../interfaces";
+import { encParamsBufToHex } from "./common";
+import { generateRandomPolynomial } from "./langrangeInterpolatePoly";
+import { generateNonceMetadataParams } from "./metadataUtils";
 
 export function keccak256(a: Buffer): string {
   const hash = Buffer.from(keccakHash(a)).toString("hex");
@@ -43,7 +44,6 @@ export function toChecksumAddress(hexAddress: string): string {
 export function generateAddressFromPrivKey(ecCurve: EC, privateKey: BN): string {
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64), "hex");
   const publicKey = key.getPublic().encode("hex", false).slice(2);
-  log.info(publicKey, "public key");
   const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
   return toChecksumAddress(evmAddressLower);
 }
@@ -51,7 +51,6 @@ export function generateAddressFromPrivKey(ecCurve: EC, privateKey: BN): string 
 export function generateAddressFromPubKey(ecCurve: EC, publicKeyX: BN, publicKeyY: BN): string {
   const key = ecCurve.keyFromPublic({ x: publicKeyX.toString("hex", 64), y: publicKeyY.toString("hex", 64) });
   const publicKey = key.getPublic().encode("hex", false).slice(2);
-  log.info(key.getPublic().encode("hex", false), "public key");
   const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
   return toChecksumAddress(evmAddressLower);
 }

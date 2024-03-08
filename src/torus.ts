@@ -14,6 +14,7 @@ import { curve, ec as EC } from "elliptic";
 
 import { config } from "./config";
 import {
+  calculateMedian,
   derivePubKey,
   generateAddressFromPrivKey,
   generateAddressFromPubKey,
@@ -51,6 +52,8 @@ import { Some } from "./some";
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
 class Torus {
+  private static sessionTime: number = 86400; // 86400 = 24 hour
+
   public allowHost: string;
 
   public serverTimeOffset: number;
@@ -111,6 +114,10 @@ class Torus {
 
   static setEmbedHost(embedHost: string): void {
     setEmbedHost(embedHost);
+  }
+
+  static setSessionTime(sessionTime: number): void {
+    Torus.sessionTime = sessionTime;
   }
 
   static isGetOrSetNonceError(err: unknown): boolean {
@@ -179,7 +186,10 @@ class Torus {
       newImportedShares: [],
       overrideExistingKey: false,
       nodePubkeys,
-      extraParams,
+      extraParams: {
+        ...extraParams,
+        session_token_exp_second: Torus.sessionTime,
+      },
     });
   }
 
@@ -226,7 +236,10 @@ class Torus {
       overrideExistingKey: true,
       newImportedShares: sharesData,
       nodePubkeys,
-      extraParams,
+      extraParams: {
+        ...extraParams,
+        session_token_exp_second: Torus.sessionTime,
+      },
     });
   }
 
@@ -244,6 +257,8 @@ class Torus {
     return this.getLegacyPublicAddress(endpoints, torusNodePubs, { verifier, verifierId }, true);
   }
 
+  // this function is soon going to be deprecated
+  // this is only supported in celeste network currently.
   private async legacyRetrieveShares(
     endpoints: string[],
     indexes: number[],
@@ -259,10 +274,10 @@ class Torus {
       {
         headers: {
           verifier,
-          verifierId: verifierParams.verifier_id,
+          verifierid: verifierParams.verifier_id,
           network: this.network,
-          clientId: this.clientId,
-          enableGating: "true",
+          clientid: this.clientId,
+          enablegating: "true",
         },
       },
       { useAPIKey: true }
@@ -352,11 +367,18 @@ class Torus {
               item: [
                 { ...verifierParams, idtoken: idToken, nodesignatures: nodeSigs, verifieridentifier: verifier, key_type: keyType, ...extraParams },
               ],
+              client_time: Math.floor(Date.now() / 1000).toString(),
             })
           ).catch((err) => log.error("share req", err));
           promiseArrRequest.push(p);
         }
-        return Some<void | JRPCResponse<LegacyShareRequestResult>, BN | undefined>(promiseArrRequest, async (shareResponses, sharedState) => {
+        return Some<
+          void | JRPCResponse<LegacyShareRequestResult>,
+          {
+            privateKey: BN | undefined;
+            serverTimeOffset: number;
+          }
+        >(promiseArrRequest, async (shareResponses, sharedState) => {
           /*
               ShareRequestResult struct {
                 Keys []KeyAssignment
@@ -386,8 +408,12 @@ class Torus {
           if (completedRequests.length >= ~~(endpoints.length / 2) + 1 && thresholdPublicKey) {
             const sharePromises: Promise<void | Buffer>[] = [];
             const nodeIndexes: BN[] = [];
+            const serverTimeOffsets: number[] = [];
             for (let i = 0; i < shareResponses.length; i += 1) {
               const currentShareResponse = shareResponses[i] as JRPCResponse<LegacyShareRequestResult>;
+              const timeOffSet = currentShareResponse?.result?.server_time_offset;
+              const parsedTimeOffset = timeOffSet ? Number.parseInt(timeOffSet, 10) : 0;
+              serverTimeOffsets.push(parsedTimeOffset);
               if (currentShareResponse?.result?.keys?.length > 0) {
                 currentShareResponse.result.keys.sort((a, b) => new BN(a.Index, 16).cmp(new BN(b.Index, 16)));
                 const firstKey = currentShareResponse.result.keys[0];
@@ -402,7 +428,7 @@ class Torus {
                     decrypt(tmpKey, {
                       ...metadata,
                       ciphertext: Buffer.from(Buffer.from(firstKey.Share, "base64").toString("binary").padStart(64, "0"), "hex"),
-                    }).catch((err) => log.debug("share decryption", err))
+                    }).catch((err) => log.error("share decryption", err))
                   );
                 } else {
                   sharePromises.push(Promise.resolve(Buffer.from(firstKey.Share.padStart(64, "0"), "hex")));
@@ -443,13 +469,15 @@ class Torus {
             if (privateKey === undefined || privateKey === null) {
               throw new Error("could not derive private key");
             }
-            return privateKey;
+            return { privateKey, serverTimeOffset: this.serverTimeOffset || calculateMedian(serverTimeOffsets) };
           }
           throw new Error("invalid");
         });
       })
-      .then(async (returnedKey) => {
-        const oAuthKey = returnedKey;
+      .then(async (keyData) => {
+        const { serverTimeOffset, privateKey: returnedOauthKey } = keyData;
+        const oAuthKey = returnedOauthKey;
+
         if (!oAuthKey) throw new Error("Invalid private key returned");
 
         const oAuthPubKey = derivePubKey(this.ec, oAuthKey);
@@ -461,7 +489,7 @@ class Torus {
         let typeOfUser: UserType = "v1";
         let pubKeyNonceResult: { X: string; Y: string } | undefined;
         if (this.enableOneKey) {
-          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.keyType, this.serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
+          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.keyType, serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {
@@ -507,7 +535,6 @@ class Torus {
         let finalEvmAddress = "";
         if (finalPubKey) {
           finalEvmAddress = generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY());
-          log.debug("> torus.js/retrieveShares", { finalEvmAddress });
         } else {
           throw new Error("Invalid public key, this might be a bug, please report this to web3auth team");
         }
@@ -534,6 +561,7 @@ class Torus {
             nonce: metadataNonce,
             typeOfUser: typeOfUser as UserType,
             upgraded: isUpgraded,
+            serverTimeOffset,
           },
           nodesData: {
             nodeIndexes: [],
@@ -548,12 +576,10 @@ class Torus {
     { verifier, verifierId }: { verifier: string; verifierId: string },
     enableOneKey: boolean
   ): Promise<TorusPublicKey> {
-    log.debug("> torus.js/getPublicAddress", { endpoints, torusNodePubs, verifier, verifierId });
-
     let finalKeyResult: LegacyVerifierLookupResponse | undefined;
     let isNewKey = false;
 
-    const { keyResult, errorResult } = (await legacyKeyLookup(endpoints, verifier, verifierId, this.keyType)) || {};
+    const { keyResult, errorResult, serverTimeOffset } = (await legacyKeyLookup(endpoints, verifier, verifierId, this.keyType)) || {};
     if (errorResult && JSON.stringify(errorResult).includes("Verifier not supported")) {
       // change error msg
       throw new Error(`Verifier not supported. Check if you: \n
@@ -580,13 +606,13 @@ class Torus {
     } else {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
     }
-    log.debug("> torus.js/getPublicAddress", { finalKeyResult, isNewKey });
-
     if (finalKeyResult) {
+      const finalServerTimeOffset = this.serverTimeOffset || serverTimeOffset;
       return this.formatLegacyPublicKeyData({
         finalKeyResult,
         isNewKey,
         enableOneKey,
+        serverTimeOffset: finalServerTimeOffset,
       });
     }
     throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
@@ -597,7 +623,6 @@ class Torus {
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
     enableOneKey: boolean
   ): Promise<TorusPublicKey> {
-    log.debug("> torus.js/getPublicAddress", { endpoints, verifier, verifierId });
     const keyAssignResult = await GetPubKeyOrKeyAssign({
       endpoints,
       network: this.network,
@@ -606,7 +631,8 @@ class Torus {
       keyType: this.keyType,
       extendedVerifierId,
     });
-    const { errorResult, keyResult, nodeIndexes = [] } = keyAssignResult;
+    const { errorResult, keyResult, nodeIndexes = [], serverTimeOffset } = keyAssignResult;
+    const finalServerTimeOffset = this.serverTimeOffset || serverTimeOffset;
     const { nonceResult } = keyAssignResult;
     if (errorResult && JSON.stringify(errorResult).toLowerCase().includes("verifier not supported")) {
       // change error msg
@@ -617,7 +643,6 @@ class Torus {
     if (errorResult) {
       throw new Error(`node results do not match at first lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
     }
-    log.debug("> torus.js/getPublicAddress", { keyResult });
     if (!keyResult?.keys) {
       throw new Error(`node results do not match at final lookup ${JSON.stringify(keyResult || {})}, ${JSON.stringify(errorResult || {})}`);
     }
@@ -642,6 +667,7 @@ class Torus {
         finalKeyResult: {
           keys: keyResult.keys,
         },
+        serverTimeOffset: finalServerTimeOffset,
       });
     } else {
       const v2NonceResult = nonceResult as v2NonceResultType;
@@ -660,7 +686,6 @@ class Torus {
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
     const oAuthAddress = generateAddressFromPubKey(this.ec, oAuthPubKey.getX(), oAuthPubKey.getY());
-    log.debug("> torus.js/getPublicAddress, oAuthKeyData", { X: oAuthX, Y: oAuthY, oAuthAddress, nonce: nonce?.toString(16), pubNonce });
 
     if (!finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
@@ -684,6 +709,7 @@ class Torus {
         nonce,
         upgraded: (nonceResult as v2NonceResultType)?.upgraded || false,
         typeOfUser: "v2",
+        serverTimeOffset: finalServerTimeOffset,
       },
       nodesData: {
         nodeIndexes,
@@ -695,8 +721,9 @@ class Torus {
     finalKeyResult: LegacyVerifierLookupResponse;
     enableOneKey: boolean;
     isNewKey: boolean;
+    serverTimeOffset: number;
   }): Promise<TorusPublicKey> {
-    const { finalKeyResult, enableOneKey, isNewKey } = params;
+    const { finalKeyResult, enableOneKey, isNewKey, serverTimeOffset } = params;
     const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
     let nonceResult: GetOrSetNonceResult;
     let nonce: BN;
@@ -706,9 +733,10 @@ class Torus {
 
     const oAuthPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
 
+    const finalServerTimeOffset = this.serverTimeOffset || serverTimeOffset;
     if (enableOneKey) {
       try {
-        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.keyType, this.serverTimeOffset, X, Y, undefined, !isNewKey);
+        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.keyType, finalServerTimeOffset, X, Y, undefined, !isNewKey);
         nonce = new BN(nonceResult.nonce || "0", 16);
         typeOfUser = nonceResult.typeOfUser;
       } catch {
@@ -744,7 +772,6 @@ class Torus {
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
     const oAuthAddress = generateAddressFromPubKey(this.ec, oAuthPubKey.getX(), oAuthPubKey.getY());
-    log.debug("> torus.js/getPublicAddress, oAuthKeyData", { X: oAuthX, Y: oAuthY, oAuthAddress, nonce: nonce?.toString(16), pubNonce });
 
     if (typeOfUser === "v2" && !finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
@@ -768,6 +795,7 @@ class Torus {
         nonce,
         upgraded: (nonceResult as v2NonceResultType)?.upgraded || false,
         typeOfUser,
+        serverTimeOffset: finalServerTimeOffset,
       },
       nodesData: {
         nodeIndexes: [],

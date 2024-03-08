@@ -29,6 +29,10 @@ describe("torus utils cyan", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0xA3767911A84bE6907f26C572bc89426dDdDB2825");
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0xA3767911A84bE6907f26C572bc89426dDdDB2825",
@@ -57,6 +61,9 @@ describe("torus utils cyan", function () {
     const result1 = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result1.finalKeyData.evmAddress).to.equal("0x3507F0d192a44E436B8a6C32a37d57D022861b1a");
     expect(result1.metadata.typeOfUser).to.equal("v2");
+    expect(result1.metadata.serverTimeOffset).lessThan(20);
+    delete result1.metadata.serverTimeOffset;
+
     expect(result1).eql({
       oAuthKeyData: {
         evmAddress: "0xA3767911A84bE6907f26C572bc89426dDdDB2825",
@@ -87,6 +94,10 @@ describe("torus utils cyan", function () {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     });
+    expect(result2.metadata.serverTimeOffset).lessThan(20);
+
+    delete result2.metadata.serverTimeOffset;
+
     expect(result2.finalKeyData.evmAddress).to.equal("0x8EA83Ace86EB414747F2b23f03C38A34E0217814");
     expect(result2.metadata.typeOfUser).to.equal("v2");
     expect(result2).eql({
@@ -117,6 +128,8 @@ describe("torus utils cyan", function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     });
+    delete result3.metadata.serverTimeOffset;
+
     expect(result3.finalKeyData.evmAddress).to.equal("0xCC1f953f6972a9e3d685d260399D6B85E2117561");
     expect(result3.metadata.typeOfUser).to.equal("v2");
     expect(result3).eql({
@@ -160,9 +173,20 @@ describe("torus utils cyan", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: TORUS_TEST_EMAIL },
+      token,
+      torusNodePub
+    );
     delete result.sessionData;
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+
+    delete result.metadata.serverTimeOffset;
+
     expect(result.finalKeyData.privKey).to.be.equal("5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8");
     expect(result).eql({
       finalKeyData: {
@@ -186,7 +210,7 @@ describe("torus utils cyan", function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
@@ -196,9 +220,13 @@ describe("torus utils cyan", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: TORUS_TEST_EMAIL,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      torusNodePub
     );
     delete result.sessionData;
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+
+    delete result.metadata.serverTimeOffset;
 
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x34117FDFEFBf1ad2DFA6d4c43804E6C710a6fB04");
     expect(result.finalKeyData.evmAddress).to.be.equal("0x34117FDFEFBf1ad2DFA6d4c43804E6C710a6fB04");

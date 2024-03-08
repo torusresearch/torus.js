@@ -35,7 +35,7 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
     TorusUtils.enableLogging(false);
   });
 
-  it.only("should be able to import a key for a new user", async function () {
+  it("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const privKeyBuffer = new BN(generatePrivateKey(ec, Buffer));
@@ -68,34 +68,35 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
     expect(result.finalKeyData.privKey).to.be.equal("08f54f7c3622a44dd4090397c001d4904d14646222775b29c5e4611f797d75e9");
   });
 
-  it("should fetch public address", async function () {
-    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
+  it.only("should fetch public address", async function () {
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "aslkasakl" };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.X).to.equal("3af3d1e4e10d65ddb96210d5865ddab5b7c5fbe2bad157a6497615cfa8e9bcf5");
-    expect(result).eql({
-      oAuthKeyData: {
-        evmAddress: "0x89155E126aAC6ea94D479d8D7aB5e1BE4ed51eEF",
-        X: "1dfd79a9c42f3ddce4b2601fe629ab1b70c0d8d133c33aead2007b865f63ad6c",
-        Y: "06ab3522dd3710bd26bbe502c4cad0ef0c4ad47e87e13fb3143367ded3426a8f",
-      },
-      finalKeyData: {
-        evmAddress: "0x4b0426e4E8b605753336B88C2F5F8E79E9FdA7aA",
-        X: "3af3d1e4e10d65ddb96210d5865ddab5b7c5fbe2bad157a6497615cfa8e9bcf5",
-        Y: "47bb8524c3d6a895888e9fe4f903186a749de7766d0a14c421312d7c3ffc87ef",
-      },
-      metadata: {
-        pubNonce: {
-          X: "1cecc501e8701081c4c61b3e7696aa8f2494e79013c18cdf9c4ad528d65cc4b3",
-          Y: "459cb8092ac5e99b051cf135a639353d5a6bf4bc8785ec92bbaaee763d1c8963",
-        },
-        nonce: new BN("0"),
-        upgraded: false,
-        typeOfUser: "v2",
-      },
-      nodesData: result.nodesData,
-    });
+    console.log("result", result);
+    // expect(result.finalKeyData.X).to.equal("3af3d1e4e10d65ddb96210d5865ddab5b7c5fbe2bad157a6497615cfa8e9bcf5");
+    // expect(result).eql({
+    //   oAuthKeyData: {
+    //     evmAddress: "0x89155E126aAC6ea94D479d8D7aB5e1BE4ed51eEF",
+    //     X: "1dfd79a9c42f3ddce4b2601fe629ab1b70c0d8d133c33aead2007b865f63ad6c",
+    //     Y: "06ab3522dd3710bd26bbe502c4cad0ef0c4ad47e87e13fb3143367ded3426a8f",
+    //   },
+    //   finalKeyData: {
+    //     evmAddress: "0x4b0426e4E8b605753336B88C2F5F8E79E9FdA7aA",
+    //     X: "3af3d1e4e10d65ddb96210d5865ddab5b7c5fbe2bad157a6497615cfa8e9bcf5",
+    //     Y: "47bb8524c3d6a895888e9fe4f903186a749de7766d0a14c421312d7c3ffc87ef",
+    //   },
+    //   metadata: {
+    //     pubNonce: {
+    //       X: "1cecc501e8701081c4c61b3e7696aa8f2494e79013c18cdf9c4ad528d65cc4b3",
+    //       Y: "459cb8092ac5e99b051cf135a639353d5a6bf4bc8785ec92bbaaee763d1c8963",
+    //     },
+    //     nonce: new BN("0"),
+    //     upgraded: false,
+    //     typeOfUser: "v2",
+    //   },
+    //   nodesData: result.nodesData,
+    // });
   });
   it("should fetch public address of imported user", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };

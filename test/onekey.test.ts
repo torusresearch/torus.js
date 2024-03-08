@@ -32,6 +32,10 @@ describe("torus onekey", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
     expect(publicAddress.finalKeyData.evmAddress).to.be.equal("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
+    expect(publicAddress.metadata.serverTimeOffset).lessThan(20);
+
+    delete publicAddress.metadata.serverTimeOffset;
+
     expect(publicAddress).eql({
       oAuthKeyData: {
         evmAddress: "0xf1e76fcDD28b5AA06De01de508fF21589aB9017E",
@@ -64,6 +68,10 @@ describe("torus onekey", function () {
       { verifier_id: TORUS_TEST_EMAIL },
       token
     );
+    expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
+
+    delete retrieveSharesResponse.metadata.serverTimeOffset;
+
     expect(retrieveSharesResponse.finalKeyData.privKey).to.be.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
     expect(retrieveSharesResponse).eql({
       finalKeyData: {
@@ -111,6 +119,10 @@ describe("torus onekey", function () {
       },
       hashedIdToken.substring(2)
     );
+    expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
+
+    delete retrieveSharesResponse.metadata.serverTimeOffset;
+
     expect(retrieveSharesResponse.finalKeyData.evmAddress).to.be.equal("0xE1155dB406dAD89DdeE9FB9EfC29C8EedC2A0C8B");
     expect(retrieveSharesResponse).eql({
       finalKeyData: {
@@ -182,6 +194,9 @@ describe("torus onekey", function () {
       { verifier_id: "Jonathan.Nolan@hotmail.com" },
       token
     );
+    expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
+    delete retrieveSharesResponse.metadata.serverTimeOffset;
+
     expect(retrieveSharesResponse.finalKeyData.privKey).to.be.equal("9ec5b0504e252e35218c7ce1e4660eac190a1505abfbec7102946f92ed750075");
     expect(retrieveSharesResponse.finalKeyData.evmAddress).to.be.equal("0x2876820fd9536BD5dd874189A85d71eE8bDf64c2");
     expect(retrieveSharesResponse).eql({

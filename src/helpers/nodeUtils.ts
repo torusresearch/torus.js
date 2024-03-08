@@ -28,7 +28,14 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { Some } from "../some";
-import { getProxyCoordinatorEndpointIndex, kCombinations, normalizeKeysResult, thresholdSame } from "./common";
+import {
+  calculateMedian,
+  getProxyCoordinatorEndpointIndex,
+  kCombinations,
+  normalizeKeysResult,
+  normalizeLegacyKeysResult,
+  thresholdSame,
+} from "./common";
 import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generatePrivateKey, generateShares, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
@@ -46,12 +53,14 @@ export const GetPubKeyOrKeyAssign = async (params: {
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
       generateJsonRPCObject(JRPC_METHODS.GET_OR_SET_KEY, {
+        distributed_metadata: true,
         verifier,
         verifier_id: verifierId.toString(),
         extended_verifier_id: extendedVerifierId,
         one_key_flow: true,
         key_type: keyType,
         fetch_node_index: true,
+        client_time: Math.floor(Date.now() / 1000).toString(),
       }),
       null,
       { logTracingHeader: config.logRequestTracing }
@@ -63,19 +72,11 @@ export const GetPubKeyOrKeyAssign = async (params: {
   const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
     const lookupPubKeys = lookupResults.filter((x1) => {
       if (x1 && !x1.error) {
-        if (!nonceResult) {
-          // currently only one node returns metadata nonce
-          // other nodes returns empty object
-          // pubNonce must be available to derive the public key
-          const pubNonceX = (x1.result?.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
-          if (pubNonceX) {
-            nonceResult = x1.result.keys[0].nonce_data;
-          }
-        }
         return x1;
       }
       return false;
     });
+
     const errorResult = thresholdSame(
       lookupPubKeys.map((x2) => x2 && x2.error),
       ~~(endpoints.length / 2) + 1
@@ -86,6 +87,23 @@ export const GetPubKeyOrKeyAssign = async (params: {
       ~~(endpoints.length / 2) + 1
     );
 
+    // check for nonce result in response if not a extendedVerifierId and not a legacy network
+    if (keyResult && !nonceResult && !extendedVerifierId && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
+      for (let i = 0; i < lookupResults.length; i++) {
+        const x1 = lookupResults[i];
+        if (x1 && !x1.error) {
+          const currentNodePubKey = x1.result.keys[0].pub_key_X.toLowerCase();
+          const thresholdPubKey = keyResult.keys[0].pub_key_X.toLowerCase();
+          const pubNonceX = (x1.result?.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
+          if (pubNonceX && currentNodePubKey === thresholdPubKey) {
+            nonceResult = x1.result.keys[0].nonce_data;
+            break;
+          }
+        }
+      }
+    }
+
+    const serverTimeOffsets: number[] = [];
     // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
     if ((keyResult && (nonceResult || extendedVerifierId || LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE])) || errorResult) {
       if (keyResult) {
@@ -96,13 +114,17 @@ export const GetPubKeyOrKeyAssign = async (params: {
             // push only those indexes for nodes who are returning pub key matching with threshold pub key.
             // this check is important when different nodes have different keys assigned to a user.
             if (currentNodePubKey === thresholdPubKey) {
-              const nodeIndex = parseInt(x1.result.node_index);
+              const nodeIndex = Number.parseInt(x1.result.node_index);
               if (nodeIndex) nodeIndexes.push(nodeIndex);
             }
+            const serverTimeOffset = x1.result.server_time_offset ? Number.parseInt(x1.result.server_time_offset, 10) : 0;
+            serverTimeOffsets.push(serverTimeOffset);
           }
         });
       }
-      return Promise.resolve({ keyResult, nodeIndexes, errorResult, nonceResult });
+
+      const serverTimeOffset = keyResult ? calculateMedian(serverTimeOffsets) : 0;
+      return Promise.resolve({ keyResult, serverTimeOffset, nodeIndexes, errorResult, nonceResult });
     }
     return Promise.reject(
       new Error(
@@ -138,7 +160,6 @@ export async function retrieveOrImportShare(params: {
 }): Promise<TorusKey> {
   const {
     legacyMetadataHost,
-    serverTimeOffset,
     enableOneKey,
     ecCurve,
     keyType,
@@ -155,16 +176,17 @@ export async function retrieveOrImportShare(params: {
     newImportedShares,
     extraParams,
     useDkg = true,
+    serverTimeOffset,
   } = params;
   await get<void>(
     allowHost,
     {
       headers: {
         verifier,
-        verifierId: verifierParams.verifier_id,
+        verifierid: verifierParams.verifier_id,
         network,
-        clientId,
-        enableGating: "true",
+        clientid: clientId,
+        enablegating: "true",
       },
     },
     { useAPIKey: true }
@@ -363,6 +385,7 @@ export async function retrieveOrImportShare(params: {
               encrypted: "yes",
               use_temp: true,
               key_type: keyType,
+              distributed_metadata: true,
               item: [
                 {
                   ...verifierParams,
@@ -373,6 +396,7 @@ export async function retrieveOrImportShare(params: {
                   ...extraParams,
                 },
               ],
+              client_time: Math.floor(Date.now() / 1000).toString(),
               one_key_flow: true,
             }),
             null,
@@ -384,7 +408,14 @@ export async function retrieveOrImportShare(params: {
       let thresholdNonceData: GetOrSetNonceResult;
       return Some<
         void | JRPCResponse<ShareRequestResult> | JRPCResponse<ShareRequestResult[]>,
-        | { privateKey: BN; sessionTokenData: SessionToken[]; thresholdNonceData: GetOrSetNonceResult; nodeIndexes: BN[]; isNewKey: boolean }
+        | {
+            privateKey: BN;
+            sessionTokenData: SessionToken[];
+            thresholdNonceData: GetOrSetNonceResult;
+            nodeIndexes: BN[];
+            isNewKey: boolean;
+            serverTimeOffsetResponse?: number;
+          }
         | undefined
       >(promiseArrRequest, async (shareResponseResult, sharedState) => {
         let shareResponses: (void | JRPCResponse<ShareRequestResult>)[] = [];
@@ -415,12 +446,6 @@ export async function retrieveOrImportShare(params: {
         });
         const pubkeys = shareResponses.map((x) => {
           if (x && x.result && x.result.keys[0].public_key) {
-            if (!thresholdNonceData && !verifierParams.extended_verifier_id) {
-              const pubNonce = (x.result.keys[0].nonce_data as v2NonceResultType)?.pubNonce?.x;
-              if (pubNonce) {
-                thresholdNonceData = x.result.keys[0].nonce_data;
-              }
-            }
             return x.result.keys[0].public_key;
           }
           return undefined;
@@ -431,6 +456,17 @@ export async function retrieveOrImportShare(params: {
         if (!thresholdPublicKey) {
           throw new Error("invalid result from nodes, threshold number of public key results are not matching");
         }
+
+        shareResponses.forEach((x) => {
+          const requiredShareResponse = x && x.result && x.result.keys[0].public_key && x.result.keys[0];
+          if (requiredShareResponse && !thresholdNonceData && !verifierParams.extended_verifier_id) {
+            const currentPubKey = requiredShareResponse.public_key;
+            const pubNonce = (requiredShareResponse.nonce_data as v2NonceResultType)?.pubNonce?.x;
+            if (pubNonce && currentPubKey.X === thresholdPublicKey.X) {
+              thresholdNonceData = requiredShareResponse.nonce_data;
+            }
+          }
+        });
 
         // if both thresholdNonceData and extended_verifier_id are not available
         // then we need to throw other wise address would be incorrect.
@@ -456,6 +492,7 @@ export async function retrieveOrImportShare(params: {
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
           const isNewKeyResponses: string[] = [];
+          const serverTimeOffsetResponses: string[] = [];
 
           for (let i = 0; i < completedRequests.length; i += 1) {
             const currentShareResponse = completedRequests[i] as JRPCResponse<ShareRequestResult>;
@@ -466,16 +503,18 @@ export async function retrieveOrImportShare(params: {
               session_token_sig_metadata: sessionTokenSigMetadata,
               keys,
               is_new_key: isNewKey,
+              server_time_offset: serverTimeOffsetResponse,
             } = currentShareResponse.result;
 
             isNewKeyResponses.push(isNewKey);
+            serverTimeOffsetResponses.push(serverTimeOffsetResponse || "0");
 
             if (sessionTokenSigs?.length > 0) {
               // decrypt sessionSig if enc metadata is sent
               if (sessionTokenSigMetadata && sessionTokenSigMetadata[0]?.ephemPublicKey) {
                 sessionTokenSigPromises.push(
                   decryptNodeData(sessionTokenSigMetadata[0], sessionTokenSigs[0], sessionAuthKey).catch((err) =>
-                    log.debug("session sig decryption", err)
+                    log.error("session sig decryption", err)
                   )
                 );
               } else {
@@ -490,7 +529,7 @@ export async function retrieveOrImportShare(params: {
               if (sessionTokenMetadata && sessionTokenMetadata[0]?.ephemPublicKey) {
                 sessionTokenPromises.push(
                   decryptNodeData(sessionTokenMetadata[0], sessionTokens[0], sessionAuthKey).catch((err) =>
-                    log.debug("session token sig decryption", err)
+                    log.error("session token sig decryption", err)
                   )
                 );
               } else {
@@ -510,9 +549,7 @@ export async function retrieveOrImportShare(params: {
                     latestKey.share_metadata,
                     Buffer.from(latestKey.share, "base64").toString("binary").padStart(64, "0"),
                     sessionAuthKey
-                  ).catch((err) => {
-                    log.debug("share decryption", err);
-                  })
+                  ).catch((err) => log.error("share decryption", err))
                 );
               }
             } else {
@@ -595,13 +632,23 @@ export async function retrieveOrImportShare(params: {
 
           const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
-          return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey: thresholdIsNewKey === "true" };
+          // Convert each string timestamp to a number
+          const serverOffsetTimes = serverTimeOffsetResponses.map((timestamp) => Number.parseInt(timestamp, 10));
+
+          return {
+            privateKey,
+            sessionTokenData,
+            thresholdNonceData,
+            nodeIndexes,
+            isNewKey: thresholdIsNewKey === "true",
+            serverTimeOffsetResponse: serverTimeOffset || calculateMedian(serverOffsetTimes),
+          };
         }
         throw new Error("Invalid");
       });
     })
     .then(async (res) => {
-      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey } = res;
+      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey, serverTimeOffsetResponse } = res;
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oAuthKey = privateKey;
@@ -621,7 +668,16 @@ export async function retrieveOrImportShare(params: {
         finalPubKey = ecCurve.keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
         if (enableOneKey) {
-          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, keyType, serverTimeOffset, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
+          nonceResult = await getOrSetNonce(
+            legacyMetadataHost,
+            ecCurve,
+            keyType,
+            serverTimeOffsetResponse,
+            oAuthPubkeyX,
+            oAuthPubkeyY,
+            oAuthKey,
+            !isNewKey
+          );
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {
@@ -668,7 +724,7 @@ export async function retrieveOrImportShare(params: {
       // deriving address from pub key coz pubkey is always available
       // but finalPrivKey won't be available for  v2 user upgraded to 2/n
       const finalEvmAddress = generateAddressFromPubKey(ecCurve, finalPubKey.getX(), finalPubKey.getY());
-      log.debug("> torus.js/retrieveShares", { finalEvmAddress });
+
       let finalPrivKey = ""; // it is empty for v2 user upgraded to 2/n
       if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
         const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
@@ -704,6 +760,7 @@ export async function retrieveOrImportShare(params: {
           nonce: metadataNonce,
           typeOfUser,
           upgraded: isUpgraded,
+          serverTimeOffset: serverTimeOffsetResponse,
         },
         nodesData: {
           nodeIndexes: nodeIndexes.map((x) => x.toNumber()),
@@ -725,6 +782,7 @@ export const legacyKeyLookup = async (
         verifier,
         verifier_id: verifierId.toString(),
         key_type: keyType,
+        client_time: Math.floor(Date.now() / 1000).toString(),
       })
     ).catch((err) => log.error("lookup request failed", err))
   );
@@ -735,11 +793,25 @@ export const legacyKeyLookup = async (
       ~~(endpoints.length / 2) + 1
     );
     const keyResult = thresholdSame(
-      lookupShares.map((x3) => x3 && x3.result),
+      lookupShares.map((x3) => x3 && normalizeLegacyKeysResult(x3.result)),
       ~~(endpoints.length / 2) + 1
     );
+
+    const serverTimeOffsets: number[] = [];
+    // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
+    if (keyResult) {
+      lookupResults.forEach((x1) => {
+        if (x1 && x1.result) {
+          const timeOffSet = x1.result.server_time_offset;
+          const serverTimeOffset = timeOffSet ? Number.parseInt(timeOffSet, 10) : 0;
+          serverTimeOffsets.push(serverTimeOffset);
+        }
+      });
+    }
+
     if (keyResult || errorResult) {
-      return Promise.resolve({ keyResult, errorResult });
+      const serverTimeOffset = keyResult ? calculateMedian(serverTimeOffsets) : 0;
+      return Promise.resolve({ keyResult, errorResult, serverTimeOffset });
     }
     return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`));
   });
@@ -762,7 +834,6 @@ export const legacyKeyAssign = async ({
   if (lastPoint === undefined) {
     nodeNum = Math.floor(Math.random() * endpoints.length);
     // nodeNum = endpoints.indexOf("https://torus-node.binancex.dev/jrpc");
-    log.info("keyassign", nodeNum, endpoints[nodeNum]);
     initialPoint = nodeNum;
   } else {
     nodeNum = lastPoint % endpoints.length;
@@ -781,10 +852,10 @@ export const legacyKeyAssign = async ({
       data,
       {
         headers: {
-          pubKeyX: torusNodePubs[nodeNum].X,
-          pubKeyY: torusNodePubs[nodeNum].Y,
+          pubkeyx: torusNodePubs[nodeNum].X,
+          pubkeyy: torusNodePubs[nodeNum].Y,
           network,
-          clientId,
+          clientid: clientId,
         },
       },
       { useAPIKey: true }

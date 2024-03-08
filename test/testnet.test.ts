@@ -1,8 +1,10 @@
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
 import NodeManager from "@toruslabs/fetch-node-details";
+import { fail } from "assert";
 import BN from "bn.js";
 import { expect } from "chai";
 import faker from "faker";
+import { useFakeTimers } from "sinon";
 
 import { keccak256, TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
@@ -28,6 +30,9 @@ describe("torus utils migrated testnet on sapphire", function () {
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0x9bcBAde70546c0796c00323CD1b97fa0a425A506");
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+    delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
         evmAddress: "0x9bcBAde70546c0796c00323CD1b97fa0a425A506",
@@ -56,6 +61,10 @@ describe("torus utils migrated testnet on sapphire", function () {
     const result1 = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result1.finalKeyData.evmAddress).to.equal("0xf5804f608C233b9cdA5952E46EB86C9037fd6842");
     expect(result1.metadata.typeOfUser).to.equal("v2");
+    expect(result1.metadata.serverTimeOffset).lessThan(20);
+
+    delete result1.metadata.serverTimeOffset;
+
     expect(result1).eql({
       oAuthKeyData: {
         evmAddress: "0x9bcBAde70546c0796c00323CD1b97fa0a425A506",
@@ -88,6 +97,10 @@ describe("torus utils migrated testnet on sapphire", function () {
     })) as TorusPublicKey;
     expect(result2.finalKeyData.evmAddress).to.equal("0xE91200d82029603d73d6E307DbCbd9A7D0129d8D");
     expect(result2.metadata.typeOfUser).to.equal("v2");
+    expect(result2.metadata.serverTimeOffset).lessThan(20);
+
+    delete result2.metadata.serverTimeOffset;
+
     expect(result2).eql({
       oAuthKeyData: {
         evmAddress: "0x376597141d8d219553378313d18590F373B09795",
@@ -119,6 +132,8 @@ describe("torus utils migrated testnet on sapphire", function () {
     })) as TorusPublicKey;
     expect(result3.finalKeyData.evmAddress).to.equal("0x1016DA7c47A04C76036637Ea02AcF1d29c64a456");
     expect(result3.metadata.typeOfUser).to.equal("v2");
+    delete result3.metadata.serverTimeOffset;
+
     expect(result3).eql({
       oAuthKeyData: {
         evmAddress: "0xd45383fbF04BccFa0450d7d8ee453ca86b7C6544",
@@ -162,6 +177,9 @@ describe("torus utils migrated testnet on sapphire", function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+    delete result.metadata.serverTimeOffset;
+
     expect(result.finalKeyData.privKey).to.be.equal("9b0fb017db14a0a25ed51f78a258713c8ae88b5e58a43acb70b22f9e2ee138e3");
     expect(result).eql({
       finalKeyData: {
@@ -201,6 +219,9 @@ describe("torus utils migrated testnet on sapphire", function () {
       },
       hashedIdToken.substring(2)
     );
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+    delete result.metadata.serverTimeOffset;
+
     expect(result.metadata.typeOfUser).to.be.equal("v1");
     expect(result.oAuthKeyData.evmAddress).to.be.equal("0x938a40E155d118BD31E439A9d92D67bd55317965");
     expect(result.finalKeyData.evmAddress).to.be.equal("0x938a40E155d118BD31E439A9d92D67bd55317965");
@@ -224,5 +245,46 @@ describe("torus utils migrated testnet on sapphire", function () {
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: result.nodesData,
     });
+  });
+  it("should fail at get or set nonce when server time offset is expired", async function () {
+    const email = "himanshu@tor.us";
+    const verifier = "google-lrc";
+    const token = generateIdToken(email, "ES256");
+
+    const verifierDetails = { verifier, verifierId: email };
+    const legacyTorus = new TorusUtils({
+      network: TORUS_LEGACY_NETWORK.TESTNET,
+      clientId: "YOUR_CLIENT_ID",
+      enableOneKey: true,
+      serverTimeOffset: -100,
+    });
+    const { torusNodeSSSEndpoints: torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    try {
+      await legacyTorus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token);
+      fail("should not reach here");
+    } catch (err) {
+      expect((err as { status: number }).status).to.equal(403);
+    }
+  });
+
+  it("should pass at get pub nonce when system time is incorrect", async function () {
+    const clock = useFakeTimers();
+    const fakeTime = new Date("2023-05-05T12:00:00").getTime();
+
+    // Mock the system clock time to be a specific time
+    clock.tick(fakeTime);
+
+    // Now, getCurrentTime should return the mocked time
+    const currentTime = new Date().getTime();
+
+    // Assert that the current time matches the mocked time
+    expect(currentTime).to.equal(fakeTime);
+    const email = "himanshu@tor.us";
+    const verifier = "google-lrc";
+    const verifierDetails = { verifier, verifierId: email };
+    const { torusNodeSSSEndpoints: torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const response = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
+    expect(response.metadata.typeOfUser).to.equal("v1");
+    clock.restore();
   });
 });
