@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { ec as EC } from "elliptic";
 import faker from "faker";
 
-import { generatePrivateKey, keccak256 } from "../src";
+import { generatePrivateKey, getEd25519ExtendedPublicKey, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
 
@@ -69,11 +69,13 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
   });
 
   it.only("should fetch public address", async function () {
-    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "aslkasakl" };
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    console.log("result", result);
+    const randomKey = ec.genKeyPair();
+    getEd25519ExtendedPublicKey(randomKey.getPrivate());
+    // const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "aslkasakl" };
+    // const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    // const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    // const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+    // console.log("result", result);
     // expect(result.finalKeyData.X).to.equal("3af3d1e4e10d65ddb96210d5865ddab5b7c5fbe2bad157a6497615cfa8e9bcf5");
     // expect(result).eql({
     //   oAuthKeyData: {

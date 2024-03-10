@@ -208,7 +208,7 @@ export async function retrieveOrImportShare(params: {
     finalImportedShares = newImportedShares;
   } else if (!useDkg) {
     const importedKey = new BN(generatePrivateKey(ecCurve, Buffer));
-    const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, importedKey.toString(16, 64));
+    const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, importedKey);
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
 
@@ -255,9 +255,9 @@ export async function retrieveOrImportShare(params: {
     });
 
     if (finalImportedShares.length > 0) {
-      // this case is for imported keys
-      // for imported keys registration we need to wait for all nodes to agree on commitment
-      // for existing imported keys we can rely on threshold nodes commitment
+      // this is a optimization is for imported keys
+      // for new imported keys registration we need to wait for all nodes to agree on commitment
+      // for fetching existing imported keys we can rely on threshold nodes commitment
       if (overrideExistingKey && completedRequests.length === endpoints.length) {
         const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
           if (resp && resp.result?.nodeindex === "1") {
@@ -366,6 +366,7 @@ export async function retrieveOrImportShare(params: {
             encrypted: "yes",
             use_temp: true,
             item: items,
+            encrypted_seed: items[0]?.encrypted_seed || "",
             key_type: keyType,
             one_key_flow: true,
           }),

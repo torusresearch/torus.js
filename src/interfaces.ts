@@ -165,6 +165,7 @@ export interface ImportedShare {
   pub_key_y: string;
   encrypted_share: string;
   encrypted_share_metadata: EciesHex;
+  encrypted_seed?: string;
   node_index: number;
   key_type: string;
   nonce_data: string;
@@ -240,4 +241,13 @@ export interface MetadataParams {
     timestamp: string;
   };
   signature: string;
+}
+
+export interface PrivateKeyData {
+  oAuthKeyScalar: BN;
+  oAuthPubX: BN;
+  oAuthPubY: BN;
+  metadataNonce: BN;
+  encryptedSeed?: string;
+  encryptionScalar?: BN;
 }
