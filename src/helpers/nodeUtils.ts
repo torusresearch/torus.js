@@ -36,9 +36,18 @@ import {
   normalizeLegacyKeysResult,
   thresholdSame,
 } from "./common";
-import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generatePrivateKey, generateShares, keccak256 } from "./keyUtils";
+import {
+  derivePubKey,
+  encodeEd25519Point,
+  generateAddressFromPrivKey,
+  generateAddressFromPubKey,
+  generatePrivateKey,
+  generateShares,
+  getEd25519ExtendedPublicKey,
+  keccak256,
+} from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
-import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
+import { decryptNodeData, decryptSeedData, getMetadata, getOrSetNonce } from "./metadataUtils";
 
 export const GetPubKeyOrKeyAssign = async (params: {
   endpoints: string[];
@@ -348,8 +357,10 @@ export async function retrieveOrImportShare(params: {
             idtoken: idToken,
             nodesignatures: nodeSigs,
             verifieridentifier: verifier,
-            pub_key_x: importedShare.pub_key_x,
-            pub_key_y: importedShare.pub_key_y,
+            pub_key_x: importedShare.oauth_pub_key_x,
+            pub_key_y: importedShare.oauth_pub_key_y,
+            signing_pub_key_x: importedShare.signing_pub_key_x,
+            signing_pub_key_y: importedShare.signing_pub_key_y,
             encrypted_share: importedShare.encrypted_share,
             encrypted_share_metadata: importedShare.encrypted_share_metadata,
             node_index: importedShare.node_index,
@@ -366,7 +377,6 @@ export async function retrieveOrImportShare(params: {
             encrypted: "yes",
             use_temp: true,
             item: items,
-            encrypted_seed: items[0]?.encrypted_seed || "",
             key_type: keyType,
             one_key_flow: true,
           }),
@@ -737,6 +747,18 @@ export async function retrieveOrImportShare(params: {
         isUpgraded = null;
       } else if (typeOfUser === "v2") {
         isUpgraded = metadataNonce.eq(new BN("0"));
+      }
+
+      if (keyType === "ed25519") {
+        if (!nonceResult.seed) {
+          throw new Error("Invalid data, seed data is missing for ed25519 key, Please report this bug");
+        }
+        const decryptedSeed = await decryptSeedData(nonceResult.seed, new BN(finalPrivKey, "hex"));
+        const extendedEd25519Key = getEd25519ExtendedPublicKey(new BN(decryptedSeed));
+        const encodedPubKey = encodeEd25519Point(extendedEd25519Key.point);
+        const totalLength = decryptedSeed.length + encodedPubKey.length;
+        finalPrivKey = Buffer.concat([decryptedSeed, encodedPubKey], totalLength).toString("hex");
+        finalPubKey = extendedEd25519Key.point;
       }
       // return reconstructed private key and ethereum address
       return {

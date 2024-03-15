@@ -16,6 +16,7 @@ import { config } from "./config";
 import {
   calculateMedian,
   derivePubKey,
+  encodeEd25519Point,
   generateAddressFromPrivKey,
   generateAddressFromPubKey,
   generateShares,
@@ -216,8 +217,28 @@ class Torus {
     if (endpoints.length !== nodeIndexes.length) {
       throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
     }
-    const sharesData = await generateShares(this.ec, this.keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, newPrivateKey);
 
+    const privKeyBuffer = new Uint8Array(Buffer.from(newPrivateKey, "hex"));
+
+    if (this.keyType === "secp256k1" && privKeyBuffer.length !== 32) {
+      throw new Error("Invalid private key length for give secp256k1 key");
+    }
+    if (this.keyType === "ed25519" && privKeyBuffer.length !== 64) {
+      throw new Error("Invalid private key length for give secp256k1 key");
+    }
+
+    const finalPrivKey = this.keyType === "secp256k1" ? privKeyBuffer : privKeyBuffer.slice(0, 32);
+    const privKeyBn = new BN(finalPrivKey, 16);
+    const sharesData = await generateShares(this.ec, this.keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, privKeyBn);
+    if (this.keyType === "ed25519") {
+      const ed25519PubKey = privKeyBuffer.slice(32);
+      const encodedPubKey = encodeEd25519Point(sharesData[0].final_user_point);
+      const importedPubKey = Buffer.from(ed25519PubKey).toString("hex");
+      const derivedPubKey = encodedPubKey.toString("hex");
+      if (importedPubKey !== derivedPubKey) {
+        throw new Error("invalid shares data for ed25519 key, public key is not matching after generating shares");
+      }
+    }
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
@@ -631,6 +652,7 @@ class Torus {
       keyType: this.keyType,
       extendedVerifierId,
     });
+
     const { errorResult, keyResult, nodeIndexes = [], serverTimeOffset } = keyAssignResult;
     const finalServerTimeOffset = this.serverTimeOffset || serverTimeOffset;
     const { nonceResult } = keyAssignResult;
