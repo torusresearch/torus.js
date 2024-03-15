@@ -86,6 +86,7 @@ export interface KeyLookupResult {
   serverTimeOffset: number;
   errorResult: JRPCResponse<VerifierLookupResponse>["error"];
   nonceResult?: GetOrSetNonceResult;
+  lookupResults: (JRPCResponse<VerifierLookupResponse> | void)[];
 }
 
 export interface SignerResponse {

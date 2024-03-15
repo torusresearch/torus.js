@@ -114,7 +114,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
       }
 
       const serverTimeOffset = keyResult ? calculateMedian(serverTimeOffsets) : 0;
-      return Promise.resolve({ keyResult, serverTimeOffset, nodeIndexes, errorResult, nonceResult });
+      return Promise.resolve({ keyResult, serverTimeOffset, nodeIndexes, errorResult, nonceResult, lookupResults });
     }
     return Promise.reject(
       new Error(
