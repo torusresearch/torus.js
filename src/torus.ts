@@ -82,9 +82,11 @@ class Torus {
     legacyMetadataHost,
     keyType = "secp256k1",
   }: TorusCtorOptions) {
-    if (!clientId) throw Error("Please provide a valid clientId in constructor");
-    if (!network) throw Error("Please provide a valid network in constructor");
-
+    if (!clientId) throw new Error("Please provide a valid clientId in constructor");
+    if (!network) throw new Error("Please provide a valid network in constructor");
+    if (keyType === "ed25519" && LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
+      throw new Error(`keyType: ${keyType} is not supported by ${network} network`);
+    }
     this.keyType = keyType;
     this.ec = new EC(this.keyType);
     this.serverTimeOffset = serverTimeOffset || 0; // ms
@@ -218,7 +220,7 @@ class Torus {
       throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
     }
 
-    const privKeyBuffer = new Uint8Array(Buffer.from(newPrivateKey, "hex"));
+    const privKeyBuffer = Buffer.from(newPrivateKey.padStart(64, "0"), "hex");
 
     if (this.keyType === "secp256k1" && privKeyBuffer.length !== 32) {
       throw new Error("Invalid private key length for give secp256k1 key");
@@ -289,6 +291,9 @@ class Torus {
     keyType: KeyType,
     extraParams: Record<string, unknown> = {}
   ): Promise<TorusKey> {
+    if (this.keyType !== "secp256k1") {
+      throw new Error(`Given keyType: ${this.keyType} is not supported on network: ${this.network}`);
+    }
     const promiseArr = [];
     await get<void>(
       this.allowHost,
@@ -536,7 +541,7 @@ class Torus {
           finalPubKey = this.ec.keyFromPrivate(privateKeyWithNonce.toString("hex", 64), "hex").getPublic();
         }
 
-        const oAuthKeyAddress = generateAddressFromPrivKey(this.ec, oAuthKey);
+        const oAuthKeyAddress = generateAddressFromPrivKey(this.keyType, oAuthKey);
 
         let finalPrivKey = ""; // it is empty for v2 user upgraded to 2/n
         if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
@@ -553,22 +558,22 @@ class Torus {
 
         // deriving address from pub key coz pubkey is always available
         // but finalPrivKey won't be available for  v2 user upgraded to 2/n
-        let finalEvmAddress = "";
+        let walletAddress = "";
         if (finalPubKey) {
-          finalEvmAddress = generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY());
+          walletAddress = generateAddressFromPubKey(this.keyType, finalPubKey.getX(), finalPubKey.getY());
         } else {
           throw new Error("Invalid public key, this might be a bug, please report this to web3auth team");
         }
 
         return {
           finalKeyData: {
-            evmAddress: finalEvmAddress,
+            walletAddress,
             X: finalPubKey ? finalPubKey.getX().toString(16, 64) : "", // this is final pub x user before and after updating to 2/n
             Y: finalPubKey ? finalPubKey.getY().toString(16, 64) : "", // this is final pub y user before and after updating to 2/n
             privKey: finalPrivKey,
           },
           oAuthKeyData: {
-            evmAddress: oAuthKeyAddress,
+            walletAddress: oAuthKeyAddress,
             X: oAuthKeyX,
             Y: oAuthKeyY,
             privKey: oAuthKey.toString("hex", 64).padStart(64, "0"),
@@ -597,6 +602,9 @@ class Torus {
     { verifier, verifierId }: { verifier: string; verifierId: string },
     enableOneKey: boolean
   ): Promise<TorusPublicKey> {
+    if (this.keyType !== "secp256k1") {
+      throw new Error(`Given keyType: ${this.keyType} is not supported on network: ${this.network}`);
+    }
     let finalKeyResult: LegacyVerifierLookupResponse | undefined;
     let isNewKey = false;
 
@@ -707,22 +715,22 @@ class Torus {
     }
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
-    const oAuthAddress = generateAddressFromPubKey(this.ec, oAuthPubKey.getX(), oAuthPubKey.getY());
+    const oAuthAddress = generateAddressFromPubKey(this.keyType, oAuthPubKey.getX(), oAuthPubKey.getY());
 
     if (!finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
     }
     const finalX = finalPubKey ? finalPubKey.getX().toString(16, 64) : "";
     const finalY = finalPubKey ? finalPubKey.getY().toString(16, 64) : "";
-    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY()) : "";
+    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.keyType, finalPubKey.getX(), finalPubKey.getY()) : "";
     return {
       oAuthKeyData: {
-        evmAddress: oAuthAddress,
+        walletAddress: oAuthAddress,
         X: oAuthX,
         Y: oAuthY,
       },
       finalKeyData: {
-        evmAddress: finalAddress,
+        walletAddress: finalAddress,
         X: finalX,
         Y: finalY,
       },
@@ -793,22 +801,22 @@ class Torus {
     }
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
-    const oAuthAddress = generateAddressFromPubKey(this.ec, oAuthPubKey.getX(), oAuthPubKey.getY());
+    const oAuthAddress = generateAddressFromPubKey(this.keyType, oAuthPubKey.getX(), oAuthPubKey.getY());
 
     if (typeOfUser === "v2" && !finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
     }
     const finalX = finalPubKey ? finalPubKey.getX().toString(16, 64) : "";
     const finalY = finalPubKey ? finalPubKey.getY().toString(16, 64) : "";
-    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY()) : "";
+    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.keyType, finalPubKey.getX(), finalPubKey.getY()) : "";
     return {
       oAuthKeyData: {
-        evmAddress: oAuthAddress,
+        walletAddress: oAuthAddress,
         X: oAuthX,
         Y: oAuthY,
       },
       finalKeyData: {
-        evmAddress: finalAddress,
+        walletAddress: finalAddress,
         X: finalX,
         Y: finalY,
       },

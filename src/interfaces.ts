@@ -194,12 +194,12 @@ export interface SessionToken {
 }
 export interface TorusPublicKey {
   finalKeyData: {
-    evmAddress: string;
+    walletAddress: string; // format depends on key type
     X: string; // this is final pub x user before and after updating to 2/n
     Y: string; // this is final pub y user before and after updating to 2/n
   };
   oAuthKeyData: {
-    evmAddress: string;
+    walletAddress: string; // format depends on key type
     X: string;
     Y: string;
   };

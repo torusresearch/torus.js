@@ -1,6 +1,7 @@
 import { INodePub } from "@toruslabs/constants";
 import { Ecies, encrypt } from "@toruslabs/eccrypto";
 import BN from "bn.js";
+import base58 from "bs58";
 import { curve, ec as EC } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 import { sha512 } from "ethereum-cryptography/sha512";
@@ -8,7 +9,7 @@ import stringify from "json-stable-stringify";
 import log from "loglevel";
 
 import { EncryptedSeed, ImportedShare, KeyType, PrivateKeyData } from "../interfaces";
-import { ed25519Curve, encParamsBufToHex, secp256k1Curve } from "./common";
+import { ed25519Curve, encParamsBufToHex, getKeyCurve, secp256k1Curve } from "./common";
 import { generateRandomPolynomial } from "./langrangeInterpolatePoly";
 import { generateNonceMetadataParams } from "./metadataUtils";
 
@@ -151,18 +152,34 @@ export const generateSecp256k1KeyData = async (scalar: BN): Promise<PrivateKeyDa
   };
 };
 
-export function generateAddressFromPrivKey(ecCurve: EC, privateKey: BN): string {
+export function generateAddressFromPrivKey(keyType: KeyType, privateKey: BN): string {
+  const ecCurve = getKeyCurve(keyType);
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64), "hex");
-  const publicKey = key.getPublic().encode("hex", false).slice(2);
-  const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
-  return toChecksumAddress(evmAddressLower);
+  if (keyType === "secp256k1") {
+    const publicKey = key.getPublic().encode("hex", false).slice(2);
+    const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
+    return toChecksumAddress(evmAddressLower);
+  } else if (keyType === "ed25519") {
+    const publicKey = encodeEd25519Point(key.getPublic());
+    const address = base58.encode(publicKey);
+    return address;
+  }
+  throw new Error(`Invalid keyType: ${keyType}`);
 }
 
-export function generateAddressFromPubKey(ecCurve: EC, publicKeyX: BN, publicKeyY: BN): string {
+export function generateAddressFromPubKey(keyType: KeyType, publicKeyX: BN, publicKeyY: BN): string {
+  const ecCurve = getKeyCurve(keyType);
   const key = ecCurve.keyFromPublic({ x: publicKeyX.toString("hex", 64), y: publicKeyY.toString("hex", 64) });
-  const publicKey = key.getPublic().encode("hex", false).slice(2);
-  const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
-  return toChecksumAddress(evmAddressLower);
+  if (keyType === "secp256k1") {
+    const publicKey = key.getPublic().encode("hex", false).slice(2);
+    const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
+    return toChecksumAddress(evmAddressLower);
+  } else if (keyType === "ed25519") {
+    const publicKey = encodeEd25519Point(key.getPublic());
+    const address = base58.encode(publicKey);
+    return address;
+  }
+  throw new Error(`Invalid keyType: ${keyType}`);
 }
 
 export function getPostboxKeyFrom1OutOf1(ecCurve: EC, privKey: string, nonce: string): string {

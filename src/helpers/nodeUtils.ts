@@ -43,7 +43,6 @@ import {
   generateAddressFromPubKey,
   generatePrivateKey,
   generateShares,
-  getEd25519ExtendedPublicKey,
   keccak256,
 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
@@ -207,7 +206,6 @@ export async function retrieveOrImportShare(params: {
   const pubKey = getPublic(sessionAuthKey).toString("hex");
   const pubKeyX = pubKey.slice(2, 66);
   const pubKeyY = pubKey.slice(66);
-  const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
   let finalImportedShares: ImportedShare[] = [];
 
   if (newImportedShares.length > 0) {
@@ -220,6 +218,8 @@ export async function retrieveOrImportShare(params: {
     const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, importedKey);
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
+
+  const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
 
   // make commitment requests to endpoints
   for (let i = 0; i < endpoints.length; i += 1) {
@@ -269,7 +269,7 @@ export async function retrieveOrImportShare(params: {
       // for fetching existing imported keys we can rely on threshold nodes commitment
       if (overrideExistingKey && completedRequests.length === endpoints.length) {
         const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
-          if (resp && resp.result?.nodeindex === "1") {
+          if (resp) {
             return true;
           }
           return false;
@@ -278,9 +278,6 @@ export async function retrieveOrImportShare(params: {
           return Promise.resolve(resultArr);
         }
       } else if (!overrideExistingKey && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
-        // for import shares, proxy node response is required.
-        // proxy node returns metadata unlike dkg keys where node 1 is checked for metadata.
-        // if user's account already
         const nodeSigs: CommitmentRequestResult[] = [];
         for (let i = 0; i < completedRequests.length; i += 1) {
           const x = completedRequests[i];
@@ -294,6 +291,9 @@ export async function retrieveOrImportShare(params: {
           ~~(endpoints.length / 2) + 1
         );
         const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
+        // for import shares, proxy node response is required.
+        // proxy node returns metadata.
+        // if user's account already
         const requiredNodeIndex = indexes[proxyEndpointNum].toString(10);
 
         // if not a existing key we need to wait for nodes to agree on commitment
@@ -312,7 +312,7 @@ export async function retrieveOrImportShare(params: {
     } else if (completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
       // this case is for dkg keys
       const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
-        if (resp && resp.result?.nodeindex === "1") {
+        if (resp) {
           return true;
         }
         return false;
@@ -730,46 +730,48 @@ export async function retrieveOrImportShare(params: {
         throw new Error("Invalid public key, this might be a bug, please report this to web3auth team");
       }
 
-      const oAuthKeyAddress = generateAddressFromPrivKey(ecCurve, oAuthKey);
-
+      let finalPrivKey = ""; // it is empty for v2 user upgraded to 2/n
+      let isUpgraded: boolean | null = false;
+      const oAuthKeyAddress = generateAddressFromPrivKey(keyType, oAuthKey);
       // deriving address from pub key coz pubkey is always available
       // but finalPrivKey won't be available for  v2 user upgraded to 2/n
-      const finalEvmAddress = generateAddressFromPubKey(ecCurve, finalPubKey.getX(), finalPubKey.getY());
-
-      let finalPrivKey = ""; // it is empty for v2 user upgraded to 2/n
-      if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
-        const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
-        finalPrivKey = privateKeyWithNonce.toString("hex", 64);
-      }
-
-      let isUpgraded: boolean | null = false;
+      const finalWalletAddress = generateAddressFromPubKey(keyType, finalPubKey.getX(), finalPubKey.getY());
+      let keyWithNonce = "";
       if (typeOfUser === "v1") {
         isUpgraded = null;
       } else if (typeOfUser === "v2") {
         isUpgraded = metadataNonce.eq(new BN("0"));
       }
 
-      if (keyType === "ed25519") {
-        if (!nonceResult.seed) {
+      if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
+        const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
+        keyWithNonce = privateKeyWithNonce.toString("hex", 64);
+      }
+      if (keyType === "secp256k1") {
+        finalPrivKey = keyWithNonce;
+      } else if (keyType === "ed25519") {
+        const finalPubKeyPair = ecCurve.keyFromPublic({ x: finalPubKey.getX().toString("hex"), y: finalPubKey.getY().toString("hex") });
+        const encodedPubKey = encodeEd25519Point(finalPubKeyPair.getPublic());
+        if (keyWithNonce && !nonceResult.seed) {
           throw new Error("Invalid data, seed data is missing for ed25519 key, Please report this bug");
+        } else if (keyWithNonce && nonceResult.seed) {
+          const decryptedSeed = await decryptSeedData(nonceResult.seed, new BN(keyWithNonce, "hex"));
+          const totalLength = decryptedSeed.length + encodedPubKey.length;
+          finalPrivKey = Buffer.concat([decryptedSeed, encodedPubKey], totalLength).toString("hex");
         }
-        const decryptedSeed = await decryptSeedData(nonceResult.seed, new BN(finalPrivKey, "hex"));
-        const extendedEd25519Key = getEd25519ExtendedPublicKey(new BN(decryptedSeed));
-        const encodedPubKey = encodeEd25519Point(extendedEd25519Key.point);
-        const totalLength = decryptedSeed.length + encodedPubKey.length;
-        finalPrivKey = Buffer.concat([decryptedSeed, encodedPubKey], totalLength).toString("hex");
-        finalPubKey = extendedEd25519Key.point;
+      } else {
+        throw new Error(`Invalid keyType: ${keyType}`);
       }
       // return reconstructed private key and ethereum address
       return {
         finalKeyData: {
-          evmAddress: finalEvmAddress,
+          walletAddress: finalWalletAddress,
           X: finalPubKey.getX().toString(16, 64), // this is final pub x user before and after updating to 2/n
           Y: finalPubKey.getY().toString(16, 64), // this is final pub y user before and after updating to 2/n
           privKey: finalPrivKey,
         },
         oAuthKeyData: {
-          evmAddress: oAuthKeyAddress,
+          walletAddress: oAuthKeyAddress,
           X: oAuthPubkeyX,
           Y: oAuthPubkeyY,
           privKey: oAuthKey.toString("hex", 64).padStart(64, "0"),

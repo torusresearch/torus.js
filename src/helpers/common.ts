@@ -3,11 +3,20 @@ import { BN } from "bn.js";
 import { ec as EC } from "elliptic";
 import JsonStringify from "json-stable-stringify";
 
-import { EciesHex, LegacyVerifierLookupResponse, VerifierLookupResponse } from "../interfaces";
+import { EciesHex, KeyType, LegacyVerifierLookupResponse, VerifierLookupResponse } from "../interfaces";
 import { keccak256 } from ".";
 
 export const ed25519Curve = new EC("ed25519");
 export const secp256k1Curve = new EC("secp256k1");
+
+export const getKeyCurve = (keyType: KeyType) => {
+  if (keyType === "ed25519") {
+    return ed25519Curve;
+  } else if (keyType === "secp256k1") {
+    return secp256k1Curve;
+  }
+  throw new Error(`Invalid keyType: ${keyType}`);
+};
 // this function normalizes the result from nodes before passing the result to threshold check function
 // For ex: some fields returns by nodes might be different from each other
 // like created_at field might vary and nonce_data might not be returned by all nodes because
