@@ -131,7 +131,6 @@ export const decryptSeedData = async (seedBase64: string, finalUserKey: BN) => {
   const decryptionKey = getSecpKeyFromEd25519(finalUserKey);
   const seedUtf8 = Buffer.from(seedBase64, "base64").toString("utf-8");
   const seedJson = JSON.parse(seedUtf8) as EncryptedSeed;
-
   const bufferMetadata = {
     ephemPublicKey: Buffer.from(seedJson.metadata.ephemPublicKey, "hex"),
     iv: Buffer.from(seedJson.metadata.iv, "hex"),

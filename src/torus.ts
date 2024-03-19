@@ -6,10 +6,12 @@ import {
   SIGNER_MAP,
   TORUS_LEGACY_NETWORK_TYPE,
   TORUS_NETWORK_TYPE,
+  TORUS_SAPPHIRE_NETWORK,
 } from "@toruslabs/constants";
 import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
+import base58 from "bs58";
 import { curve, ec as EC } from "elliptic";
 
 import { config } from "./config";
@@ -84,7 +86,7 @@ class Torus {
   }: TorusCtorOptions) {
     if (!clientId) throw new Error("Please provide a valid clientId in constructor");
     if (!network) throw new Error("Please provide a valid network in constructor");
-    if (keyType === "ed25519" && LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
+    if (keyType === "ed25519" && network !== TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET) {
       throw new Error(`keyType: ${keyType} is not supported by ${network} network`);
     }
     this.keyType = keyType;
@@ -220,13 +222,19 @@ class Torus {
       throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
     }
 
-    const privKeyBuffer = Buffer.from(newPrivateKey.padStart(64, "0"), "hex");
+    let privKeyBuffer;
 
-    if (this.keyType === "secp256k1" && privKeyBuffer.length !== 32) {
-      throw new Error("Invalid private key length for give secp256k1 key");
+    if (this.keyType === "secp256k1") {
+      privKeyBuffer = Buffer.from(newPrivateKey.padStart(64, "0"), "hex");
+      if (privKeyBuffer.length !== 32) {
+        throw new Error("Invalid private key length for given secp256k1 key");
+      }
     }
-    if (this.keyType === "ed25519" && privKeyBuffer.length !== 64) {
-      throw new Error("Invalid private key length for give secp256k1 key");
+    if (this.keyType === "ed25519") {
+      privKeyBuffer = Buffer.from(base58.decode(newPrivateKey));
+      if (privKeyBuffer.length !== 64) {
+        throw new Error("Invalid private key length for given ed25519 key");
+      }
     }
 
     const finalPrivKey = this.keyType === "secp256k1" ? privKeyBuffer : privKeyBuffer.slice(0, 32);

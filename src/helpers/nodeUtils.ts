@@ -2,6 +2,7 @@ import { INodePub, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_N
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
+import base58 from "bs58";
 import { curve, ec } from "elliptic";
 
 import { config } from "../config";
@@ -214,7 +215,8 @@ export async function retrieveOrImportShare(params: {
     }
     finalImportedShares = newImportedShares;
   } else if (!useDkg) {
-    const importedKey = new BN(generatePrivateKey(ecCurve, Buffer));
+    const bufferKey = generatePrivateKey(ecCurve, Buffer);
+    const importedKey = new BN(bufferKey);
     const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, importedKey);
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
@@ -755,9 +757,10 @@ export async function retrieveOrImportShare(params: {
         if (keyWithNonce && !nonceResult.seed) {
           throw new Error("Invalid data, seed data is missing for ed25519 key, Please report this bug");
         } else if (keyWithNonce && nonceResult.seed) {
+          // console.log("nonceResult.seed", nonceResult.seed, keyWithNonce);
           const decryptedSeed = await decryptSeedData(nonceResult.seed, new BN(keyWithNonce, "hex"));
           const totalLength = decryptedSeed.length + encodedPubKey.length;
-          finalPrivKey = Buffer.concat([decryptedSeed, encodedPubKey], totalLength).toString("hex");
+          finalPrivKey = base58.encode(Buffer.concat([decryptedSeed, encodedPubKey], totalLength));
         }
       } else {
         throw new Error(`Invalid keyType: ${keyType}`);
