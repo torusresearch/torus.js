@@ -9,7 +9,7 @@ import TorusUtils from "../src/torus";
 import { generateIdToken, lookupVerifier } from "./helpers";
 
 const TORUS_TEST_EMAIL = "ed25519testuser@tor.us";
-const TORUS_TEST_EMAIL_HASHED = "ed25519testuserhash@tor.us";
+const TORUS_TEST_EMAIL_HASHED = "ed25519testuserhashed19@tor.us";
 
 const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierided25519@example.com";
 
@@ -34,27 +34,27 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
   });
 
   it("should should fetch public address", async function () {
-    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "Willa_Funk1@gmail.com" };
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "Willa_Funk11@gmail.com" };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.walletAddress).eql("3TTBP4g4UZNH1Tga1D4D6tBGrXUpVXcWt1PX2W19CRqM");
+    expect(result.finalKeyData.walletAddress).eql("HHmiJMCAwhyf9ZWNtj7FEKGXeeC2NjUjPobpDKm43yKs");
     delete result.metadata.serverTimeOffset;
     expect(result).eql({
       oAuthKeyData: {
-        walletAddress: "A5fzWVa6YDLpsZ3d8Zg6qwB9dLgGMw1UbtRctZeXy89n",
-        X: "175d1cb8a3fe85a6079d1d1892ef0421cc5f692ebda617bc61f1c8891b1fbcb6",
-        Y: "397d5c7c0c1f543d83c0a8be2d2824ca4298ff5b34714c2982dae82beb97eb86",
+        walletAddress: "49yLu8yLqpuCXchzjQSt1tpBz8AP2E9EzzP7a8QtxmTE",
+        X: "5d39eba90fafbce150b33b9a60b41e1cfdf9e2640b55bf96b787173d74f8e415",
+        Y: "099639b7da35c1f31a44da7399a29d7db8eaa9639582cf7ed80aa4f7216adf2e",
       },
       finalKeyData: {
-        walletAddress: "3TTBP4g4UZNH1Tga1D4D6tBGrXUpVXcWt1PX2W19CRqM",
-        X: "664cf57e06afdbd897a8be4ce6e572bd836e306611597d30be31e6250571e87a",
-        Y: "4cf0a015e6b97a36f513025734a03d0ff429385574b04eb4a8db520f57137e24",
+        walletAddress: "HHmiJMCAwhyf9ZWNtj7FEKGXeeC2NjUjPobpDKm43yKs",
+        X: "575203523b34bcfa2c25c428871c421afd69dbcb7375833b52ef264aaa466a81",
+        Y: "26f0b1f5740088c2ecf676081b8e2fe5254f1cbb693947ae391af13500d706f2",
       },
       metadata: {
         pubNonce: {
-          X: "439fe891f2f06a93f533aec3c2a1b0b247b7a6e52de4c8b943529e95224979b8",
-          Y: "51ed278447e030a8fca05362189f358c9d7eaff7818036b8c6c828e3eef40898",
+          X: "71bf997547c1ac3f0babee87ebac055e8542863ebb1ba66e8092499eacbffd22",
+          Y: "71a0a70c5ae06d7eeb45673d4081fdfc9f29c4acfbbb57bf52a33dd7630599b1",
         },
         nonce: new BN("0", "hex"),
         typeOfUser: "v2",
@@ -64,12 +64,11 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
     });
   });
   it("should be able to import a key for a new user", async function () {
-    const email = "Willa_Funk1@gmail.com";
+    const email = "Willa_Funk12@gmail.com";
     const token = generateIdToken(email, "ES256");
     // const privKeyBuffer = new BN(generatePrivateKey(ec, Buffer));
     // key exported from phantom wallet
-    const privHex =
-      "0942c4f0dfe419364b716925e1138977b66844c96873aeaa02efb7bbc7d82628247e13570f52dba8b44eb074553829f40f3da034570213f5367ab9e615a0f04c";
+    const privHex = "BjremmcjdFWexYJWcNSsT3U8ekuq6KnenBCSvxVfx2fQuvWbZQzDtQuAuXtQzcgxNY9CRyVNXJu2W5Rgt7ufQDh";
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.importPrivateKey(
@@ -129,7 +128,7 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
         walletAddress: "7iBcf5du7C7pCocbvoXHDbNXnzF9hSTNRuRiqfGC56Th",
         X: "738dfd57d80945defc6d3bc4deeeffbcecf344a4186b1e756eae54c5f60a4b63",
         Y: "7082c093c550e1069935a6f7f639901c84e14e4030a8561cba4b8ccfd7efb263",
-        privKey: "082d9495b9147bac19699ae3109606cbaeea1bf65772b6d7e652ebf77f67f78363b2efd7cf8c4bba1c56a830404ee1841c9039f6f7a6359906e150c593c082f0",
+        privKey: "AV2s1hzK6xWHNPeSaaKiiJtgbDSjTx9LjDN9AtPhf3t7mAzxCjf9mDx25UzPrEHS8HcswFzSx4eSxCEEPmmyyEX",
       },
       metadata: {
         pubNonce: {
@@ -150,12 +149,22 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
   });
   it("should be able to key assign", async function () {
     const email = faker.internet.email();
+    const token = generateIdToken(email, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     expect(result.finalKeyData.walletAddress).to.not.equal("");
     expect(result.finalKeyData.walletAddress).to.not.equal(null);
+    const result2 = await torus.retrieveShares(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token,
+      nodeDetails.torusNodePub
+    );
+    expect(result.finalKeyData.walletAddress).to.equal(result2.finalKeyData.walletAddress);
   });
 
   it("should be able to login even when node is down", async function () {
@@ -171,9 +180,7 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
       token,
       nodeDetails.torusNodePub
     );
-    expect(result.finalKeyData.privKey).to.be.equal(
-      "ea39cc89d2d8b8403858d1c518fe82e2500cc83e472ba86d006323b57835a5197139cf3a4c9b145471ac5efcdcbeab630bfa7a387e672b4940f18d686effa30f"
-    );
+    expect(result.finalKeyData.privKey).to.be.equal("5gcMa5vaPupHmFbDLeQR14odwCke5W3pF9y92BuLjFSACKuyNNCAEYfh3yZ7KyVJpZsjjpwZpneshfzB5ae6P89c");
   });
 
   it("should fetch pub address of tss verifier id", async function () {
@@ -251,21 +258,22 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
     delete result.metadata.serverTimeOffset;
+
     expect(result).eql({
       oAuthKeyData: {
-        walletAddress: "FucMH9d3YMJD2qh2ums4Xqfw5Htc8PR6pYUzQnr2xgmK",
-        X: "161da0ab7a991abb8981968de76652880f09e479d1df4a15e5f4b537d244f1a5",
-        Y: "0effa9486c130b7e25e4181023c92ea69f1ee0ee835a0735bd7b446cfbc97ddd",
+        walletAddress: "DybMLmBwiPqt8GXpDW2MwHi5ZqEtrbgxgwcf7shPdTWg",
+        X: "45c531429896ab89078789018b21639dab308b7d3952d9df243177e60fc0eb1f",
+        Y: "6155cf9bb00f8eedf398361c2140a5ed3fe2b3c51b883e757addcb06e09bcbc0",
       },
       finalKeyData: {
-        walletAddress: "74stJxXes7SP6T4uH2wRPiDQaeSc6dpEHdh1RtsFYsGQ",
-        X: "361660e9eb925988579d824ff6f4ea6cc8f35399b118f227ab233081aa72d50e",
-        Y: "3dbabd3baae7ad031e048d0b8f42efe1917d9291fd6a7d9476820dc04166245a",
+        walletAddress: "HK9Xo2UgjuMNxBi6WxX76hfQm9oTtJdDUSGKFhzGQiSo",
+        X: "6002549f42c1f3504652ce4b3fb1cbff4f1eaa1b66551313dd9c44d48b31a63d",
+        Y: "44af643f9200d11c5f60212de9470f92806df18eeea730a8736e4570611761f2",
       },
       metadata: {
         pubNonce: {
-          X: "51b5cc6c5d917b97b28f0472bde7b04f67a1ce6745cd374d2586cc088a49b887",
-          Y: "39e4d6c342716e1bd9fca5553714d3e147a148c2b1eba5a77207db4a3246c205",
+          X: "4cc875975c4ed6fed34758eab0be8954c50decbe736f85b3c5011f5035dd9e27",
+          Y: "233fe212cf0d6033be989f9dd5ffd5dfe77f0c3340984fcc5b0dd745bdfded12",
         },
         nonce: new BN("0", "hex"),
         upgraded: false,
@@ -277,29 +285,29 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
   it("should be able to login when verifierID hash enabled", async function () {
     const testEmail = TORUS_TEST_EMAIL_HASHED;
     const token = generateIdToken(testEmail, "ES256");
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: HashEnabledVerifier, verifierId: testEmail });
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: HashEnabledVerifier, verifierId: TORUS_TEST_EMAIL_HASHED });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.retrieveShares(
       torusNodeEndpoints,
       nodeDetails.torusIndexes,
       HashEnabledVerifier,
-      { verifier_id: testEmail },
+      { verifier_id: TORUS_TEST_EMAIL_HASHED },
       token,
       nodeDetails.torusNodePub
     );
     delete result.metadata.serverTimeOffset;
     expect(result).eql({
       finalKeyData: {
-        walletAddress: "74stJxXes7SP6T4uH2wRPiDQaeSc6dpEHdh1RtsFYsGQ",
-        X: "361660e9eb925988579d824ff6f4ea6cc8f35399b118f227ab233081aa72d50e",
-        Y: "3dbabd3baae7ad031e048d0b8f42efe1917d9291fd6a7d9476820dc04166245a",
-        privKey: "0e12e0192aeb716da5d836eec85a97b13e227843d7a897656c520c119f7eb4af5a246641c00d8276947d6afd91927d91e1ef428f0b8d041e03ade7aa3bbdba3d",
+        walletAddress: "HK9Xo2UgjuMNxBi6WxX76hfQm9oTtJdDUSGKFhzGQiSo",
+        X: "6002549f42c1f3504652ce4b3fb1cbff4f1eaa1b66551313dd9c44d48b31a63d",
+        Y: "44af643f9200d11c5f60212de9470f92806df18eeea730a8736e4570611761f2",
+        privKey: "2SDsHqpEGTszmk73SyFu1tR85bK2kt7HmnBercBSiBZpHpYHBiqpquG8ARhRuDWXGquTM7NVRva3xFMSJ8sd2aQ3",
       },
       oAuthKeyData: {
-        walletAddress: "FucMH9d3YMJD2qh2ums4Xqfw5Htc8PR6pYUzQnr2xgmK",
-        X: "161da0ab7a991abb8981968de76652880f09e479d1df4a15e5f4b537d244f1a5",
-        Y: "0effa9486c130b7e25e4181023c92ea69f1ee0ee835a0735bd7b446cfbc97ddd",
-        privKey: "0bd77284601dbc3a5c0c6f9829f4d0d0f2d87d439014042b13953724e4d49db8",
+        walletAddress: "DybMLmBwiPqt8GXpDW2MwHi5ZqEtrbgxgwcf7shPdTWg",
+        X: "45c531429896ab89078789018b21639dab308b7d3952d9df243177e60fc0eb1f",
+        Y: "6155cf9bb00f8eedf398361c2140a5ed3fe2b3c51b883e757addcb06e09bcbc0",
+        privKey: "0423cd18b36b862054489ad706d9be0226204af69b0407907dc1f3ee9ca72b7a",
       },
       sessionData: {
         sessionTokenData: result.sessionData.sessionTokenData,
@@ -307,10 +315,10 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
       },
       metadata: {
         pubNonce: {
-          X: "51b5cc6c5d917b97b28f0472bde7b04f67a1ce6745cd374d2586cc088a49b887",
-          Y: "39e4d6c342716e1bd9fca5553714d3e147a148c2b1eba5a77207db4a3246c205",
+          X: "4cc875975c4ed6fed34758eab0be8954c50decbe736f85b3c5011f5035dd9e27",
+          Y: "233fe212cf0d6033be989f9dd5ffd5dfe77f0c3340984fcc5b0dd745bdfded12",
         },
-        nonce: new BN("7bad1284d129014a24737a275021085c1789b03d5b7ee37d1f7a47eeb23877f", "hex"),
+        nonce: new BN("8ff7137ce3f5648b8722779e0d3c153bf76042800783bd6793f38672d8c129d", "hex"),
         typeOfUser: "v2",
         upgraded: false,
       },

@@ -237,11 +237,11 @@ class Torus {
       }
     }
 
-    const finalPrivKey = this.keyType === "secp256k1" ? privKeyBuffer : privKeyBuffer.slice(0, 32);
+    const finalPrivKey = this.keyType === "secp256k1" ? privKeyBuffer : privKeyBuffer.subarray(0, 32);
     const privKeyBn = new BN(finalPrivKey, 16);
     const sharesData = await generateShares(this.ec, this.keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, privKeyBn);
     if (this.keyType === "ed25519") {
-      const ed25519PubKey = privKeyBuffer.slice(32);
+      const ed25519PubKey = privKeyBuffer.subarray(32);
       const encodedPubKey = encodeEd25519Point(sharesData[0].final_user_point);
       const importedPubKey = Buffer.from(ed25519PubKey).toString("hex");
       const derivedPubKey = encodedPubKey.toString("hex");

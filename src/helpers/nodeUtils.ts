@@ -4,6 +4,7 @@ import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import base58 from "bs58";
 import { curve, ec } from "elliptic";
+import { getRandomBytes } from "ethereum-cryptography/random";
 
 import { config } from "../config";
 import { JRPC_METHODS } from "../constants";
@@ -215,7 +216,7 @@ export async function retrieveOrImportShare(params: {
     }
     finalImportedShares = newImportedShares;
   } else if (!useDkg) {
-    const bufferKey = generatePrivateKey(ecCurve, Buffer);
+    const bufferKey = keyType === "secp256k1" ? generatePrivateKey(ecCurve, Buffer) : await getRandomBytes(32);
     const importedKey = new BN(bufferKey);
     const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, importedKey);
     finalImportedShares = [...finalImportedShares, ...generatedShares];
