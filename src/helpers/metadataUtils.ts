@@ -25,7 +25,7 @@ export async function decryptNodeData(eciesData: EciesHex, ciphertextHex: string
   return decryptedSigBuffer;
 }
 
-export function generateMetadataParams(ecCurve: ec, serverTimeOffset: number, message: string, privateKey: BN, keyType: KeyType): MetadataParams {
+export function generateMetadataParams(ecCurve: ec, serverTimeOffset: number, message: string, privateKey: BN): MetadataParams {
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64));
   const setData = {
     data: message,
@@ -36,7 +36,6 @@ export function generateMetadataParams(ecCurve: ec, serverTimeOffset: number, me
     pub_key_X: key.getPublic().getX().toString("hex"), // DO NOT PAD THIS. BACKEND DOESN'T
     pub_key_Y: key.getPublic().getY().toString("hex"), // DO NOT PAD THIS. BACKEND DOESN'T
     set_data: setData,
-    key_type: keyType,
     signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
   };
 }
@@ -61,7 +60,6 @@ export async function getMetadata(
 export async function getOrSetNonce(
   legacyMetadataHost: string,
   ecCurve: ec,
-  keyType: KeyType,
   serverTimeOffset: number,
   X: string,
   Y: string,
@@ -71,7 +69,7 @@ export async function getOrSetNonce(
   let data: Data;
   const msg = getOnly ? "getNonce" : "getOrSetNonce";
   if (privKey) {
-    data = generateMetadataParams(ecCurve, serverTimeOffset, msg, privKey, keyType);
+    data = generateMetadataParams(ecCurve, serverTimeOffset, msg, privKey);
   } else {
     data = {
       pub_key_X: X,
@@ -85,13 +83,12 @@ export async function getOrSetNonce(
 export async function getNonce(
   legacyMetadataHost: string,
   ecCurve: ec,
-  keyType: KeyType,
   serverTimeOffset: number,
   X: string,
   Y: string,
   privKey?: BN
 ): Promise<GetOrSetNonceResult> {
-  return getOrSetNonce(legacyMetadataHost, ecCurve, keyType, serverTimeOffset, X, Y, privKey, true);
+  return getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, X, Y, privKey, true);
 }
 
 export function generateNonceMetadataParams(
@@ -115,6 +112,8 @@ export function generateNonceMetadataParams(
 
   if (seed) {
     setData.seed = seed;
+  } else {
+    setData.seed = ""; // setting it as empty to keep ordering same while serializing the data on backend.
   }
 
   const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));

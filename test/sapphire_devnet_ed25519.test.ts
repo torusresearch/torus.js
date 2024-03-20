@@ -18,7 +18,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe.only("torus utils ed25519 sapphire devnet", function () {
+describe("torus utils ed25519 sapphire devnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -63,6 +63,7 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should be able to import a key for a new user", async function () {
     const email = "Willa_Funk12@gmail.com";
     const token = generateIdToken(email, "ES256");
@@ -101,6 +102,7 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
     });
     expect(result2.finalKeyData.walletAddress).eql("3TTBP4g4UZNH1Tga1D4D6tBGrXUpVXcWt1PX2W19CRqM");
   });
+
   it("should be able to login", async function () {
     const testEmail = "edd2519TestUser@example.com";
     const token = generateIdToken(testEmail, "ES256");
@@ -147,6 +149,7 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
     });
     expect(result2.finalKeyData.walletAddress).eql(result.finalKeyData.walletAddress);
   });
+
   it("should be able to key assign", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
@@ -165,6 +168,28 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
       nodeDetails.torusNodePub
     );
     expect(result.finalKeyData.walletAddress).to.equal(result2.finalKeyData.walletAddress);
+  });
+
+  it("should be able to login a new user with non dkg keys", async function () {
+    const email = `${faker.internet.email()}`;
+    const token = generateIdToken(email, "ES256");
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: email },
+      token,
+      nodeDetails.torusNodePub,
+      {},
+      false
+    );
+
+    const publicResult = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+
+    expect(result.finalKeyData.X).eql(publicResult.finalKeyData.X);
   });
 
   it("should be able to login even when node is down", async function () {
@@ -213,6 +238,7 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should assign key to tss verifier id", async function () {
     const email = faker.internet.email();
     const nonce = 0;
@@ -282,6 +308,7 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should be able to login when verifierID hash enabled", async function () {
     const testEmail = TORUS_TEST_EMAIL_HASHED;
     const token = generateIdToken(testEmail, "ES256");

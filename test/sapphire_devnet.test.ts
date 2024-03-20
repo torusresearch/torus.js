@@ -239,6 +239,7 @@ describe("torus utils sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should fetch public address of imported user", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
@@ -401,6 +402,7 @@ describe("torus utils sapphire devnet", function () {
 
     expect(result.finalKeyData.X).eql(publicResult.finalKeyData.X);
   });
+
   it("should be able to login even when node is down", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
@@ -475,7 +477,7 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it.skip("should be able to import a key for a new user", async function () {
+  it("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const ec = new EC("secp256k1");
@@ -529,6 +531,7 @@ describe("torus utils sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should assign key to tss verifier id", async function () {
     const email = faker.internet.email();
     const nonce = 0;
@@ -647,6 +650,7 @@ describe("torus utils sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should be able to login when verifierID hash enabled", async function () {
     const token = generateIdToken(TORUS_HASH_ENABLED_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_HASH_ENABLED_TEST_EMAIL };

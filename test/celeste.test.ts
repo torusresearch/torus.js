@@ -23,6 +23,7 @@ describe("torus utils celeste", function () {
     });
     TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_LEGACY_NETWORK.CELESTE });
   });
+
   it("should fetch public address", async function () {
     const verifier = "tkey-google-celeste"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
@@ -162,8 +163,15 @@ describe("torus utils celeste", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: TORUS_TEST_EMAIL },
+      token,
+      torusNodePub
+    );
     expect(result.finalKeyData.privKey).to.be.equal("0ae056aa938080c9e8bf6641261619e09fd510c91bb5aad14b0de9742085a914");
     expect(result.metadata.serverTimeOffset).lessThan(20);
 
@@ -192,7 +200,7 @@ describe("torus utils celeste", function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
@@ -202,7 +210,8 @@ describe("torus utils celeste", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: TORUS_TEST_EMAIL,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      torusNodePub
     );
     expect(result.metadata.serverTimeOffset).lessThan(20);
 

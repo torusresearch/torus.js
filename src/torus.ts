@@ -170,6 +170,9 @@ class Torus {
     if (!shouldUseDkg && nodePubkeys.length === 0) {
       throw new Error("nodePubkeys param is required");
     }
+    if (!shouldUseDkg && this.isLegacyNetwork) {
+      throw new Error(`useDkg param must be true for legacy network: ${this.network}`);
+    }
 
     if (this.isLegacyNetwork) return this.legacyRetrieveShares(endpoints, indexes, verifier, verifierParams, idToken, this.keyType, extraParams);
 
@@ -523,7 +526,7 @@ class Torus {
         let typeOfUser: UserType = "v1";
         let pubKeyNonceResult: { X: string; Y: string } | undefined;
         if (this.enableOneKey) {
-          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, this.keyType, serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
+          const nonceResult = await getNonce(this.legacyMetadataHost, this.ec, serverTimeOffset, oAuthKeyX, oAuthKeyY, oAuthKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {
@@ -774,7 +777,7 @@ class Torus {
     const finalServerTimeOffset = this.serverTimeOffset || serverTimeOffset;
     if (enableOneKey) {
       try {
-        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, this.keyType, finalServerTimeOffset, X, Y, undefined, !isNewKey);
+        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, finalServerTimeOffset, X, Y, undefined, !isNewKey);
         nonce = new BN(nonceResult.nonce || "0", 16);
         typeOfUser = nonceResult.typeOfUser;
       } catch {

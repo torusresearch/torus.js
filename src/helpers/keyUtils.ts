@@ -237,8 +237,8 @@ export const generateShares = async (
     const shareData: ImportedShare = {
       encrypted_seed: keyData.encryptedSeed,
       final_user_point: keyData.finalUserPubKeyPoint,
-      oauth_pub_key_x: oAuthPubKey.getX().toString("hex", 64),
-      oauth_pub_key_y: oAuthPubKey.getY().toString("hex", 64),
+      oauth_pub_key_x: oAuthPubKey.getX().toString("hex"),
+      oauth_pub_key_y: oAuthPubKey.getY().toString("hex"),
       signing_pub_key_x: keyData.SigningPubX.toString("hex"),
       signing_pub_key_y: keyData.SigningPubY.toString("hex"),
       encrypted_share: encParamsMetadata.ciphertext,

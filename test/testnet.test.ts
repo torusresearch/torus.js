@@ -24,6 +24,7 @@ describe("torus utils migrated testnet on sapphire", function () {
       network: TORUS_LEGACY_NETWORK.TESTNET,
     });
   });
+
   it("should fetch public address", async function () {
     const verifier = "google-lrc"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
@@ -175,8 +176,15 @@ describe("torus utils migrated testnet on sapphire", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: TORUS_TEST_EMAIL },
+      token,
+      torusNodePub
+    );
     expect(result.metadata.serverTimeOffset).lessThan(20);
     delete result.metadata.serverTimeOffset;
 
@@ -207,7 +215,7 @@ describe("torus utils migrated testnet on sapphire", function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
@@ -217,7 +225,8 @@ describe("torus utils migrated testnet on sapphire", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: TORUS_TEST_EMAIL,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      torusNodePub
     );
     expect(result.metadata.serverTimeOffset).lessThan(20);
     delete result.metadata.serverTimeOffset;
@@ -246,6 +255,7 @@ describe("torus utils migrated testnet on sapphire", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should fail at get or set nonce when server time offset is expired", async function () {
     const email = "himanshu@tor.us";
     const verifier = "google-lrc";
@@ -258,9 +268,9 @@ describe("torus utils migrated testnet on sapphire", function () {
       enableOneKey: true,
       serverTimeOffset: -100,
     });
-    const { torusNodeSSSEndpoints: torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeSSSEndpoints: torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     try {
-      await legacyTorus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token);
+      await legacyTorus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token, torusNodePub);
       fail("should not reach here");
     } catch (err) {
       expect((err as { status: number }).status).to.equal(403);

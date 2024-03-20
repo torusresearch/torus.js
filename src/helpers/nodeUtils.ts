@@ -376,6 +376,7 @@ export async function retrieveOrImportShare(params: {
         }
         const p = post<JRPCResponse<ImportShareRequestResult[]>>(
           endpoints[proxyEndpointNum],
+
           generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARES, {
             encrypted: "yes",
             use_temp: true,
@@ -682,16 +683,7 @@ export async function retrieveOrImportShare(params: {
         finalPubKey = ecCurve.keyFromPublic({ x: oAuthPubkeyX, y: oAuthPubkeyY }).getPublic();
       } else if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
         if (enableOneKey) {
-          nonceResult = await getOrSetNonce(
-            legacyMetadataHost,
-            ecCurve,
-            keyType,
-            serverTimeOffsetResponse,
-            oAuthPubkeyX,
-            oAuthPubkeyY,
-            oAuthKey,
-            !isNewKey
-          );
+          nonceResult = await getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffsetResponse, oAuthPubkeyX, oAuthPubkeyY, oAuthKey, !isNewKey);
           metadataNonce = new BN(nonceResult.nonce || "0", 16);
           typeOfUser = nonceResult.typeOfUser;
           if (typeOfUser === "v2") {

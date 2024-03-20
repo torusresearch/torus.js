@@ -60,13 +60,14 @@ describe("torus onekey", function () {
   it("should still login v1 account correctly", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      torusNodePub
     );
     expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
 
@@ -107,7 +108,7 @@ describe("torus onekey", function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
@@ -117,7 +118,8 @@ describe("torus onekey", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: TORUS_TEST_EMAIL,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      torusNodePub
     );
     expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
 
@@ -172,8 +174,8 @@ describe("torus onekey", function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token, torusNodePub);
     expect(!result.metadata.nonce.eq(new BN("0")));
     expect(result.metadata.typeOfUser).to.equal("v2");
     expect(result.metadata.upgraded).to.equal(false);
@@ -186,13 +188,14 @@ describe("torus onekey", function () {
   it("should still login v2 account correctly", async function () {
     const token = generateIdToken("Jonathan.Nolan@hotmail.com", "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "Jonathan.Nolan@hotmail.com" };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: "Jonathan.Nolan@hotmail.com" },
-      token
+      token,
+      torusNodePub
     );
     expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
     delete retrieveSharesResponse.metadata.serverTimeOffset;

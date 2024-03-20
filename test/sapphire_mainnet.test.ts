@@ -27,6 +27,7 @@ describe("torus utils sapphire mainnet", function () {
     });
     TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_MAINNET });
   });
+
   it("should fetch public address", async function () {
     const verifier = "tkey-google-sapphire-mainnet"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
@@ -80,6 +81,7 @@ describe("torus utils sapphire mainnet", function () {
     );
     expect(result.finalKeyData.privKey).to.be.equal(privHex);
   });
+
   it("should be able to key assign", async function () {
     const verifier = "tkey-google-sapphire-mainnet"; // any verifier
     const email = faker.internet.email();
@@ -231,6 +233,7 @@ describe("torus utils sapphire mainnet", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should be able to login when verifierID hash enabled", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_TEST_EMAIL };

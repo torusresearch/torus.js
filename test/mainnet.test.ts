@@ -23,6 +23,7 @@ describe("torus utils mainnet", function () {
       network: TORUS_LEGACY_NETWORK.MAINNET,
     });
   });
+
   it("should fetch public address", async function () {
     const verifier = "google"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
