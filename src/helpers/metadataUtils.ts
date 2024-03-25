@@ -5,9 +5,9 @@ import { ec } from "elliptic";
 import stringify from "json-stable-stringify";
 import log from "loglevel";
 
-import { EciesHex, GetOrSetNonceResult, MetadataParams } from "../interfaces";
-import { encParamsHexToBuf } from "./common";
-import { keccak256 } from "./keyUtils";
+import { EciesHex, EncryptedSeed, GetOrSetNonceResult, KeyType, MetadataParams, NonceMetadataParams, SetNonceData } from "../interfaces";
+import { encParamsHexToBuf, secp256k1Curve } from "./common";
+import { getSecpKeyFromEd25519, keccak256 } from "./keyUtils";
 
 export function convertMetadataToNonce(params: { message?: string }) {
   if (!params || !params.message) {
@@ -90,3 +90,56 @@ export async function getNonce(
 ): Promise<GetOrSetNonceResult> {
   return getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, X, Y, privKey, true);
 }
+
+export function generateNonceMetadataParams(
+  serverTimeOffset: number,
+  operation: string,
+  privateKey: BN,
+  keyType: KeyType,
+  nonce?: BN,
+  seed?: string
+): NonceMetadataParams {
+  // metadata only uses secp for sig validation
+  const key = secp256k1Curve.keyFromPrivate(privateKey.toString("hex", 64));
+  const setData: Partial<SetNonceData> = {
+    operation,
+    timestamp: new BN(~~(serverTimeOffset + Date.now() / 1000)).toString(16),
+  };
+
+  if (nonce) {
+    setData.data = nonce.toString("hex", 64);
+  }
+
+  if (seed) {
+    setData.seed = seed;
+  } else {
+    setData.seed = ""; // setting it as empty to keep ordering same while serializing the data on backend.
+  }
+
+  const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+  return {
+    pub_key_X: key.getPublic().getX().toString("hex", 64),
+    pub_key_Y: key.getPublic().getY().toString("hex", 64),
+    set_data: setData,
+    key_type: keyType,
+    signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
+  };
+}
+
+export const decryptSeedData = async (seedBase64: string, finalUserKey: BN) => {
+  const decryptionKey = getSecpKeyFromEd25519(finalUserKey);
+  const seedUtf8 = Buffer.from(seedBase64, "base64").toString("utf-8");
+  const seedJson = JSON.parse(seedUtf8) as EncryptedSeed;
+  const bufferMetadata = {
+    ephemPublicKey: Buffer.from(seedJson.metadata.ephemPublicKey, "hex"),
+    iv: Buffer.from(seedJson.metadata.iv, "hex"),
+    mac: Buffer.from(seedJson.metadata.mac, "hex"),
+    mode: "AES256",
+  };
+  const decText = await decrypt(decryptionKey.scalar.toArrayLike(Buffer), {
+    ...bufferMetadata,
+    ciphertext: Buffer.from(seedJson.enc_text, "hex"),
+  });
+
+  return decText;
+};

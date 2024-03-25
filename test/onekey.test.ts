@@ -31,19 +31,19 @@ describe("torus onekey", function () {
     const verifierDetails = { verifier, verifierId: "himanshu@tor.us" };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
-    expect(publicAddress.finalKeyData.evmAddress).to.be.equal("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
+    expect(publicAddress.finalKeyData.walletAddress).to.be.equal("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
     expect(publicAddress.metadata.serverTimeOffset).lessThan(20);
 
     delete publicAddress.metadata.serverTimeOffset;
 
     expect(publicAddress).eql({
       oAuthKeyData: {
-        evmAddress: "0xf1e76fcDD28b5AA06De01de508fF21589aB9017E",
+        walletAddress: "0xf1e76fcDD28b5AA06De01de508fF21589aB9017E",
         X: "b3f2b4d8b746353fe670e0c39ac9adb58056d4d7b718d06b623612d4ec49268b",
         Y: "ac9f79dff78add39cdba380dbbf517c20cf2c1e06b32842a90a84a31f6eb9a9a",
       },
       finalKeyData: {
-        evmAddress: "0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1",
+        walletAddress: "0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1",
         X: "12f6b90d66bda29807cf9ff14b2e537c25080154fc4fafed446306e8356ff425",
         Y: "e7c92e164b83e1b53e41e5d87d478bb07d7b19d105143e426e1ef08f7b37f224",
       },
@@ -60,13 +60,14 @@ describe("torus onekey", function () {
   it("should still login v1 account correctly", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: TORUS_TEST_EMAIL },
-      token
+      token,
+      torusNodePub
     );
     expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
 
@@ -75,13 +76,13 @@ describe("torus onekey", function () {
     expect(retrieveSharesResponse.finalKeyData.privKey).to.be.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
     expect(retrieveSharesResponse).eql({
       finalKeyData: {
-        evmAddress: "0x53010055542cCc0f2b6715a5c53838eC4aC96EF7",
+        walletAddress: "0x53010055542cCc0f2b6715a5c53838eC4aC96EF7",
         X: "3fa78a0bfb9ec48810bf1ee332360def2600c4aef528ff8b1e49a0d304722c91",
         Y: "46aaca39fc00c0f88f63a79989697c70eeeeec6489300c493dd07a5608ded0d4",
         privKey: "296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4",
       },
       oAuthKeyData: {
-        evmAddress: "0xEfd7eDAebD0D99D1B7C8424b54835457dD005Dc4",
+        walletAddress: "0xEfd7eDAebD0D99D1B7C8424b54835457dD005Dc4",
         X: "18409385c38e9729eb6b7837dc8f234256233ffab1ed7eeb1c23b230333396b4",
         Y: "17d35ffc722d7a8dd88353815e9553cacf567c5f3b8d082adac9d653367ce47a",
         privKey: "068ee4f97468ef1ae95d18554458d372e31968190ae38e377be59d8b3c9f7a25",
@@ -107,7 +108,7 @@ describe("torus onekey", function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
@@ -117,22 +118,23 @@ describe("torus onekey", function () {
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: TORUS_TEST_EMAIL,
       },
-      hashedIdToken.substring(2)
+      hashedIdToken.substring(2),
+      torusNodePub
     );
     expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
 
     delete retrieveSharesResponse.metadata.serverTimeOffset;
 
-    expect(retrieveSharesResponse.finalKeyData.evmAddress).to.be.equal("0xE1155dB406dAD89DdeE9FB9EfC29C8EedC2A0C8B");
+    expect(retrieveSharesResponse.finalKeyData.walletAddress).to.be.equal("0xE1155dB406dAD89DdeE9FB9EfC29C8EedC2A0C8B");
     expect(retrieveSharesResponse).eql({
       finalKeyData: {
-        evmAddress: "0xE1155dB406dAD89DdeE9FB9EfC29C8EedC2A0C8B",
+        walletAddress: "0xE1155dB406dAD89DdeE9FB9EfC29C8EedC2A0C8B",
         X: "78658b2671f1bd6a488baf2afb8ce6f8d8b9a1a70842130b3c8756a9d51d9723",
         Y: "2e5840f47d645afa4bfe93c3715e65974051080d7a1e474eef8d68752924f4fb",
         privKey: "ad47959db4cb2e63e641bac285df1b944f54d1a1cecdaeea40042b60d53c35d2",
       },
       oAuthKeyData: {
-        evmAddress: "0x5a165d2Ed4976BD104caDE1b2948a93B72FA91D2",
+        walletAddress: "0x5a165d2Ed4976BD104caDE1b2948a93B72FA91D2",
         X: "aba2b085ae6390b3eb26802c3239bb7e3b9ed8ea6e1dcc28aeb67432571f20fc",
         Y: "f1a2163cba5620b7b40241a6112e7918e9445b0b9cfbbb9d77b2de6f61ed5c27",
         privKey: "d9733fc1098151f3e3289673e7c69c4ed46cbbdbc13416560e14741524d2d51a",
@@ -162,52 +164,53 @@ describe("torus onekey", function () {
     const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
     expect(publicAddress.metadata.typeOfUser).to.equal("v2");
     expect(publicAddress.metadata.upgraded).to.equal(false);
-    expect(publicAddress.finalKeyData.evmAddress).to.not.equal("");
-    expect(publicAddress.finalKeyData.evmAddress).to.not.equal(null);
-    expect(publicAddress.oAuthKeyData.evmAddress).to.not.equal("");
-    expect(publicAddress.oAuthKeyData.evmAddress).to.not.equal(null);
+    expect(publicAddress.finalKeyData.walletAddress).to.not.equal("");
+    expect(publicAddress.finalKeyData.walletAddress).to.not.equal(null);
+    expect(publicAddress.oAuthKeyData.walletAddress).to.not.equal("");
+    expect(publicAddress.oAuthKeyData.walletAddress).to.not.equal(null);
   });
 
   it("should be able to key assign via login", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token, torusNodePub);
     expect(!result.metadata.nonce.eq(new BN("0")));
     expect(result.metadata.typeOfUser).to.equal("v2");
     expect(result.metadata.upgraded).to.equal(false);
-    expect(result.finalKeyData.evmAddress).to.not.equal("");
-    expect(result.finalKeyData.evmAddress).to.not.equal(null);
-    expect(result.oAuthKeyData.evmAddress).to.not.equal("");
-    expect(result.oAuthKeyData.evmAddress).to.not.equal(null);
+    expect(result.finalKeyData.walletAddress).to.not.equal("");
+    expect(result.finalKeyData.walletAddress).to.not.equal(null);
+    expect(result.oAuthKeyData.walletAddress).to.not.equal("");
+    expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
   });
 
   it("should still login v2 account correctly", async function () {
     const token = generateIdToken("Jonathan.Nolan@hotmail.com", "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "Jonathan.Nolan@hotmail.com" };
-    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
       torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: "Jonathan.Nolan@hotmail.com" },
-      token
+      token,
+      torusNodePub
     );
     expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
     delete retrieveSharesResponse.metadata.serverTimeOffset;
 
     expect(retrieveSharesResponse.finalKeyData.privKey).to.be.equal("9ec5b0504e252e35218c7ce1e4660eac190a1505abfbec7102946f92ed750075");
-    expect(retrieveSharesResponse.finalKeyData.evmAddress).to.be.equal("0x2876820fd9536BD5dd874189A85d71eE8bDf64c2");
+    expect(retrieveSharesResponse.finalKeyData.walletAddress).to.be.equal("0x2876820fd9536BD5dd874189A85d71eE8bDf64c2");
     expect(retrieveSharesResponse).eql({
       finalKeyData: {
-        evmAddress: "0x2876820fd9536BD5dd874189A85d71eE8bDf64c2",
+        walletAddress: "0x2876820fd9536BD5dd874189A85d71eE8bDf64c2",
         X: "ad4c223520aac9bc3ec72399869601fd59f29363471131914e2ed2bc4ba46e54",
         Y: "802c6e40b22b49b5ef73fa49b194c2037267215fa01683aa86746907aab37ae1",
         privKey: "9ec5b0504e252e35218c7ce1e4660eac190a1505abfbec7102946f92ed750075",
       },
       oAuthKeyData: {
-        evmAddress: "0x54de3Df0CA76AAe3e171FB410F0626Ab759f3c24",
+        walletAddress: "0x54de3Df0CA76AAe3e171FB410F0626Ab759f3c24",
         X: "49d69b8550bb0eba77595c73bf57f0463ff96adf6b50d44f9e1bcf2b3fb7976e",
         Y: "d63bac65bdfc7484a28d4362347bbd098095db190c14a4ce9dbaafe74803eccc",
         privKey: "f4b7e0fb1e6f6fbac539c55e22aff2900947de652d2d6254a9cd8709f505f83a",
