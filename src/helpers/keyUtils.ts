@@ -56,14 +56,13 @@ function adjustScalarBytes(bytes: Buffer): Buffer {
 }
 
 /** Convenience method that creates public key and other stuff. RFC8032 5.1.5 */
-export function getEd25519ExtendedPublicKey(keyHex: BN): {
+export function getEd25519ExtendedPublicKey(keyBuffer: Buffer): {
   scalar: BN;
   point: curve.base.BasePoint;
 } {
   const len = 32;
   const G = ed25519Curve.g;
   const N = ed25519Curve.n;
-  const keyBuffer = keyHex.toArrayLike(Buffer);
 
   if (keyBuffer.length !== 32) {
     log.error("Invalid seed for ed25519 key derivation", keyBuffer.length);
@@ -104,10 +103,10 @@ export function encodeEd25519Point(point: curve.base.BasePoint) {
   return enc;
 }
 
-export const generateEd25519KeyData = async (ed25519Seed: BN): Promise<PrivateKeyData> => {
+export const generateEd25519KeyData = async (ed25519Seed: Buffer): Promise<PrivateKeyData> => {
   const finalEd25519Key = getEd25519ExtendedPublicKey(ed25519Seed);
   const encryptionKey = getSecpKeyFromEd25519(finalEd25519Key.scalar);
-  const encryptedSeed = await encrypt(Buffer.from(encryptionKey.point.encodeCompressed("hex"), "hex"), ed25519Seed.toArrayLike(Buffer));
+  const encryptedSeed = await encrypt(Buffer.from(encryptionKey.point.encodeCompressed("hex"), "hex"), ed25519Seed);
   const encData: EncryptedSeed = {
     enc_text: encryptedSeed.ciphertext.toString("hex"),
     metadata: encParamsBufToHex(encryptedSeed),
@@ -132,7 +131,8 @@ export const generateEd25519KeyData = async (ed25519Seed: BN): Promise<PrivateKe
   };
 };
 
-export const generateSecp256k1KeyData = async (scalar: BN): Promise<PrivateKeyData> => {
+export const generateSecp256k1KeyData = async (scalarBuffer: Buffer): Promise<PrivateKeyData> => {
+  const scalar = new BN(scalarBuffer);
   const randomNonce = new BN(generatePrivateKey(secp256k1Curve, Buffer));
   const oAuthKey = scalar.sub(randomNonce).umod(secp256k1Curve.curve.n);
   const oAuthKeyPair = secp256k1Curve.keyFromPrivate(oAuthKey.toString("hex").padStart(64, "0"));
@@ -202,7 +202,7 @@ export const generateShares = async (
   serverTimeOffset: number,
   nodeIndexes: number[],
   nodePubkeys: INodePub[],
-  privKey: BN
+  privKey: Buffer
 ) => {
   const keyData = keyType === "ed25519" ? await generateEd25519KeyData(privKey) : await generateSecp256k1KeyData(privKey);
   const { metadataNonce, oAuthKeyScalar: oAuthKey, encryptedSeed, metadataSigningKey } = keyData;

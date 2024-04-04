@@ -2,7 +2,6 @@ import { INodePub, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_N
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
-import base58 from "bs58";
 import { curve, ec } from "elliptic";
 import { getRandomBytes } from "ethereum-cryptography/random";
 
@@ -38,15 +37,7 @@ import {
   normalizeLegacyKeysResult,
   thresholdSame,
 } from "./common";
-import {
-  derivePubKey,
-  encodeEd25519Point,
-  generateAddressFromPrivKey,
-  generateAddressFromPubKey,
-  generatePrivateKey,
-  generateShares,
-  keccak256,
-} from "./keyUtils";
+import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generatePrivateKey, generateShares, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, decryptSeedData, getMetadata, getOrSetNonce } from "./metadataUtils";
 
@@ -217,8 +208,7 @@ export async function retrieveOrImportShare(params: {
     finalImportedShares = newImportedShares;
   } else if (!useDkg) {
     const bufferKey = keyType === "secp256k1" ? generatePrivateKey(ecCurve, Buffer) : await getRandomBytes(32);
-    const importedKey = new BN(bufferKey);
-    const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, importedKey);
+    const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, Buffer.from(bufferKey));
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
 
@@ -745,15 +735,12 @@ export async function retrieveOrImportShare(params: {
       if (keyType === "secp256k1") {
         finalPrivKey = keyWithNonce;
       } else if (keyType === "ed25519") {
-        const finalPubKeyPair = ecCurve.keyFromPublic({ x: finalPubKey.getX().toString("hex"), y: finalPubKey.getY().toString("hex") });
-        const encodedPubKey = encodeEd25519Point(finalPubKeyPair.getPublic());
         if (keyWithNonce && !nonceResult.seed) {
           throw new Error("Invalid data, seed data is missing for ed25519 key, Please report this bug");
         } else if (keyWithNonce && nonceResult.seed) {
           // console.log("nonceResult.seed", nonceResult.seed, keyWithNonce);
           const decryptedSeed = await decryptSeedData(nonceResult.seed, new BN(keyWithNonce, "hex"));
-          const totalLength = decryptedSeed.length + encodedPubKey.length;
-          finalPrivKey = base58.encode(Buffer.concat([decryptedSeed, encodedPubKey], totalLength));
+          finalPrivKey = decryptedSeed.toString("hex");
         }
       } else {
         throw new Error(`Invalid keyType: ${keyType}`);

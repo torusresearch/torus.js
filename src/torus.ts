@@ -11,7 +11,6 @@ import {
 import { decrypt, generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post, setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
-import base58 from "bs58";
 import { curve, ec as EC } from "elliptic";
 
 import { config } from "./config";
@@ -22,6 +21,7 @@ import {
   generateAddressFromPrivKey,
   generateAddressFromPubKey,
   generateShares,
+  getEd25519ExtendedPublicKey,
   getMetadata,
   getNonce,
   getOrSetNonce,
@@ -234,17 +234,16 @@ class Torus {
       }
     }
     if (this.keyType === "ed25519") {
-      privKeyBuffer = Buffer.from(base58.decode(newPrivateKey));
-      if (privKeyBuffer.length !== 64) {
+      privKeyBuffer = Buffer.from(newPrivateKey, "hex");
+      if (privKeyBuffer.length !== 32) {
         throw new Error("Invalid private key length for given ed25519 key");
       }
     }
 
-    const finalPrivKey = this.keyType === "secp256k1" ? privKeyBuffer : privKeyBuffer.subarray(0, 32);
-    const privKeyBn = new BN(finalPrivKey, 16);
-    const sharesData = await generateShares(this.ec, this.keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, privKeyBn);
+    const sharesData = await generateShares(this.ec, this.keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, privKeyBuffer);
     if (this.keyType === "ed25519") {
-      const ed25519PubKey = privKeyBuffer.subarray(32);
+      const ed25519Key = getEd25519ExtendedPublicKey(privKeyBuffer);
+      const ed25519PubKey = encodeEd25519Point(ed25519Key.point);
       const encodedPubKey = encodeEd25519Point(sharesData[0].final_user_point);
       const importedPubKey = Buffer.from(ed25519PubKey).toString("hex");
       const derivedPubKey = encodedPubKey.toString("hex");
