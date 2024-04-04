@@ -263,9 +263,9 @@ export interface PrivateKeyData {
   SigningPubX: BN;
   SigningPubY: BN;
   metadataNonce: BN;
-  encryptedSeed?: string;
+  metadataSigningKey: BN;
   finalUserPubKeyPoint: curve.base.BasePoint;
-  metadataSigningKey?: BN;
+  encryptedSeed?: string;
 }
 
 export interface EncryptedSeed {

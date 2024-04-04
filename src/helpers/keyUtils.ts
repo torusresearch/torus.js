@@ -118,14 +118,15 @@ export const generateEd25519KeyData = async (ed25519Seed: BN): Promise<PrivateKe
   const metadataPrivNonce = ed25519Curve.genKeyPair().getPrivate();
   const oauthKey = finalEd25519Key.scalar.sub(metadataPrivNonce).umod(ed25519Curve.n);
   const oauthKeyPair = ed25519Curve.keyFromPrivate(oauthKey.toArrayLike(Buffer));
+  const metadataSigningKey = getSecpKeyFromEd25519(oauthKeyPair.getPrivate());
   return {
     oAuthKeyScalar: oauthKeyPair.getPrivate(),
     oAuthPubX: oauthKeyPair.getPublic().getX(),
     oAuthPubY: oauthKeyPair.getPublic().getY(),
-    SigningPubX: encryptionKey.point.getX(),
-    SigningPubY: encryptionKey.point.getY(),
+    SigningPubX: metadataSigningKey.point.getX(),
+    SigningPubY: metadataSigningKey.point.getY(),
     metadataNonce: metadataPrivNonce,
-    metadataSigningKey: encryptionKey.scalar,
+    metadataSigningKey: metadataSigningKey.scalar,
     encryptedSeed: encDataBase64,
     finalUserPubKeyPoint: finalEd25519Key.point,
   };

@@ -57,40 +57,6 @@ export async function getMetadata(
   }
 }
 
-export async function getOrSetNonce(
-  legacyMetadataHost: string,
-  ecCurve: ec,
-  serverTimeOffset: number,
-  X: string,
-  Y: string,
-  privKey?: BN,
-  getOnly = false
-): Promise<GetOrSetNonceResult> {
-  let data: Data;
-  const msg = getOnly ? "getNonce" : "getOrSetNonce";
-  if (privKey) {
-    data = generateMetadataParams(ecCurve, serverTimeOffset, msg, privKey);
-  } else {
-    data = {
-      pub_key_X: X,
-      pub_key_Y: Y,
-      set_data: { data: msg },
-    };
-  }
-  return post<GetOrSetNonceResult>(`${legacyMetadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
-}
-
-export async function getNonce(
-  legacyMetadataHost: string,
-  ecCurve: ec,
-  serverTimeOffset: number,
-  X: string,
-  Y: string,
-  privKey?: BN
-): Promise<GetOrSetNonceResult> {
-  return getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, X, Y, privKey, true);
-}
-
 export function generateNonceMetadataParams(
   serverTimeOffset: number,
   operation: string,
@@ -124,6 +90,70 @@ export function generateNonceMetadataParams(
     key_type: keyType,
     signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
   };
+}
+
+export async function getOrSetNonce(
+  metadataHost: string,
+  ecCurve: ec,
+  serverTimeOffset: number,
+  X: string,
+  Y: string,
+  privKey?: BN,
+  getOnly = false,
+  isLegacyMetadata = true,
+  nonce = new BN(0),
+  keyType: KeyType = "secp256k1",
+  seed = ""
+): Promise<GetOrSetNonceResult> {
+  // for legacy metadata
+  if (isLegacyMetadata) {
+    let data: Data;
+    const msg = getOnly ? "getNonce" : "getOrSetNonce";
+    if (privKey) {
+      data = generateMetadataParams(ecCurve, serverTimeOffset, msg, privKey);
+    } else {
+      data = {
+        pub_key_X: X,
+        pub_key_Y: Y,
+        set_data: { data: msg },
+      };
+    }
+    return post<GetOrSetNonceResult>(`${metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
+  }
+
+  // for sapphire metadata
+  const operation = getOnly ? "getNonce" : "getOrSetNonce";
+  if (operation === "getOrSetNonce") {
+    if (!privKey) {
+      throw new Error("privKey is required while `getOrSetNonce` for non legacy metadata");
+    }
+    if (nonce.cmp(new BN(0)) === 0) {
+      throw new Error("nonce is required while `getOrSetNonce` for non legacy metadata");
+    }
+    if (keyType === "ed25519" && !seed) {
+      throw new Error("seed is required while `getOrSetNonce` for non legacy metadata for ed25519 key type");
+    }
+    const data = generateNonceMetadataParams(serverTimeOffset, operation, privKey, keyType, nonce, seed);
+
+    return post<GetOrSetNonceResult>(`${metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
+  }
+  const data = {
+    pub_key_X: X,
+    pub_key_Y: Y,
+    set_data: { operation: "getNonce" },
+    key_type: keyType,
+  };
+  return post<GetOrSetNonceResult>(`${metadataHost}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
+}
+export async function getNonce(
+  legacyMetadataHost: string,
+  ecCurve: ec,
+  serverTimeOffset: number,
+  X: string,
+  Y: string,
+  privKey?: BN
+): Promise<GetOrSetNonceResult> {
+  return getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, X, Y, privKey, true);
 }
 
 export const decryptSeedData = async (seedBase64: string, finalUserKey: BN) => {
