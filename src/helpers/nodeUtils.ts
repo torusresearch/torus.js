@@ -235,6 +235,7 @@ export async function retrieveOrImportShare(params: {
         temppuby: pubKeyY,
         verifieridentifier: verifier,
         verifier_id: verifierParams.verifier_id,
+        extended_verifier_id: verifierParams.extended_verifier_id,
         is_import_key_flow: true,
       }),
       null,

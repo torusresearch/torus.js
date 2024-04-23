@@ -280,6 +280,27 @@ describe("torus utils ed25519 sapphire devnet", function () {
     expect(result.metadata.typeOfUser).to.equal("v2");
     expect(result.metadata.nonce).to.eql(new BN("0"));
     expect(result.metadata.upgraded).to.equal(true);
+    const token2 = generateIdToken(email, "ES256");
+
+    const result2 = await torus.retrieveShares(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { extended_verifier_id: tssVerifierId, verifier_id: email },
+      token2,
+      nodeDetails.torusNodePub
+    );
+    expect(result.finalKeyData.privKey).to.equal(result2.finalKeyData.privKey);
+    expect(result.oAuthKeyData.walletAddress).to.equal(result2.finalKeyData.walletAddress);
+    expect(result2.metadata.typeOfUser).to.equal(result.metadata.typeOfUser);
+    expect(result2.metadata.upgraded).to.equal(result.metadata.upgraded);
+
+    const result3 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, {
+      verifier: TORUS_TEST_VERIFIER,
+      verifierId: email,
+      extendedVerifierId: tssVerifierId,
+    });
+    expect(result3.oAuthKeyData.walletAddress).to.equal(result2.finalKeyData.walletAddress);
   });
 
   it("should fetch public address when verifierID hash enabled", async function () {
