@@ -26,19 +26,19 @@ export async function decryptNodeData(eciesData: EciesHex, ciphertextHex: string
 }
 
 export async function decryptNodeDataWithPadding(eciesData: EciesHex, ciphertextHex: string, privKey: Buffer): Promise<Buffer> {
-  const ciphertextHexPadding = ciphertextHex.padStart(64, "0");
   const metadata = encParamsHexToBuf(eciesData);
-
   try {
     const decryptedSigBuffer = await decrypt(privKey, {
       ...metadata,
-      ciphertext: Buffer.from(ciphertextHexPadding, "hex"),
+      ciphertext: Buffer.from(ciphertextHex, "hex"),
     });
     return decryptedSigBuffer;
   } catch (error) {
+    const ciphertextHexPadding = ciphertextHex.padStart(64, "0");
+
     log.warn("Failed to decrypt padded share cipher", error);
     // try without cipher text padding
-    return decrypt(privKey, { ...metadata, ciphertext: Buffer.from(ciphertextHex, "hex") });
+    return decrypt(privKey, { ...metadata, ciphertext: Buffer.from(ciphertextHexPadding, "hex") });
   }
 }
 
