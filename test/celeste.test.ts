@@ -12,7 +12,7 @@ const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe.only("torus utils celeste", function () {
+describe("torus utils celeste", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -54,7 +54,7 @@ describe.only("torus utils celeste", function () {
     });
   });
 
-  it.only("should fetch user type and public address", async function () {
+  it("should fetch user type and public address", async function () {
     const verifier = "tkey-google-celeste"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
