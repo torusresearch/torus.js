@@ -39,7 +39,7 @@ import {
 } from "./common";
 import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generatePrivateKey, generateShares, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
-import { decryptNodeData, decryptSeedData, getMetadata, getOrSetNonce } from "./metadataUtils";
+import { decryptNodeData, decryptNodeDataWithPadding, decryptSeedData, getMetadata, getOrSetNonce } from "./metadataUtils";
 
 export const GetPubKeyOrKeyAssign = async (params: {
   endpoints: string[];
@@ -548,12 +548,11 @@ export async function retrieveOrImportShare(params: {
             if (keys?.length > 0) {
               const latestKey = currentShareResponse.result.keys[0];
               nodeIndexes.push(new BN(latestKey.node_index));
-
               if (latestKey.share_metadata) {
                 sharePromises.push(
-                  decryptNodeData(
+                  decryptNodeDataWithPadding(
                     latestKey.share_metadata,
-                    Buffer.from(latestKey.share, "base64").toString("binary").padStart(64, "0"),
+                    Buffer.from(latestKey.share, "base64").toString("binary"),
                     sessionAuthKey
                   ).catch((err) => log.error("share decryption", err))
                 );
