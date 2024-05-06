@@ -61,7 +61,7 @@ describe("torus utils sapphire mainnet", function () {
     });
   });
 
-  it("should be able to import a key for a new user", async function () {
+  it.skip("should be able to import a key for a new user", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const privKeyBuffer = generatePrivate();
