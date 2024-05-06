@@ -5,7 +5,7 @@
 // const verifierId = "hello@tor.us"; // any verifier id
 // fetchNodeDetails
 //   .getNodeDetails({ verifier, verifierId })
-//   .then(({ torusNodeEndpoints, torusNodePub }) => torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId }))
+//   .then(({ torusNodeEndpoints }) => torus.getPublicAddress(torusNodeEndpoints,  { verifier, verifierId }))
 //   .then((publicAddress) => console.log(publicAddress))
 //   .catch(console.error);
 

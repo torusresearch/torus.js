@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <head>
   Test Torus.js
 </head>
@@ -12,9 +12,9 @@
     const verifierId = `${Math.random().toString(36).substring(2)}@tor.us`; // any verifier id
     fetchNodeDetails
       .getNodeDetails({ verifier, verifierId })
-      .then(function ({ torusNodeEndpoints, torusNodePub }) {
+      .then(function ({ torusNodeEndpoints }) {
         console.log(arguments);
-        return torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId });
+        return torus.getPublicAddress(torusNodeEndpoints, { verifier, verifierId });
       })
       .then((publicAddress) => console.log(publicAddress))
       .catch(console.error);

@@ -12,13 +12,9 @@ import {
   ImportedShare,
   ImportShareRequestResult,
   JRPCResponse,
-  KeyAssignInput,
   KeyLookupResult,
-  LegacyKeyLookupResult,
-  LegacyVerifierLookupResponse,
   SessionToken,
   ShareRequestResult,
-  SignerResponse,
   TorusKey,
   UserType,
   v2NonceResultType,
@@ -27,7 +23,7 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { Some } from "../some";
-import { calculateMedian, kCombinations, normalizeKeysResult, normalizeLegacyKeysResult, thresholdSame } from "./common";
+import { calculateMedian, kCombinations, normalizeKeysResult, thresholdSame } from "./common";
 import { generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
@@ -227,9 +223,9 @@ export async function retrieveOrImportShare(params: {
     });
 
     // we need to get commitments from all endpoints for importing share
-    if (importedShares.length > 0 && completedRequests.length === endpoints.length) {
+    if (importedShares?.length > 0 && completedRequests.length === endpoints.length) {
       return Promise.resolve(resultArr);
-    } else if (importedShares.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
+    } else if (importedShares?.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
       const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
         if (resp && resp.result?.nodeindex === "1") {
           return true;
@@ -657,143 +653,3 @@ export async function retrieveOrImportShare(params: {
       } as TorusKey;
     });
 }
-
-export const legacyKeyLookup = async (endpoints: string[], verifier: string, verifierId: string): Promise<LegacyKeyLookupResult> => {
-  const lookupPromises = endpoints.map((x) =>
-    post<JRPCResponse<LegacyVerifierLookupResponse>>(
-      x,
-      generateJsonRPCObject("VerifierLookupRequest", {
-        verifier,
-        verifier_id: verifierId.toString(),
-        client_time: Math.floor(Date.now() / 1000).toString(),
-      })
-    ).catch((err) => log.error("lookup request failed", err))
-  );
-  return Some<void | JRPCResponse<LegacyVerifierLookupResponse>, LegacyKeyLookupResult>(lookupPromises, (lookupResults) => {
-    const lookupShares = lookupResults.filter((x1) => x1);
-    const errorResult = thresholdSame(
-      lookupShares.map((x2) => x2 && x2.error),
-      ~~(endpoints.length / 2) + 1
-    );
-    const keyResult = thresholdSame(
-      lookupShares.map((x3) => x3 && normalizeLegacyKeysResult(x3.result)),
-      ~~(endpoints.length / 2) + 1
-    );
-
-    const serverTimeOffsets: number[] = [];
-    // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
-    if (keyResult) {
-      lookupResults.forEach((x1) => {
-        if (x1 && x1.result) {
-          const timeOffSet = x1.result.server_time_offset;
-          const serverTimeOffset = timeOffSet ? Number.parseInt(timeOffSet, 10) : 0;
-          serverTimeOffsets.push(serverTimeOffset);
-        }
-      });
-    }
-
-    if (keyResult || errorResult) {
-      const serverTimeOffset = keyResult ? calculateMedian(serverTimeOffsets) : 0;
-      return Promise.resolve({ keyResult, errorResult, serverTimeOffset });
-    }
-    return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`));
-  });
-};
-
-export const legacyKeyAssign = async ({
-  endpoints,
-  torusNodePubs,
-  lastPoint,
-  firstPoint,
-  verifier,
-  verifierId,
-  signerHost,
-  network,
-  clientId,
-}: KeyAssignInput): Promise<void> => {
-  let nodeNum: number;
-  let initialPoint: number | undefined;
-  if (lastPoint === undefined) {
-    nodeNum = Math.floor(Math.random() * endpoints.length);
-    // nodeNum = endpoints.indexOf("https://torus-node.binancex.dev/jrpc");
-    initialPoint = nodeNum;
-  } else {
-    nodeNum = lastPoint % endpoints.length;
-  }
-  if (nodeNum === firstPoint) throw new Error("Looped through all");
-  if (firstPoint !== undefined) initialPoint = firstPoint;
-
-  const data = generateJsonRPCObject("KeyAssign", {
-    verifier,
-    verifier_id: verifierId.toString(),
-  });
-  try {
-    const signedData = await post<SignerResponse>(
-      signerHost,
-      data,
-      {
-        headers: {
-          pubkeyx: torusNodePubs[nodeNum].X,
-          pubkeyy: torusNodePubs[nodeNum].Y,
-          network,
-          clientid: clientId,
-        },
-      },
-      { useAPIKey: true }
-    );
-    return await post<void>(
-      endpoints[nodeNum],
-      { ...data, ...signedData },
-      {
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-      }
-    );
-  } catch (error2: unknown) {
-    const error = error2 as { status: number; message: string };
-    log.error(error.status, error.message, error, "key assign error");
-    const acceptedErrorMsgs = [
-      // Slow node
-      "Timed out",
-      "Failed to fetch",
-      "cancelled",
-      "NetworkError when attempting to fetch resource.",
-      // Happens when the node is not reachable (dns issue etc)
-      "TypeError: Failed to fetch", // All except iOS and Firefox
-      "TypeError: cancelled", // iOS
-      "TypeError: NetworkError when attempting to fetch resource.", // Firefox
-    ];
-    if (
-      error?.status === 502 ||
-      error?.status === 504 ||
-      error?.status === 401 ||
-      acceptedErrorMsgs.includes(error.message) ||
-      acceptedErrorMsgs.some((x) => error.message?.includes(x)) ||
-      (error.message && error.message.includes("reason: getaddrinfo EAI_AGAIN"))
-    )
-      return legacyKeyAssign({
-        endpoints,
-        torusNodePubs,
-        lastPoint: nodeNum + 1,
-        firstPoint: initialPoint,
-        verifier,
-        verifierId,
-        signerHost,
-        network,
-        clientId,
-      });
-    throw new Error(
-      `Sorry, the Torus Network that powers Web3Auth is currently very busy.
-    We will generate your key in time. Pls try again later. \n
-    ${error.message || ""}`
-    );
-  }
-};
-
-export const legacyWaitKeyLookup = (endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<LegacyKeyLookupResult> =>
-  new Promise((resolve, reject) => {
-    setTimeout(() => {
-      legacyKeyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject);
-    }, timeout);
-  });
