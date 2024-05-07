@@ -94,6 +94,7 @@ class Torus {
 
   async retrieveShares(
     endpoints: string[],
+    indexes: number[],
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
@@ -111,6 +112,7 @@ class Torus {
       verifier,
       verifierParams,
       idToken,
+      indexes,
       importedShares: [],
       extraParams: {
         ...extraParams,
@@ -121,6 +123,7 @@ class Torus {
 
   async getPublicAddress(
     endpoints: string[],
+    torusNodePubs: INodePub[],
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string }
   ): Promise<TorusPublicKey> {
     return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, this.enableOneKey);
@@ -196,6 +199,7 @@ class Torus {
       verifier,
       verifierParams,
       idToken,
+      indexes: nodeIndexes,
       importedShares: sharesData,
       extraParams: {
         ...extraParams,
@@ -210,6 +214,7 @@ class Torus {
    */
   async getUserTypeAndAddress(
     endpoints: string[],
+    torusNodePubs: INodePub[],
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string }
   ): Promise<TorusPublicKey> {
     return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, true) as Promise<TorusPublicKey>;

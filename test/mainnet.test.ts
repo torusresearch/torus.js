@@ -27,8 +27,8 @@ describe("torus utils mainnet", function () {
   it("should fetch public address", async function () {
     const verifier = "google"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
+    const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result.finalKeyData.evmAddress).to.equal("0x0C44AFBb5395a9e8d28DF18e1326aa0F16b9572A");
     delete result.metadata.serverTimeOffset;
 
@@ -56,8 +56,8 @@ describe("torus utils mainnet", function () {
   it("should fetch user type and public address", async function () {
     const verifier = "google"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result1 = await torus.getUserTypeAndAddress(torusNodeEndpoints, verifierDetails);
+    const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result1 = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(result1.metadata.typeOfUser).to.equal("v2");
     expect(result1.metadata.serverTimeOffset).lessThan(20);
 
@@ -89,7 +89,7 @@ describe("torus utils mainnet", function () {
     const v2Verifier = "tkey-google";
     // 1/1 user
     const v2TestEmail = "somev2user@gmail.com";
-    const result2 = await torus.getUserTypeAndAddress(torusNodeEndpoints, {
+    const result2 = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     });
@@ -124,7 +124,7 @@ describe("torus utils mainnet", function () {
 
     // 2/n user
     const v2nTestEmail = "caspertorus@gmail.com";
-    const result3 = await torus.getUserTypeAndAddress(torusNodeEndpoints, {
+    const result3 = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     });
@@ -160,8 +160,8 @@ describe("torus utils mainnet", function () {
     // TorusUtils.enableLogging(true);
     const email = faker.internet.email();
     const verifierDetails = { verifier, verifierId: email };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const { finalKeyData, oAuthKeyData, metadata } = await torus.getPublicAddress(torusNodeEndpoints, verifierDetails);
+    const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { finalKeyData, oAuthKeyData, metadata } = await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
     expect(finalKeyData.evmAddress).to.not.equal("");
     expect(finalKeyData.evmAddress).to.not.equal(null);
     expect(oAuthKeyData.evmAddress).to.not.equal("");
@@ -174,8 +174,8 @@ describe("torus utils mainnet", function () {
   it("should be able to login", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
     delete result.sessionData;
     expect(result.metadata.serverTimeOffset).lessThan(20);
 
@@ -203,9 +203,10 @@ describe("torus utils mainnet", function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
       torusNodeEndpoints,
+      torusIndexes,
       TORUS_TEST_AGGREGATE_VERIFIER,
       {
         verify_params: [{ verifier_id: TORUS_TEST_EMAIL, idtoken: idToken }],

@@ -29,8 +29,8 @@ describe("torus onekey", function () {
   it("should still fetch v1 public address correctly", async function () {
     const verifier = "google-lrc"; // any verifier
     const verifierDetails = { verifier, verifierId: "himanshu@tor.us" };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, verifierDetails)) as TorusPublicKey;
+    const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
     expect(publicAddress.finalKeyData.evmAddress).to.be.equal("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
     expect(publicAddress.metadata.serverTimeOffset).lessThan(20);
 
@@ -60,8 +60,14 @@ describe("torus onekey", function () {
   it("should still login v1 account correctly", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const retrieveSharesResponse = await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token);
+    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const retrieveSharesResponse = await torus.retrieveShares(
+      torusNodeEndpoints,
+      torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: TORUS_TEST_EMAIL },
+      token
+    );
     expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
 
     delete retrieveSharesResponse.metadata.serverTimeOffset;
@@ -101,9 +107,10 @@ describe("torus onekey", function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
+      torusIndexes,
       TORUS_TEST_AGGREGATE_VERIFIER,
       {
         verify_params: [{ verifier_id: TORUS_TEST_EMAIL, idtoken: idToken }],
@@ -151,8 +158,8 @@ describe("torus onekey", function () {
     const verifier = TORUS_TEST_VERIFIER; // any verifier
     const email = faker.internet.email();
     const verifierDetails = { verifier, verifierId: email };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, verifierDetails)) as TorusPublicKey;
+    const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
     expect(publicAddress.metadata.typeOfUser).to.equal("v2");
     expect(publicAddress.metadata.upgraded).to.equal(false);
     expect(publicAddress.finalKeyData.evmAddress).to.not.equal("");
@@ -165,8 +172,8 @@ describe("torus onekey", function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result = await torus.retrieveShares(torusNodeEndpoints, TORUS_TEST_VERIFIER, { verifier_id: email }, token);
+    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token);
     expect(!result.metadata.nonce.eq(new BN("0")));
     expect(result.metadata.typeOfUser).to.equal("v2");
     expect(result.metadata.upgraded).to.equal(false);
@@ -179,9 +186,10 @@ describe("torus onekey", function () {
   it("should still login v2 account correctly", async function () {
     const token = generateIdToken("Jonathan.Nolan@hotmail.com", "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "Jonathan.Nolan@hotmail.com" };
-    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const { torusNodeEndpoints, torusIndexes } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(
       torusNodeEndpoints,
+      torusIndexes,
       TORUS_TEST_VERIFIER,
       { verifier_id: "Jonathan.Nolan@hotmail.com" },
       token

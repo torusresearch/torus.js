@@ -36,6 +36,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
   extendedVerifierId?: string;
 }): Promise<KeyLookupResult> => {
   const { endpoints, network, verifier, verifierId, extendedVerifierId } = params;
+  const minThreshold = ~~(endpoints.length / 2) + 1;
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
@@ -65,12 +66,12 @@ export const GetPubKeyOrKeyAssign = async (params: {
 
     const errorResult = thresholdSame(
       lookupPubKeys.map((x2) => x2 && x2.error),
-      ~~(endpoints.length / 2) + 1
+      minThreshold
     );
 
     const keyResult = thresholdSame(
       lookupPubKeys.map((x3) => x3 && normalizeKeysResult(x3.result)),
-      ~~(endpoints.length / 2) + 1
+      minThreshold
     );
 
     // check for nonce result in response if not a extendedVerifierId and not a legacy network
@@ -138,6 +139,7 @@ export async function retrieveOrImportShare(params: {
   idToken: string;
   importedShares?: ImportedShare[];
   extraParams: Record<string, unknown>;
+  indexes: number[];
 }): Promise<TorusKey> {
   const {
     legacyMetadataHost,
@@ -154,6 +156,7 @@ export async function retrieveOrImportShare(params: {
     extraParams,
     serverTimeOffset,
   } = params;
+  const minThreshold = ~~(endpoints.length / 2) + 1;
   await get<void>(
     allowHost,
     {
@@ -348,7 +351,7 @@ export async function retrieveOrImportShare(params: {
           return undefined;
         });
 
-        const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
+        const thresholdPublicKey = thresholdSame(pubkeys, minThreshold);
 
         if (!thresholdPublicKey) {
           throw new Error("invalid result from nodes, threshold number of public key results are not matching");
@@ -373,7 +376,7 @@ export async function retrieveOrImportShare(params: {
           );
         }
 
-        const thresholdReqCount = importedShares.length > 0 ? endpoints.length : ~~(endpoints.length / 2) + 1;
+        const thresholdReqCount = importedShares.length > 0 ? endpoints.length : minThreshold;
         // optimistically run lagrange interpolation once threshold number of shares have been received
         // this is matched against the user public key to ensure that shares are consistent
         // Note: no need of thresholdMetadataNonce for extended_verifier_id key
@@ -464,9 +467,8 @@ export async function retrieveOrImportShare(params: {
             return false;
           });
 
-          const minThresholdRequired = ~~(endpoints.length / 2) + 1;
-          if (!verifierParams.extended_verifier_id && validSigs.length < minThresholdRequired) {
-            throw new Error(`Insufficient number of signatures from nodes, required: ${minThresholdRequired}, found: ${validSigs.length}`);
+          if (!verifierParams.extended_verifier_id && validSigs.length < minThreshold) {
+            throw new Error(`Insufficient number of signatures from nodes, required: ${minThreshold}, found: ${validSigs.length}`);
           }
 
           const validTokens = sessionTokensResolved.filter((token) => {
@@ -476,8 +478,8 @@ export async function retrieveOrImportShare(params: {
             return false;
           });
 
-          if (!verifierParams.extended_verifier_id && validTokens.length < minThresholdRequired) {
-            throw new Error(`Insufficient number of session tokens from nodes, required: ${minThresholdRequired}, found: ${validTokens.length}`);
+          if (!verifierParams.extended_verifier_id && validTokens.length < minThreshold) {
+            throw new Error(`Insufficient number of session tokens from nodes, required: ${minThreshold}, found: ${validTokens.length}`);
           }
           sessionTokensResolved.forEach((x, index) => {
             if (!x) sessionTokenData.push(undefined);
@@ -500,7 +502,7 @@ export async function retrieveOrImportShare(params: {
             [] as { index: BN; value: BN }[]
           );
           // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
-          const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1);
+          const allCombis = kCombinations(decryptedShares.length, minThreshold);
 
           let privateKey: BN | null = null;
           for (let j = 0; j < allCombis.length; j += 1) {
@@ -525,7 +527,7 @@ export async function retrieveOrImportShare(params: {
           if (privateKey === undefined || privateKey === null) {
             throw new Error("could not derive private key");
           }
-          const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
+          const thresholdIsNewKey = thresholdSame(isNewKeyResponses, minThreshold);
 
           // Convert each string timestamp to a number
           const serverOffsetTimes = serverTimeOffsetResponses.map((timestamp) => Number.parseInt(timestamp, 10));

@@ -10,11 +10,11 @@
     const torus = new TorusUtils.default({ network: "mainnet", clientId: "test" });
     const verifier = "google"; // any verifier
     const verifierId = `${Math.random().toString(36).substring(2)}@tor.us`; // any verifier id
-    fetchNodeDetails
+    ffetchNodeDetails
       .getNodeDetails({ verifier, verifierId })
-      .then(function ({ torusNodeEndpoints }) {
+      .then(function ({ torusNodeEndpoints, torusNodePub }) {
         console.log(arguments);
-        return torus.getPublicAddress(torusNodeEndpoints, { verifier, verifierId });
+        return torus.getPublicAddress(torusNodeEndpoints, torusNodePub, { verifier, verifierId });
       })
       .then((publicAddress) => console.log(publicAddress))
       .catch(console.error);
