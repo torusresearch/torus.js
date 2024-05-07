@@ -10,7 +10,7 @@
     const torus = new TorusUtils.default({ network: "mainnet", clientId: "test" });
     const verifier = "google"; // any verifier
     const verifierId = `${Math.random().toString(36).substring(2)}@tor.us`; // any verifier id
-    ffetchNodeDetails
+    fetchNodeDetails
       .getNodeDetails({ verifier, verifierId })
       .then(function ({ torusNodeEndpoints, torusNodePub }) {
         console.log(arguments);
