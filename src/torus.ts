@@ -126,6 +126,7 @@ class Torus {
     torusNodePubs: INodePub[],
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string }
   ): Promise<TorusPublicKey> {
+    log.info(torusNodePubs, { verifier, verifierId, extendedVerifierId });
     return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, this.enableOneKey);
   }
 
@@ -217,6 +218,7 @@ class Torus {
     torusNodePubs: INodePub[],
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string }
   ): Promise<TorusPublicKey> {
+    log.info(torusNodePubs, { verifier, verifierId, extendedVerifierId });
     return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, true) as Promise<TorusPublicKey>;
   }
 
