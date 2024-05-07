@@ -1,4 +1,4 @@
-import type { INodePub, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import type { TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 
@@ -74,12 +74,6 @@ export interface JRPCResponse<T> {
   };
 }
 
-export interface LegacyKeyLookupResult {
-  keyResult: Pick<LegacyVerifierLookupResponse, "keys" | "server_time_offset">;
-  errorResult: JRPCResponse<LegacyVerifierLookupResponse>["error"];
-  serverTimeOffset: number;
-}
-
 export interface KeyLookupResult {
   keyResult: Pick<VerifierLookupResponse, "keys" | "is_new_key">;
   nodeIndexes: number[];
@@ -88,40 +82,10 @@ export interface KeyLookupResult {
   nonceResult?: GetOrSetNonceResult;
 }
 
-export interface SignerResponse {
-  "torus-timestamp": string;
-  "torus-nonce": string;
-  "torus-signature": string;
-}
-export interface KeyAssignInput {
-  endpoints: string[];
-  torusNodePubs: INodePub[];
-  lastPoint?: number;
-  firstPoint?: number;
-  verifier: string;
-  verifierId: string;
-  signerHost: string;
-  network: string;
-  clientId: string;
-}
-
 export type EciesHex = {
   [key in keyof Ecies]: string;
 } & { mode?: string };
 
-export interface LegacyKeyAssignment {
-  Index: string;
-  PublicKey: {
-    X: string;
-    Y: string;
-  };
-  Threshold: string;
-  Verifiers: Record<string, string>;
-  Share: string;
-  Metadata: {
-    [key in keyof Ecies]: string;
-  };
-}
 export interface KeyAssignment {
   index: KeyIndex;
   public_key: {
@@ -134,11 +98,6 @@ export interface KeyAssignment {
   share: string;
   share_metadata: EciesHex;
   nonce_data?: GetOrSetNonceResult;
-}
-
-export interface LegacyShareRequestResult {
-  keys: LegacyKeyAssignment[];
-  server_time_offset?: string;
 }
 
 export interface ShareRequestResult {

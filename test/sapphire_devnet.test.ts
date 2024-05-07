@@ -238,6 +238,7 @@ describe("torus utils sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should fetch public address of imported user", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
@@ -483,6 +484,7 @@ describe("torus utils sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should assign key to tss verifier id", async function () {
     const email = faker.internet.email();
     const nonce = 0;
@@ -600,6 +602,7 @@ describe("torus utils sapphire devnet", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should be able to login when verifierID hash enabled", async function () {
     const token = generateIdToken(TORUS_HASH_ENABLED_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_HASH_ENABLED_TEST_EMAIL };

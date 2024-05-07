@@ -12,13 +12,9 @@ import {
   ImportedShare,
   ImportShareRequestResult,
   JRPCResponse,
-  KeyAssignInput,
   KeyLookupResult,
-  LegacyKeyLookupResult,
-  LegacyVerifierLookupResponse,
   SessionToken,
   ShareRequestResult,
-  SignerResponse,
   TorusKey,
   UserType,
   v2NonceResultType,
@@ -27,7 +23,7 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { Some } from "../some";
-import { calculateMedian, kCombinations, normalizeKeysResult, normalizeLegacyKeysResult, thresholdSame } from "./common";
+import { calculateMedian, kCombinations, normalizeKeysResult, thresholdSame } from "./common";
 import { generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
@@ -40,6 +36,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
   extendedVerifierId?: string;
 }): Promise<KeyLookupResult> => {
   const { endpoints, network, verifier, verifierId, extendedVerifierId } = params;
+  const minThreshold = ~~(endpoints.length / 2) + 1;
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<VerifierLookupResponse>>(
       x,
@@ -69,12 +66,12 @@ export const GetPubKeyOrKeyAssign = async (params: {
 
     const errorResult = thresholdSame(
       lookupPubKeys.map((x2) => x2 && x2.error),
-      ~~(endpoints.length / 2) + 1
+      minThreshold
     );
 
     const keyResult = thresholdSame(
       lookupPubKeys.map((x3) => x3 && normalizeKeysResult(x3.result)),
-      ~~(endpoints.length / 2) + 1
+      minThreshold
     );
 
     // check for nonce result in response if not a extendedVerifierId and not a legacy network
@@ -142,6 +139,7 @@ export async function retrieveOrImportShare(params: {
   idToken: string;
   importedShares?: ImportedShare[];
   extraParams: Record<string, unknown>;
+  indexes: number[];
 }): Promise<TorusKey> {
   const {
     legacyMetadataHost,
@@ -158,6 +156,7 @@ export async function retrieveOrImportShare(params: {
     extraParams,
     serverTimeOffset,
   } = params;
+  const minThreshold = ~~(endpoints.length / 2) + 1;
   await get<void>(
     allowHost,
     {
@@ -227,9 +226,9 @@ export async function retrieveOrImportShare(params: {
     });
 
     // we need to get commitments from all endpoints for importing share
-    if (importedShares.length > 0 && completedRequests.length === endpoints.length) {
+    if (importedShares?.length > 0 && completedRequests.length === endpoints.length) {
       return Promise.resolve(resultArr);
-    } else if (importedShares.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
+    } else if (importedShares?.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
       const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
         if (resp && resp.result?.nodeindex === "1") {
           return true;
@@ -352,7 +351,7 @@ export async function retrieveOrImportShare(params: {
           return undefined;
         });
 
-        const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
+        const thresholdPublicKey = thresholdSame(pubkeys, minThreshold);
 
         if (!thresholdPublicKey) {
           throw new Error("invalid result from nodes, threshold number of public key results are not matching");
@@ -377,7 +376,7 @@ export async function retrieveOrImportShare(params: {
           );
         }
 
-        const thresholdReqCount = importedShares.length > 0 ? endpoints.length : ~~(endpoints.length / 2) + 1;
+        const thresholdReqCount = importedShares.length > 0 ? endpoints.length : minThreshold;
         // optimistically run lagrange interpolation once threshold number of shares have been received
         // this is matched against the user public key to ensure that shares are consistent
         // Note: no need of thresholdMetadataNonce for extended_verifier_id key
@@ -468,9 +467,8 @@ export async function retrieveOrImportShare(params: {
             return false;
           });
 
-          const minThresholdRequired = ~~(endpoints.length / 2) + 1;
-          if (!verifierParams.extended_verifier_id && validSigs.length < minThresholdRequired) {
-            throw new Error(`Insufficient number of signatures from nodes, required: ${minThresholdRequired}, found: ${validSigs.length}`);
+          if (!verifierParams.extended_verifier_id && validSigs.length < minThreshold) {
+            throw new Error(`Insufficient number of signatures from nodes, required: ${minThreshold}, found: ${validSigs.length}`);
           }
 
           const validTokens = sessionTokensResolved.filter((token) => {
@@ -480,8 +478,8 @@ export async function retrieveOrImportShare(params: {
             return false;
           });
 
-          if (!verifierParams.extended_verifier_id && validTokens.length < minThresholdRequired) {
-            throw new Error(`Insufficient number of session tokens from nodes, required: ${minThresholdRequired}, found: ${validTokens.length}`);
+          if (!verifierParams.extended_verifier_id && validTokens.length < minThreshold) {
+            throw new Error(`Insufficient number of session tokens from nodes, required: ${minThreshold}, found: ${validTokens.length}`);
           }
           sessionTokensResolved.forEach((x, index) => {
             if (!x) sessionTokenData.push(undefined);
@@ -504,7 +502,7 @@ export async function retrieveOrImportShare(params: {
             [] as { index: BN; value: BN }[]
           );
           // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
-          const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1);
+          const allCombis = kCombinations(decryptedShares.length, minThreshold);
 
           let privateKey: BN | null = null;
           for (let j = 0; j < allCombis.length; j += 1) {
@@ -529,7 +527,7 @@ export async function retrieveOrImportShare(params: {
           if (privateKey === undefined || privateKey === null) {
             throw new Error("could not derive private key");
           }
-          const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
+          const thresholdIsNewKey = thresholdSame(isNewKeyResponses, minThreshold);
 
           // Convert each string timestamp to a number
           const serverOffsetTimes = serverTimeOffsetResponses.map((timestamp) => Number.parseInt(timestamp, 10));
@@ -657,143 +655,3 @@ export async function retrieveOrImportShare(params: {
       } as TorusKey;
     });
 }
-
-export const legacyKeyLookup = async (endpoints: string[], verifier: string, verifierId: string): Promise<LegacyKeyLookupResult> => {
-  const lookupPromises = endpoints.map((x) =>
-    post<JRPCResponse<LegacyVerifierLookupResponse>>(
-      x,
-      generateJsonRPCObject("VerifierLookupRequest", {
-        verifier,
-        verifier_id: verifierId.toString(),
-        client_time: Math.floor(Date.now() / 1000).toString(),
-      })
-    ).catch((err) => log.error("lookup request failed", err))
-  );
-  return Some<void | JRPCResponse<LegacyVerifierLookupResponse>, LegacyKeyLookupResult>(lookupPromises, (lookupResults) => {
-    const lookupShares = lookupResults.filter((x1) => x1);
-    const errorResult = thresholdSame(
-      lookupShares.map((x2) => x2 && x2.error),
-      ~~(endpoints.length / 2) + 1
-    );
-    const keyResult = thresholdSame(
-      lookupShares.map((x3) => x3 && normalizeLegacyKeysResult(x3.result)),
-      ~~(endpoints.length / 2) + 1
-    );
-
-    const serverTimeOffsets: number[] = [];
-    // nonceResult must exist except for extendedVerifierId and legacy networks along with keyResult
-    if (keyResult) {
-      lookupResults.forEach((x1) => {
-        if (x1 && x1.result) {
-          const timeOffSet = x1.result.server_time_offset;
-          const serverTimeOffset = timeOffSet ? Number.parseInt(timeOffSet, 10) : 0;
-          serverTimeOffsets.push(serverTimeOffset);
-        }
-      });
-    }
-
-    if (keyResult || errorResult) {
-      const serverTimeOffset = keyResult ? calculateMedian(serverTimeOffsets) : 0;
-      return Promise.resolve({ keyResult, errorResult, serverTimeOffset });
-    }
-    return Promise.reject(new Error(`invalid results ${JSON.stringify(lookupResults)}`));
-  });
-};
-
-export const legacyKeyAssign = async ({
-  endpoints,
-  torusNodePubs,
-  lastPoint,
-  firstPoint,
-  verifier,
-  verifierId,
-  signerHost,
-  network,
-  clientId,
-}: KeyAssignInput): Promise<void> => {
-  let nodeNum: number;
-  let initialPoint: number | undefined;
-  if (lastPoint === undefined) {
-    nodeNum = Math.floor(Math.random() * endpoints.length);
-    // nodeNum = endpoints.indexOf("https://torus-node.binancex.dev/jrpc");
-    initialPoint = nodeNum;
-  } else {
-    nodeNum = lastPoint % endpoints.length;
-  }
-  if (nodeNum === firstPoint) throw new Error("Looped through all");
-  if (firstPoint !== undefined) initialPoint = firstPoint;
-
-  const data = generateJsonRPCObject("KeyAssign", {
-    verifier,
-    verifier_id: verifierId.toString(),
-  });
-  try {
-    const signedData = await post<SignerResponse>(
-      signerHost,
-      data,
-      {
-        headers: {
-          pubkeyx: torusNodePubs[nodeNum].X,
-          pubkeyy: torusNodePubs[nodeNum].Y,
-          network,
-          clientid: clientId,
-        },
-      },
-      { useAPIKey: true }
-    );
-    return await post<void>(
-      endpoints[nodeNum],
-      { ...data, ...signedData },
-      {
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-      }
-    );
-  } catch (error2: unknown) {
-    const error = error2 as { status: number; message: string };
-    log.error(error.status, error.message, error, "key assign error");
-    const acceptedErrorMsgs = [
-      // Slow node
-      "Timed out",
-      "Failed to fetch",
-      "cancelled",
-      "NetworkError when attempting to fetch resource.",
-      // Happens when the node is not reachable (dns issue etc)
-      "TypeError: Failed to fetch", // All except iOS and Firefox
-      "TypeError: cancelled", // iOS
-      "TypeError: NetworkError when attempting to fetch resource.", // Firefox
-    ];
-    if (
-      error?.status === 502 ||
-      error?.status === 504 ||
-      error?.status === 401 ||
-      acceptedErrorMsgs.includes(error.message) ||
-      acceptedErrorMsgs.some((x) => error.message?.includes(x)) ||
-      (error.message && error.message.includes("reason: getaddrinfo EAI_AGAIN"))
-    )
-      return legacyKeyAssign({
-        endpoints,
-        torusNodePubs,
-        lastPoint: nodeNum + 1,
-        firstPoint: initialPoint,
-        verifier,
-        verifierId,
-        signerHost,
-        network,
-        clientId,
-      });
-    throw new Error(
-      `Sorry, the Torus Network that powers Web3Auth is currently very busy.
-    We will generate your key in time. Pls try again later. \n
-    ${error.message || ""}`
-    );
-  }
-};
-
-export const legacyWaitKeyLookup = (endpoints: string[], verifier: string, verifierId: string, timeout: number): Promise<LegacyKeyLookupResult> =>
-  new Promise((resolve, reject) => {
-    setTimeout(() => {
-      legacyKeyLookup(endpoints, verifier, verifierId).then(resolve).catch(reject);
-    }, timeout);
-  });

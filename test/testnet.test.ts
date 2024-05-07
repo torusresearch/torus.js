@@ -24,6 +24,7 @@ describe("torus utils migrated testnet on sapphire", function () {
       network: TORUS_LEGACY_NETWORK.TESTNET,
     });
   });
+
   it("should fetch public address", async function () {
     const verifier = "google-lrc"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
@@ -246,6 +247,7 @@ describe("torus utils migrated testnet on sapphire", function () {
       nodesData: result.nodesData,
     });
   });
+
   it("should fail at get or set nonce when server time offset is expired", async function () {
     const email = "himanshu@tor.us";
     const verifier = "google-lrc";

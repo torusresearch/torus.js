@@ -1,7 +1,7 @@
 import { Ecies } from "@toruslabs/eccrypto";
 import JsonStringify from "json-stable-stringify";
 
-import { EciesHex, LegacyVerifierLookupResponse, VerifierLookupResponse } from "../interfaces";
+import { EciesHex, VerifierLookupResponse } from "../interfaces";
 
 // this function normalizes the result from nodes before passing the result to threshold check function
 // For ex: some fields returns by nodes might be different from each other
@@ -11,26 +11,6 @@ export const normalizeKeysResult = (result: VerifierLookupResponse) => {
   const finalResult: Pick<VerifierLookupResponse, "keys" | "is_new_key"> = {
     keys: [],
     is_new_key: result.is_new_key,
-  };
-  if (result && result.keys && result.keys.length > 0) {
-    const finalKey = result.keys[0];
-    finalResult.keys = [
-      {
-        pub_key_X: finalKey.pub_key_X,
-        pub_key_Y: finalKey.pub_key_Y,
-        address: finalKey.address,
-      },
-    ];
-  }
-  return finalResult;
-};
-
-// this function normalizes the result from nodes before passing the result to threshold check function
-// For ex: some fields returns by nodes might be different from each other
-// like key_index which may differ on sapphire_network for each queried node
-export const normalizeLegacyKeysResult = (result: LegacyVerifierLookupResponse) => {
-  const finalResult: Pick<LegacyVerifierLookupResponse, "keys"> = {
-    keys: [],
   };
   if (result && result.keys && result.keys.length > 0) {
     const finalKey = result.keys[0];

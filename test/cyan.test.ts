@@ -23,6 +23,7 @@ describe("torus utils cyan", function () {
     });
     TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_LEGACY_NETWORK.CYAN });
   });
+
   it("should fetch public address", async function () {
     const verifier = "tkey-google-cyan"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };

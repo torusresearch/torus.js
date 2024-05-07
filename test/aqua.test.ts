@@ -23,6 +23,7 @@ describe("torus utils aqua", function () {
     });
     TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_LEGACY_NETWORK.AQUA });
   });
+
   it("should fetch public address", async function () {
     const verifier = "tkey-google-aqua"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
