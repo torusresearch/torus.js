@@ -108,6 +108,11 @@ describe("torus utils sapphire devnet", function () {
         Y: "fef450a5263f7c57605dd439225faee830943cb484e8dfe1f3c82c3d538f61af",
         privKey: "dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9",
       },
+      postboxKeyData: {
+        X: "2b1c47c8fbca61ee7f82a8aff53a357f6b66af0dffbef6a3e3ac649180616e51",
+        Y: "fef450a5263f7c57605dd439225faee830943cb484e8dfe1f3c82c3d538f61af",
+        privKey: "dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9",
+      },
       finalKeyData: {
         walletAddress: "0xbeFfcC367D741C53A63F50eA805c1e93d3C64fEc",
         X: "2b1c47c8fbca61ee7f82a8aff53a357f6b66af0dffbef6a3e3ac649180616e51",
@@ -343,6 +348,11 @@ describe("torus utils sapphire devnet", function () {
         Y: "8325432b3a3418d632b4fe93db094d6d83250eea60fe512897c0ad548737f8a5",
         privKey: "6b3c872a269aa8994a5acc8cdd70ea3d8d182d42f8af421c0c39ea124e9b66fa",
       },
+      postboxKeyData: {
+        X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
+        Y: "8325432b3a3418d632b4fe93db094d6d83250eea60fe512897c0ad548737f8a5",
+        privKey: "6b3c872a269aa8994a5acc8cdd70ea3d8d182d42f8af421c0c39ea124e9b66fa",
+      },
       sessionData: {
         sessionTokenData: result.sessionData.sessionTokenData,
         sessionAuthKey: result.sessionData.sessionAuthKey,
@@ -427,6 +437,11 @@ describe("torus utils sapphire devnet", function () {
       },
       oAuthKeyData: {
         walletAddress: "0x137B3607958562D03Eb3C6086392D1eFa01aA6aa",
+        X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
+        Y: "8325432b3a3418d632b4fe93db094d6d83250eea60fe512897c0ad548737f8a5",
+        privKey: "6b3c872a269aa8994a5acc8cdd70ea3d8d182d42f8af421c0c39ea124e9b66fa",
+      },
+      postboxKeyData: {
         X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
         Y: "8325432b3a3418d632b4fe93db094d6d83250eea60fe512897c0ad548737f8a5",
         privKey: "6b3c872a269aa8994a5acc8cdd70ea3d8d182d42f8af421c0c39ea124e9b66fa",
@@ -677,6 +692,11 @@ describe("torus utils sapphire devnet", function () {
       },
       oAuthKeyData: {
         walletAddress: "0x4135ad20D2E9ACF37D64E7A6bD8AC34170d51219",
+        X: "9c591943683c0e5675f99626cea84153a3c5b72c6e7840f8b8b53d0f2bb50c67",
+        Y: "9d9896d82e565a2d5d437745af6e4560f3564c2ac0d0edcb72e0b508b3ac05a0",
+        privKey: "b47769e81328794adf3534e58d02803ca2a5e4588db81780f5bf679c77988946",
+      },
+      postboxKeyData: {
         X: "9c591943683c0e5675f99626cea84153a3c5b72c6e7840f8b8b53d0f2bb50c67",
         Y: "9d9896d82e565a2d5d437745af6e4560f3564c2ac0d0edcb72e0b508b3ac05a0",
         privKey: "b47769e81328794adf3534e58d02803ca2a5e4588db81780f5bf679c77988946",

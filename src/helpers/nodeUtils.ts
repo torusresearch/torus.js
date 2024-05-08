@@ -9,6 +9,7 @@ import { config } from "../config";
 import { JRPC_METHODS } from "../constants";
 import {
   CommitmentRequestResult,
+  ExtendedPublicKey,
   GetOrSetNonceResult,
   ImportedShare,
   ImportShareRequestResult,
@@ -26,7 +27,15 @@ import {
 import log from "../loglevel";
 import { Some } from "../some";
 import { calculateMedian, getProxyCoordinatorEndpointIndex, kCombinations, normalizeKeysResult, thresholdSame } from "./common";
-import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generatePrivateKey, generateShares, keccak256 } from "./keyUtils";
+import {
+  derivePubKey,
+  generateAddressFromPrivKey,
+  generateAddressFromPubKey,
+  generatePrivateKey,
+  generateShares,
+  getSecpKeyFromEd25519,
+  keccak256,
+} from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, decryptNodeDataWithPadding, decryptSeedData, getMetadata, getOrSetNonce } from "./metadataUtils";
 
@@ -128,7 +137,6 @@ export const GetPubKeyOrKeyAssign = async (params: {
 
   return result;
 };
-
 export async function retrieveOrImportShare(params: {
   legacyMetadataHost: string;
   serverTimeOffset: number;
@@ -169,7 +177,6 @@ export async function retrieveOrImportShare(params: {
     useDkg = true,
     serverTimeOffset,
   } = params;
-  const minThreshold = ~~(endpoints.length / 2) + 1;
   await get<void>(
     allowHost,
     {
@@ -409,6 +416,7 @@ export async function retrieveOrImportShare(params: {
             privateKey: BN;
             sessionTokenData: SessionToken[];
             thresholdNonceData: GetOrSetNonceResult;
+            thresholdPubKey: ExtendedPublicKey;
             nodeIndexes: BN[];
             isNewKey: boolean;
             serverTimeOffsetResponse?: number;
@@ -448,7 +456,7 @@ export async function retrieveOrImportShare(params: {
           return undefined;
         });
 
-        const thresholdPublicKey = thresholdSame(pubkeys, minThreshold);
+        const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
 
         if (!thresholdPublicKey) {
           throw new Error("invalid result from nodes, threshold number of public key results are not matching");
@@ -473,7 +481,7 @@ export async function retrieveOrImportShare(params: {
           );
         }
 
-        const thresholdReqCount = minThreshold;
+        const thresholdReqCount = ~~(endpoints.length / 2) + 1;
         // optimistically run lagrange interpolation once threshold number of shares have been received
         // this is matched against the user public key to ensure that shares are consistent
         // Note: no need of thresholdMetadataNonce for extended_verifier_id key
@@ -564,8 +572,9 @@ export async function retrieveOrImportShare(params: {
             return false;
           });
 
-          if (!verifierParams.extended_verifier_id && validSigs.length < minThreshold) {
-            throw new Error(`Insufficient number of signatures from nodes, required: ${minThreshold}, found: ${validSigs.length}`);
+          const minThresholdRequired = ~~(endpoints.length / 2) + 1;
+          if (!verifierParams.extended_verifier_id && validSigs.length < minThresholdRequired) {
+            throw new Error(`Insufficient number of signatures from nodes, required: ${minThresholdRequired}, found: ${validSigs.length}`);
           }
 
           const validTokens = sessionTokensResolved.filter((token) => {
@@ -575,8 +584,8 @@ export async function retrieveOrImportShare(params: {
             return false;
           });
 
-          if (!verifierParams.extended_verifier_id && validTokens.length < minThreshold) {
-            throw new Error(`Insufficient number of session tokens from nodes, required: ${minThreshold}, found: ${validTokens.length}`);
+          if (!verifierParams.extended_verifier_id && validTokens.length < minThresholdRequired) {
+            throw new Error(`Insufficient number of session tokens from nodes, required: ${minThresholdRequired}, found: ${validTokens.length}`);
           }
           sessionTokensResolved.forEach((x, index) => {
             if (!x) sessionTokenData.push(undefined);
@@ -601,7 +610,7 @@ export async function retrieveOrImportShare(params: {
             [] as { index: BN; value: BN }[]
           );
           // run lagrange interpolation on all subsets, faster in the optimistic scenario than berlekamp-welch due to early exit
-          const allCombis = kCombinations(decryptedShares.length, minThreshold);
+          const allCombis = kCombinations(decryptedShares.length, ~~(endpoints.length / 2) + 1);
 
           let privateKey: BN | null = null;
           for (let j = 0; j < allCombis.length; j += 1) {
@@ -624,7 +633,8 @@ export async function retrieveOrImportShare(params: {
           if (privateKey === undefined || privateKey === null) {
             throw new Error("could not derive private key");
           }
-          const thresholdIsNewKey = thresholdSame(isNewKeyResponses, minThreshold);
+
+          const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
 
           // Convert each string timestamp to a number
           const serverOffsetTimes = serverTimeOffsetResponses.map((timestamp) => Number.parseInt(timestamp, 10));
@@ -634,6 +644,7 @@ export async function retrieveOrImportShare(params: {
             sessionTokenData,
             thresholdNonceData,
             nodeIndexes,
+            thresholdPubKey: thresholdPublicKey,
             isNewKey: thresholdIsNewKey === "true",
             serverTimeOffsetResponse: serverTimeOffset || calculateMedian(serverOffsetTimes),
           };
@@ -642,7 +653,7 @@ export async function retrieveOrImportShare(params: {
       });
     })
     .then(async (res) => {
-      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey, serverTimeOffsetResponse } = res;
+      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey, serverTimeOffsetResponse, thresholdPubKey } = res;
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
       const oAuthKey = privateKey;
@@ -727,12 +738,26 @@ export async function retrieveOrImportShare(params: {
         if (keyWithNonce && !nonceResult.seed) {
           throw new Error("Invalid data, seed data is missing for ed25519 key, Please report this bug");
         } else if (keyWithNonce && nonceResult.seed) {
+          console.log("keyWithNonce", keyWithNonce);
           // console.log("nonceResult.seed", nonceResult.seed, keyWithNonce);
           const decryptedSeed = await decryptSeedData(nonceResult.seed, new BN(keyWithNonce, "hex"));
           finalPrivKey = decryptedSeed.toString("hex");
         }
       } else {
         throw new Error(`Invalid keyType: ${keyType}`);
+      }
+
+      let postboxKey = oAuthKey;
+      let postboxPubX = oAuthPubkeyX;
+      let postboxPubY = oAuthPubkeyY;
+      if (keyType === "ed25519") {
+        const { scalar, point } = getSecpKeyFromEd25519(privateKey);
+        postboxKey = scalar;
+        postboxPubX = point.getX().toString(16, 64);
+        postboxPubY = point.getY().toString(16, 64);
+        if (thresholdPubKey.SignerX !== postboxPubX || thresholdPubKey.SignerY !== postboxPubY) {
+          throw new Error("Invalid postbox key");
+        }
       }
       // return reconstructed private key and ethereum address
       return {
@@ -746,7 +771,12 @@ export async function retrieveOrImportShare(params: {
           walletAddress: oAuthKeyAddress,
           X: oAuthPubkeyX,
           Y: oAuthPubkeyY,
-          privKey: oAuthKey.toString("hex", 64).padStart(64, "0"),
+          privKey: oAuthKey.toString("hex", 64),
+        },
+        postboxKeyData: {
+          privKey: postboxKey.toString("hex", 64),
+          X: postboxPubX,
+          Y: postboxPubY,
         },
         sessionData: {
           sessionTokenData,

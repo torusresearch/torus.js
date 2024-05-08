@@ -12,7 +12,7 @@ const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe.skip("torus utils celeste", function () {
+describe("torus utils celeste", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -37,12 +37,12 @@ describe.skip("torus utils celeste", function () {
       oAuthKeyData: {
         X: "b89b9d66b247d7294a98616b95b7bfa1675aa85a1df4d89f2780283864f1b6e9",
         Y: "65422a8ccd66e638899fc53497e468a9a0bf50d45c9cb85ae0ffcfc13f433ffb",
-        evmAddress: "0xC3115b9d6FaB99739b23DA9dfcBA47A4Ec4Cd113",
+        walletAddress: "0xC3115b9d6FaB99739b23DA9dfcBA47A4Ec4Cd113",
       },
       finalKeyData: {
         X: "b89b9d66b247d7294a98616b95b7bfa1675aa85a1df4d89f2780283864f1b6e9",
         Y: "65422a8ccd66e638899fc53497e468a9a0bf50d45c9cb85ae0ffcfc13f433ffb",
-        evmAddress: "0xC3115b9d6FaB99739b23DA9dfcBA47A4Ec4Cd113",
+        walletAddress: "0xC3115b9d6FaB99739b23DA9dfcBA47A4Ec4Cd113",
       },
       metadata: {
         pubNonce: undefined,
@@ -196,6 +196,11 @@ describe.skip("torus utils celeste", function () {
         Y: "6d28c46c5385b90322bde74d6c5096e154eae2838399f4d6e8d752f7b0c449c1",
         privKey: "0ae056aa938080c9e8bf6641261619e09fd510c91bb5aad14b0de9742085a914",
       },
+      postboxKeyData: {
+        X: "73b82ce0f8201a962636d404fe7a683f37c2267a9528576e1dac9964940add74",
+        Y: "6d28c46c5385b90322bde74d6c5096e154eae2838399f4d6e8d752f7b0c449c1",
+        privKey: "0ae056aa938080c9e8bf6641261619e09fd510c91bb5aad14b0de9742085a914",
+      },
       sessionData: result.sessionData,
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: result.nodesData,
@@ -234,6 +239,11 @@ describe.skip("torus utils celeste", function () {
       },
       oAuthKeyData: {
         walletAddress: "0x535Eb1AefFAc6f699A2a1A5846482d7b5b2BD564",
+        X: "df6eb11d52e76b388a44896e9442eda17096c2b67b0be957a4ba0b68a70111ca",
+        Y: "bfd29ab1e97b3f7c444bb3e7ad0acb39d72589371387436c7d623d1e83f3d6eb",
+        privKey: "356305761eca57f27b09700d76456ad627b084152725dbfdfcfa0abcd9d4f17e",
+      },
+      postboxKeyData: {
         X: "df6eb11d52e76b388a44896e9442eda17096c2b67b0be957a4ba0b68a70111ca",
         Y: "bfd29ab1e97b3f7c444bb3e7ad0acb39d72589371387436c7d623d1e83f3d6eb",
         privKey: "356305761eca57f27b09700d76456ad627b084152725dbfdfcfa0abcd9d4f17e",

@@ -19,7 +19,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe("torus utils ed25519 sapphire devnet", function () {
+describe.only("torus utils ed25519 sapphire devnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -107,8 +107,8 @@ describe("torus utils ed25519 sapphire devnet", function () {
     expect(result2.finalKeyData.walletAddress).eql("3TTBP4g4UZNH1Tga1D4D6tBGrXUpVXcWt1PX2W19CRqM");
   });
 
-  it("should be able to login", async function () {
-    const testEmail = "edd2519TestUser@example.com";
+  it.only("should be able to login", async function () {
+    const testEmail = "edd2519TestUser14@example.com";
     const token = generateIdToken(testEmail, "ES256");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: testEmail });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;

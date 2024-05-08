@@ -100,12 +100,15 @@ export type EciesHex = {
   [key in keyof Ecies]: string;
 } & { mode?: string };
 
+export interface ExtendedPublicKey {
+  X: string;
+  Y: string;
+  SignerX: string;
+  SignerY: string;
+}
 export interface KeyAssignment {
   index: KeyIndex;
-  public_key: {
-    X: string;
-    Y: string;
-  };
+  public_key: ExtendedPublicKey;
   threshold: string;
   node_index: string;
   // this is encrypted ciphertext
@@ -178,6 +181,11 @@ export interface TorusKey {
     privKey?: string;
   };
   oAuthKeyData: TorusPublicKey["oAuthKeyData"] & {
+    privKey: string;
+  };
+  postboxKeyData: {
+    X: string;
+    Y: string;
     privKey: string;
   };
   sessionData: {

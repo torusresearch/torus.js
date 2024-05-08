@@ -87,6 +87,11 @@ describe("torus onekey", function () {
         Y: "17d35ffc722d7a8dd88353815e9553cacf567c5f3b8d082adac9d653367ce47a",
         privKey: "068ee4f97468ef1ae95d18554458d372e31968190ae38e377be59d8b3c9f7a25",
       },
+      postboxKeyData: {
+        X: "18409385c38e9729eb6b7837dc8f234256233ffab1ed7eeb1c23b230333396b4",
+        Y: "17d35ffc722d7a8dd88353815e9553cacf567c5f3b8d082adac9d653367ce47a",
+        privKey: "068ee4f97468ef1ae95d18554458d372e31968190ae38e377be59d8b3c9f7a25",
+      },
       sessionData: {
         sessionTokenData: retrieveSharesResponse.sessionData.sessionTokenData,
         sessionAuthKey: retrieveSharesResponse.sessionData.sessionAuthKey,
@@ -135,6 +140,11 @@ describe("torus onekey", function () {
       },
       oAuthKeyData: {
         walletAddress: "0x5a165d2Ed4976BD104caDE1b2948a93B72FA91D2",
+        X: "aba2b085ae6390b3eb26802c3239bb7e3b9ed8ea6e1dcc28aeb67432571f20fc",
+        Y: "f1a2163cba5620b7b40241a6112e7918e9445b0b9cfbbb9d77b2de6f61ed5c27",
+        privKey: "d9733fc1098151f3e3289673e7c69c4ed46cbbdbc13416560e14741524d2d51a",
+      },
+      postboxKeyData: {
         X: "aba2b085ae6390b3eb26802c3239bb7e3b9ed8ea6e1dcc28aeb67432571f20fc",
         Y: "f1a2163cba5620b7b40241a6112e7918e9445b0b9cfbbb9d77b2de6f61ed5c27",
         privKey: "d9733fc1098151f3e3289673e7c69c4ed46cbbdbc13416560e14741524d2d51a",
@@ -211,6 +221,11 @@ describe("torus onekey", function () {
       },
       oAuthKeyData: {
         walletAddress: "0x54de3Df0CA76AAe3e171FB410F0626Ab759f3c24",
+        X: "49d69b8550bb0eba77595c73bf57f0463ff96adf6b50d44f9e1bcf2b3fb7976e",
+        Y: "d63bac65bdfc7484a28d4362347bbd098095db190c14a4ce9dbaafe74803eccc",
+        privKey: "f4b7e0fb1e6f6fbac539c55e22aff2900947de652d2d6254a9cd8709f505f83a",
+      },
+      postboxKeyData: {
         X: "49d69b8550bb0eba77595c73bf57f0463ff96adf6b50d44f9e1bcf2b3fb7976e",
         Y: "d63bac65bdfc7484a28d4362347bbd098095db190c14a4ce9dbaafe74803eccc",
         privKey: "f4b7e0fb1e6f6fbac539c55e22aff2900947de652d2d6254a9cd8709f505f83a",

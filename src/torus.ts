@@ -144,9 +144,6 @@ class Torus {
     if (!shouldUseDkg && nodePubkeys.length === 0) {
       throw new Error("nodePubkeys param is required");
     }
-    if (!shouldUseDkg) {
-      throw new Error(`useDkg param must be true for legacy network: ${this.network}`);
-    }
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,

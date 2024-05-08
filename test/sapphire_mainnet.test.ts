@@ -265,6 +265,11 @@ describe("torus utils sapphire mainnet", function () {
         Y: "cc6e57662c3866c4316c05b0fe902db9aaf5541fbf5fda854c3b4634eceeb43c",
         privKey: "d768b327cbde681e5850a7d14f1c724bba2b8f8ab7fe2b1c4f1ee6979fc25478",
       },
+      postboxKeyData: {
+        X: "147d0a97d498ac17172dd92546617e06f2c32c405d414dfc06632b8fbcba93d8",
+        Y: "cc6e57662c3866c4316c05b0fe902db9aaf5541fbf5fda854c3b4634eceeb43c",
+        privKey: "d768b327cbde681e5850a7d14f1c724bba2b8f8ab7fe2b1c4f1ee6979fc25478",
+      },
       sessionData: {
         sessionTokenData: result.sessionData.sessionTokenData,
         sessionAuthKey: result.sessionData.sessionAuthKey,
@@ -308,6 +313,11 @@ describe("torus utils sapphire mainnet", function () {
       },
       oAuthKeyData: {
         walletAddress: "0x925c97404F1aBdf4A8085B93edC7B9F0CEB3C673",
+        X: "5cd8625fc01c7f7863a58c914a8c43b2833b3d0d5059350bab4acf6f4766a33d",
+        Y: "198a4989615c5c2c7fa4d49c076ea7765743d09816bb998acb9ff54f5db4a391",
+        privKey: "90a219ac78273e82e36eaa57c15f9070195e436644319d6b9aea422bb4d31906",
+      },
+      postboxKeyData: {
         X: "5cd8625fc01c7f7863a58c914a8c43b2833b3d0d5059350bab4acf6f4766a33d",
         Y: "198a4989615c5c2c7fa4d49c076ea7765743d09816bb998acb9ff54f5db4a391",
         privKey: "90a219ac78273e82e36eaa57c15f9070195e436644319d6b9aea422bb4d31906",

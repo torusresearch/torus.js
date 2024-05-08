@@ -201,6 +201,11 @@ describe("torus utils mainnet", function () {
         Y: "0ad1ffaecb2178b02a37c455975368be9b967ead1b281202cc8d48c77618bff1",
         privKey: "0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44",
       },
+      postboxKeyData: {
+        X: "a92d8bf1f01ad62e189a5cb0f606b89aa6df1b867128438c38e3209f3b9fc34f",
+        Y: "0ad1ffaecb2178b02a37c455975368be9b967ead1b281202cc8d48c77618bff1",
+        privKey: "0129494416ab5d5f674692b39fa49680e07d3aac01b9683ee7650e40805d4c44",
+      },
       metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
       nodesData: result.nodesData,
     });
@@ -239,6 +244,11 @@ describe("torus utils mainnet", function () {
       },
       oAuthKeyData: {
         walletAddress: "0x621a4d458cFd345dAE831D9E756F10cC40A50381",
+        X: "52abc69ebec21deacd273dbdcb4d40066b701177bba906a187676e3292e1e236",
+        Y: "5e57e251db2c95c874f7ec852439302a62ef9592c8c50024e3d48018a6f77c7e",
+        privKey: "f55d89088a0c491d797c00da5b2ed6dc9c269c960ff121e45f255d06a91c6534",
+      },
+      postboxKeyData: {
         X: "52abc69ebec21deacd273dbdcb4d40066b701177bba906a187676e3292e1e236",
         Y: "5e57e251db2c95c874f7ec852439302a62ef9592c8c50024e3d48018a6f77c7e",
         privKey: "f55d89088a0c491d797c00da5b2ed6dc9c269c960ff121e45f255d06a91c6534",
