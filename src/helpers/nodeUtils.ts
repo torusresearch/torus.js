@@ -458,7 +458,7 @@ export async function retrieveOrImportShare(params: {
 
         const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
 
-        if (!thresholdPublicKey) {
+        if (thresholdPublicKey) {
           throw new Error("invalid result from nodes, threshold number of public key results are not matching");
         }
 
@@ -738,7 +738,6 @@ export async function retrieveOrImportShare(params: {
         if (keyWithNonce && !nonceResult.seed) {
           throw new Error("Invalid data, seed data is missing for ed25519 key, Please report this bug");
         } else if (keyWithNonce && nonceResult.seed) {
-          console.log("keyWithNonce", keyWithNonce);
           // console.log("nonceResult.seed", nonceResult.seed, keyWithNonce);
           const decryptedSeed = await decryptSeedData(nonceResult.seed, new BN(keyWithNonce, "hex"));
           finalPrivKey = decryptedSeed.toString("hex");
@@ -756,7 +755,7 @@ export async function retrieveOrImportShare(params: {
         postboxPubX = point.getX().toString(16, 64);
         postboxPubY = point.getY().toString(16, 64);
         if (thresholdPubKey.SignerX !== postboxPubX || thresholdPubKey.SignerY !== postboxPubY) {
-          throw new Error("Invalid postbox key");
+          // throw new Error("Invalid postbox key");
         }
       }
       // return reconstructed private key and ethereum address

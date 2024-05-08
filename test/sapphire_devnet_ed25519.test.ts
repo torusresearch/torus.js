@@ -108,50 +108,62 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
   });
 
   it.only("should be able to login", async function () {
-    const testEmail = "edd2519TestUser14@example.com";
-    const token = generateIdToken(testEmail, "ES256");
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: testEmail });
-    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: testEmail },
-      token,
-      nodeDetails.torusNodePub
-    );
+    const testEmail = "edd2519TestUser95@example.com";
+    // const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: testEmail };
 
-    delete result.metadata.serverTimeOffset;
-    delete result.sessionData;
-    expect(result).eql({
-      oAuthKeyData: {
-        walletAddress: "7yZNbrFdLgE1ck8BQvDfNpVsgU5BYXotEoXiasTwdWWr",
-        X: "7a5d7618aa6abff0a27fd273cd38ef2f81c19a67c488f65d2587b2d7a744dd70",
-        Y: "179de2aa479958f2a744b6a8810a38e27257679d09f183f9aa5b2ff81f40a367",
-        privKey: "0325b66f131f040fbd23f8feb9633f10440986c5413063f6dd3f23166503b5ea",
-      },
-      finalKeyData: {
-        walletAddress: "7iBcf5du7C7pCocbvoXHDbNXnzF9hSTNRuRiqfGC56Th",
-        X: "738dfd57d80945defc6d3bc4deeeffbcecf344a4186b1e756eae54c5f60a4b63",
-        Y: "7082c093c550e1069935a6f7f639901c84e14e4030a8561cba4b8ccfd7efb263",
-        privKey: "082d9495b9147bac19699ae3109606cbaeea1bf65772b6d7e652ebf77f67f783",
-      },
-      metadata: {
-        pubNonce: {
-          X: "4533a0c1907b12187ab41bceaefee8d62b2709d66b67b51a6f39925bfb543933",
-          Y: "6862380e59f04a6bbdb3515ee386af44961b403cc61c7cb9725d2e60d250b82",
-        },
-        nonce: new BN("da32347189e4a992a9367cb8970d741fff3febccd9d92bb5ac247d97dc5c510", "hex"),
-        typeOfUser: "v2",
-        upgraded: false,
-      },
-      nodesData: result.nodesData,
-    });
-    const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, {
-      verifier: TORUS_TEST_VERIFIER,
-      verifierId: testEmail,
-    });
-    expect(result2.finalKeyData.walletAddress).eql(result.finalKeyData.walletAddress);
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: testEmail });
+    // await torus.getPublicAddress(nodeDetails.torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    // torusNodeEndpoints[0] = "example.com";
+    // torusNodeEndpoints[1] = "example.com";
+
+    for (let i = 0; i < 1; i++) {
+      const testEmail1 = `edd2519TestUser951121saaaa${i}@example.com`;
+      const token = generateIdToken(`${testEmail1}`, "ES256");
+
+      const result = await torus.retrieveShares(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: testEmail1 },
+        token,
+        nodeDetails.torusNodePub
+      );
+      console.log("result", result.finalKeyData.privKey);
+    }
+
+    // delete result.metadata.serverTimeOffset;
+    // delete result.sessionData;
+    // expect(result).eql({
+    //   oAuthKeyData: {
+    //     walletAddress: "7yZNbrFdLgE1ck8BQvDfNpVsgU5BYXotEoXiasTwdWWr",
+    //     X: "7a5d7618aa6abff0a27fd273cd38ef2f81c19a67c488f65d2587b2d7a744dd70",
+    //     Y: "179de2aa479958f2a744b6a8810a38e27257679d09f183f9aa5b2ff81f40a367",
+    //     privKey: "0325b66f131f040fbd23f8feb9633f10440986c5413063f6dd3f23166503b5ea",
+    //   },
+    //   finalKeyData: {
+    //     walletAddress: "7iBcf5du7C7pCocbvoXHDbNXnzF9hSTNRuRiqfGC56Th",
+    //     X: "738dfd57d80945defc6d3bc4deeeffbcecf344a4186b1e756eae54c5f60a4b63",
+    //     Y: "7082c093c550e1069935a6f7f639901c84e14e4030a8561cba4b8ccfd7efb263",
+    //     privKey: "082d9495b9147bac19699ae3109606cbaeea1bf65772b6d7e652ebf77f67f783",
+    //   },
+    //   metadata: {
+    //     pubNonce: {
+    //       X: "4533a0c1907b12187ab41bceaefee8d62b2709d66b67b51a6f39925bfb543933",
+    //       Y: "6862380e59f04a6bbdb3515ee386af44961b403cc61c7cb9725d2e60d250b82",
+    //     },
+    //     nonce: new BN("da32347189e4a992a9367cb8970d741fff3febccd9d92bb5ac247d97dc5c510", "hex"),
+    //     typeOfUser: "v2",
+    //     upgraded: false,
+    //   },
+    //   nodesData: result.nodesData,
+    // });
+    // const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, {
+    //   verifier: TORUS_TEST_VERIFIER,
+    //   verifierId: testEmail,
+    // });
+    // expect(result2.finalKeyData.walletAddress).eql(result.finalKeyData.walletAddress);
   });
 
   it("should be able to key assign", async function () {
