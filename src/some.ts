@@ -10,7 +10,11 @@ export class SomeError<T> extends Error {
   predicate: string;
 
   constructor({ errors, responses, predicate }: { errors: Error[]; responses: T[]; predicate: string }) {
-    super("Unable to resolve enough promises.");
+    const message = `Unable to resolve enough promises. 
+      ${errors.length} errors: ${errors.map((x) => x?.message || x).join(", ")}, 
+      ${responses.length} responses,
+      predicate error: ${predicate}`;
+    super(message);
     this.errors = errors;
     this.responses = responses;
     this.predicate = predicate;
