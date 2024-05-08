@@ -58,8 +58,8 @@ describe("torus utils migrated testnet on sapphire", function () {
   it("should fetch user type and public address", async function () {
     const verifier = "google-lrc"; // any verifier
     const verifierDetails = { verifier, verifierId: TORUS_TEST_EMAIL };
-    const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-    const result1 = await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
+    const { torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result1 = await torus.getUserTypeAndAddress(torusNodeEndpoints, verifierDetails);
     expect(result1.finalKeyData.walletAddress).to.equal("0xf5804f608C233b9cdA5952E46EB86C9037fd6842");
     expect(result1.metadata.typeOfUser).to.equal("v2");
     expect(result1.metadata.serverTimeOffset).lessThan(20);
@@ -92,7 +92,7 @@ describe("torus utils migrated testnet on sapphire", function () {
     const v2Verifier = "tkey-google-lrc";
     // 1/1 user
     const v2TestEmail = "somev2user@gmail.com";
-    const result2 = (await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
+    const result2 = (await torus.getUserTypeAndAddress(torusNodeEndpoints, {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     })) as TorusPublicKey;
@@ -127,7 +127,7 @@ describe("torus utils migrated testnet on sapphire", function () {
 
     // 2/n user
     const v2nTestEmail = "caspertorus@gmail.com";
-    const result3 = (await torus.getUserTypeAndAddress(torusNodeEndpoints, torusNodePub, {
+    const result3 = (await torus.getUserTypeAndAddress(torusNodeEndpoints, {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     })) as TorusPublicKey;
