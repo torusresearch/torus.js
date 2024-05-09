@@ -208,9 +208,7 @@ export async function retrieveOrImportShare(params: {
       }),
       null,
       { logTracingHeader: config.logRequestTracing }
-    ).catch((err) => {
-      log.error("commitment error", err);
-    });
+    );
     promiseArr.push(p);
   }
   // send share request once k + t number of commitment requests have completed
@@ -294,7 +292,7 @@ export async function retrieveOrImportShare(params: {
             }),
             null,
             { logTracingHeader: config.logRequestTracing }
-          ).catch((err) => log.error("share req", err));
+          );
           promiseArrRequest.push(p);
         } else {
           const p = post<JRPCResponse<ShareRequestResult>>(
