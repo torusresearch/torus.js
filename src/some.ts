@@ -21,9 +21,10 @@ export class SomeError<T> extends Error {
   }
 
   get message() {
-    return `${super.message}. ${this.errors.length} errors: ${this.errors.map((x) => x.message || x).join(", ")} and ${
+    return `${super.message}. errors: ${this.errors.map((x) => x?.message || x).join(", ")} and ${
       this.responses.length
-    } responses: ${JSON.stringify(this.responses)}`;
+    } responses: ${JSON.stringify(this.responses)},
+      predicate error: ${this.predicate}`;
   }
 
   toString() {
