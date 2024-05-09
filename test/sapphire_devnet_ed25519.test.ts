@@ -19,7 +19,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe.only("torus utils ed25519 sapphire devnet", function () {
+describe("torus utils ed25519 sapphire devnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeManager;
 
@@ -107,63 +107,58 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
     expect(result2.finalKeyData.walletAddress).eql("3TTBP4g4UZNH1Tga1D4D6tBGrXUpVXcWt1PX2W19CRqM");
   });
 
-  it.only("should be able to login", async function () {
-    const testEmail = "edd2519TestUser95@example.com";
-    // const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: testEmail };
-
+  it("should be able to login", async function () {
+    const testEmail = "edd2519TestUser951@example.com";
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: testEmail });
-    // await torus.getPublicAddress(nodeDetails.torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
 
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-    // torusNodeEndpoints[0] = "example.com";
-    // torusNodeEndpoints[1] = "example.com";
 
-    for (let i = 0; i < 1000; i++) {
-      const testEmail1 = `edd2519TestUser951aaaa1a2q1saaaaaaa2@example.com${i}`;
-      const token = generateIdToken(`${testEmail1}`, "ES256");
-      console.log("testEmail1", testEmail1);
-      const result = await torus.retrieveShares(
-        torusNodeEndpoints,
-        nodeDetails.torusIndexes,
-        TORUS_TEST_VERIFIER,
-        { verifier_id: testEmail1 },
-        token,
-        nodeDetails.torusNodePub
-      );
-      console.log("result", result.finalKeyData.privKey);
-    }
+    const token = generateIdToken(`${testEmail}`, "ES256");
+    const result = await torus.retrieveShares(
+      torusNodeEndpoints,
+      nodeDetails.torusIndexes,
+      TORUS_TEST_VERIFIER,
+      { verifier_id: testEmail },
+      token,
+      nodeDetails.torusNodePub
+    );
 
-    // delete result.metadata.serverTimeOffset;
-    // delete result.sessionData;
-    // expect(result).eql({
-    //   oAuthKeyData: {
-    //     walletAddress: "7yZNbrFdLgE1ck8BQvDfNpVsgU5BYXotEoXiasTwdWWr",
-    //     X: "7a5d7618aa6abff0a27fd273cd38ef2f81c19a67c488f65d2587b2d7a744dd70",
-    //     Y: "179de2aa479958f2a744b6a8810a38e27257679d09f183f9aa5b2ff81f40a367",
-    //     privKey: "0325b66f131f040fbd23f8feb9633f10440986c5413063f6dd3f23166503b5ea",
-    //   },
-    //   finalKeyData: {
-    //     walletAddress: "7iBcf5du7C7pCocbvoXHDbNXnzF9hSTNRuRiqfGC56Th",
-    //     X: "738dfd57d80945defc6d3bc4deeeffbcecf344a4186b1e756eae54c5f60a4b63",
-    //     Y: "7082c093c550e1069935a6f7f639901c84e14e4030a8561cba4b8ccfd7efb263",
-    //     privKey: "082d9495b9147bac19699ae3109606cbaeea1bf65772b6d7e652ebf77f67f783",
-    //   },
-    //   metadata: {
-    //     pubNonce: {
-    //       X: "4533a0c1907b12187ab41bceaefee8d62b2709d66b67b51a6f39925bfb543933",
-    //       Y: "6862380e59f04a6bbdb3515ee386af44961b403cc61c7cb9725d2e60d250b82",
-    //     },
-    //     nonce: new BN("da32347189e4a992a9367cb8970d741fff3febccd9d92bb5ac247d97dc5c510", "hex"),
-    //     typeOfUser: "v2",
-    //     upgraded: false,
-    //   },
-    //   nodesData: result.nodesData,
-    // });
-    // const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, {
-    //   verifier: TORUS_TEST_VERIFIER,
-    //   verifierId: testEmail,
-    // });
-    // expect(result2.finalKeyData.walletAddress).eql(result.finalKeyData.walletAddress);
+    delete result.metadata.serverTimeOffset;
+    delete result.sessionData;
+    expect(result).eql({
+      oAuthKeyData: {
+        walletAddress: "HV19ETHePfCtZK55Bo5znHXLfd46nu4AQbjtbYumY7ea",
+        X: "1f5f95f5af0a67b4af731608fdb26115efcb011dcf64a355bf2442e4ec058ae0",
+        Y: "33f3317a574a5444b78aecc56dd894a56d1fbb90134bc7c63d0f9d11f969e7f4",
+        privKey: "07b1ff9ec97c93ac3d5125db8283ec0b22056623d0a9407a48c9def302db07b7",
+      },
+      postboxKeyData: {
+        X: "a7fa19a07eb387e3b1a95843f7d56f8ca88d11c632c4f53b8554068876451d27",
+        Y: "6ddc5c79c28d197991ecf9304b4e66ecc2e98dcf3cb73ec3c79953bd87e4a6ff",
+        privKey: "fa5efb87dbdcea273654342d622fcbfa087f4a572caf76d2214e00a8732c6ddf",
+      },
+      finalKeyData: {
+        walletAddress: "Dp6eiDQs7LbHLVATSEaA7NUm9DkEAZTXdzXy13vbYoq8",
+        X: "2cfc2713bd866494690b50d0cb1500878903130a0a1a31fae1ffa5f8cd436407",
+        Y: "775cc21e123af488ad2c1fd70b22f9427a0596691c991186d42e69fa08ee5cbe",
+        privKey: "cfe3a737880b01da41765e90466400512564bf3e12648e8e715ae54b53b1e11b",
+      },
+      metadata: {
+        pubNonce: {
+          X: "78f007266e249301a241bcb72dba7d305f41f11a432dd8f4dec22c9a0035b3ac",
+          Y: "7e0545c176528910726ad528e12e1fa39e106ad06957e807a2660c9214596d33",
+        },
+        nonce: new BN("58c39dd2c8dcdbd740b758623c88b9dfb36d6e3b590d073a1456c0268af8270", "hex"),
+        typeOfUser: "v2",
+        upgraded: false,
+      },
+      nodesData: result.nodesData,
+    });
+    const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, {
+      verifier: TORUS_TEST_VERIFIER,
+      verifierId: testEmail,
+    });
+    expect(result2.finalKeyData.walletAddress).eql(result.finalKeyData.walletAddress);
   });
 
   it("should be able to key assign", async function () {
@@ -366,6 +361,11 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
         X: "6002549f42c1f3504652ce4b3fb1cbff4f1eaa1b66551313dd9c44d48b31a63d",
         Y: "44af643f9200d11c5f60212de9470f92806df18eeea730a8736e4570611761f2",
         privKey: "47c471c6c3b53f751e39feae967359b9258a790a30f2db394625f76b0c84ada0",
+      },
+      postboxKeyData: {
+        X: "8a25dd3b35a77927e5f094b333ccd69a77acec89868db646e2afbf363f191b11",
+        Y: "aa9282b02c5af9d06d206631ac503c218f807f0365c0a8677f6347fd01f8ffb0",
+        privKey: "239c7b52e39074d8c580e3fcd2950dbd2562e8b54340d2628bac055546b6a97e",
       },
       oAuthKeyData: {
         walletAddress: "DybMLmBwiPqt8GXpDW2MwHi5ZqEtrbgxgwcf7shPdTWg",

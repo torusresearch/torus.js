@@ -736,7 +736,6 @@ export async function retrieveOrImportShare(params: {
       if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
         const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
         keyWithNonce = privateKeyWithNonce.toString("hex", 64);
-        console.log("keyWithNonce", keyWithNonce);
       }
       if (keyType === "secp256k1") {
         finalPrivKey = keyWithNonce;
@@ -761,14 +760,6 @@ export async function retrieveOrImportShare(params: {
         postboxPubX = point.getX().toString(16, 64);
         postboxPubY = point.getY().toString(16, 64);
         if (thresholdPubKey.SignerX.padStart(64, "0") !== postboxPubX || thresholdPubKey.SignerY.padStart(64, "0") !== postboxPubY) {
-          console.log(
-            "thresholdPubKey.SignerX",
-            thresholdPubKey.SignerX,
-            postboxPubX,
-            thresholdPubKey.SignerY,
-            postboxPubY,
-            postboxKey.toString("hex", 64)
-          );
           throw new Error("Invalid postbox key");
         }
       }
