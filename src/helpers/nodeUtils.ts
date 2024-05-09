@@ -241,7 +241,7 @@ export async function retrieveOrImportShare(params: {
       }
     }
 
-    return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
+    return Promise.reject(new Error(`invalid commitment results ${JSON.stringify(resultArr)}`));
   })
     .then((responses) => {
       const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult>>[] = [];
@@ -482,7 +482,7 @@ export async function retrieveOrImportShare(params: {
             throw new Error(`Insufficient number of session tokens from nodes, required: ${minThreshold}, found: ${validTokens.length}`);
           }
           sessionTokensResolved.forEach((x, index) => {
-            if (!x) sessionTokenData.push(undefined);
+            if (!x || !sessionSigsResolved[index]) sessionTokenData.push(undefined);
             else
               sessionTokenData.push({
                 token: x.toString("base64"),
@@ -541,7 +541,13 @@ export async function retrieveOrImportShare(params: {
             serverTimeOffsetResponse: serverTimeOffset || calculateMedian(serverOffsetTimes),
           };
         }
-        throw new Error("Invalid");
+
+        if (completedRequests.length < thresholdReqCount) {
+          throw new Error(`Waiting for results from more nodes, pending: ${thresholdReqCount - completedRequests.length}`);
+        }
+        throw new Error(
+          `Invalid results, threshold pub key: ${thresholdPublicKey}, nonce data found: ${!!thresholdNonceData}, extended verifierId: ${verifierParams.extended_verifier_id}`
+        );
       });
     })
     .then(async (res) => {
