@@ -314,7 +314,7 @@ export async function retrieveOrImportShare(params: {
       }
     }
 
-    return Promise.reject(new Error(`invalid ${JSON.stringify(resultArr)}`));
+    return Promise.reject(new Error(`invalid commitment results, ${JSON.stringify(resultArr)}`));
   })
     .then((responses) => {
       const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult> | JRPCResponse<ShareRequestResult[]>>[] = [];
@@ -458,7 +458,7 @@ export async function retrieveOrImportShare(params: {
 
         const thresholdPublicKey = thresholdSame(pubkeys, ~~(endpoints.length / 2) + 1);
 
-        if (thresholdPublicKey) {
+        if (!thresholdPublicKey) {
           throw new Error("invalid result from nodes, threshold number of public key results are not matching");
         }
 
@@ -588,7 +588,7 @@ export async function retrieveOrImportShare(params: {
             throw new Error(`Insufficient number of session tokens from nodes, required: ${minThresholdRequired}, found: ${validTokens.length}`);
           }
           sessionTokensResolved.forEach((x, index) => {
-            if (!x) sessionTokenData.push(undefined);
+            if (!x || !sessionSigsResolved[index]) sessionTokenData.push(undefined);
             else
               sessionTokenData.push({
                 token: x.toString("base64"),
@@ -649,7 +649,12 @@ export async function retrieveOrImportShare(params: {
             serverTimeOffsetResponse: serverTimeOffset || calculateMedian(serverOffsetTimes),
           };
         }
-        throw new Error("Invalid");
+        if (completedRequests.length < thresholdReqCount) {
+          throw new Error(`Waiting for results from more nodes, pending: ${thresholdReqCount - completedRequests.length}`);
+        }
+        throw new Error(
+          `Invalid results, threshold pub key: ${thresholdPublicKey}, nonce data found: ${!!thresholdNonceData}, extended verifierId: ${verifierParams.extended_verifier_id}`
+        );
       });
     })
     .then(async (res) => {
@@ -731,6 +736,7 @@ export async function retrieveOrImportShare(params: {
       if (typeOfUser === "v1" || (typeOfUser === "v2" && metadataNonce.gt(new BN(0)))) {
         const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
         keyWithNonce = privateKeyWithNonce.toString("hex", 64);
+        console.log("keyWithNonce", keyWithNonce);
       }
       if (keyType === "secp256k1") {
         finalPrivKey = keyWithNonce;
@@ -754,8 +760,16 @@ export async function retrieveOrImportShare(params: {
         postboxKey = scalar;
         postboxPubX = point.getX().toString(16, 64);
         postboxPubY = point.getY().toString(16, 64);
-        if (thresholdPubKey.SignerX !== postboxPubX || thresholdPubKey.SignerY !== postboxPubY) {
-          // throw new Error("Invalid postbox key");
+        if (thresholdPubKey.SignerX.padStart(64, "0") !== postboxPubX || thresholdPubKey.SignerY.padStart(64, "0") !== postboxPubY) {
+          console.log(
+            "thresholdPubKey.SignerX",
+            thresholdPubKey.SignerX,
+            postboxPubX,
+            thresholdPubKey.SignerY,
+            postboxPubY,
+            postboxKey.toString("hex", 64)
+          );
+          throw new Error("Invalid postbox key");
         }
       }
       // return reconstructed private key and ethereum address

@@ -88,8 +88,22 @@ export const getSecpKeyFromEd25519 = (
 } => {
   const ed25519Key = ed25519Scalar.toString("hex", 64);
   const keyHash = keccakHash(Buffer.from(ed25519Key, "hex"));
-  const secpKey = new BN(keyHash).umod(secp256k1Curve.curve.n);
-  const secpKeyPair = secp256k1Curve.keyFromPrivate(secpKey.toString("hex", 64));
+  const secpKey = new BN(keyHash).umod(secp256k1Curve.curve.n).toString("hex", 64);
+  const bufferKey = Buffer.from(secpKey, "hex");
+
+  const secpKeyPair = secp256k1Curve.keyFromPrivate(bufferKey);
+
+  if (bufferKey.length < 32) {
+    console.log(
+      "secpKey.toArrayLike(Buffer)",
+      ed25519Key,
+      secpKey,
+      keyHash.length,
+      bufferKey.length,
+      secpKeyPair.getPrivate().toArrayLike(Buffer).length
+    );
+    throw new Error("Invalid key length, please try again");
+  }
   return {
     scalar: secpKeyPair.getPrivate(),
     point: secpKeyPair.getPublic(),
@@ -118,6 +132,8 @@ export const generateEd25519KeyData = async (ed25519Seed: Buffer): Promise<Priva
   const oauthKey = finalEd25519Key.scalar.sub(metadataPrivNonce).umod(ed25519Curve.n);
   const oauthKeyPair = ed25519Curve.keyFromPrivate(oauthKey.toArrayLike(Buffer));
   const metadataSigningKey = getSecpKeyFromEd25519(oauthKeyPair.getPrivate());
+  console.log("metadataSigningKey key data", metadataSigningKey.scalar.toString("hex", 64));
+  console.log("final encryption key", encryptionKey.scalar.toString("hex", 64));
   return {
     oAuthKeyScalar: oauthKeyPair.getPrivate(),
     oAuthPubX: oauthKeyPair.getPublic().getX(),

@@ -118,10 +118,10 @@ describe.only("torus utils ed25519 sapphire devnet", function () {
     // torusNodeEndpoints[0] = "example.com";
     // torusNodeEndpoints[1] = "example.com";
 
-    for (let i = 0; i < 1; i++) {
-      const testEmail1 = `edd2519TestUser951121saaaa${i}@example.com`;
+    for (let i = 0; i < 1000; i++) {
+      const testEmail1 = `edd2519TestUser951aaaa1a2q1saaaaaaa2@example.com${i}`;
       const token = generateIdToken(`${testEmail1}`, "ES256");
-
+      console.log("testEmail1", testEmail1);
       const result = await torus.retrieveShares(
         torusNodeEndpoints,
         nodeDetails.torusIndexes,
