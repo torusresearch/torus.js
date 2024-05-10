@@ -228,7 +228,7 @@ export async function retrieveOrImportShare(params: {
       return Promise.resolve(resultArr);
     } else if (importedShares?.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
       const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
-        if (resp && resp.result?.nodeindex === "1") {
+        if (resp) {
           return true;
         }
         return false;
@@ -315,7 +315,7 @@ export async function retrieveOrImportShare(params: {
             }),
             null,
             { logTracingHeader: config.logRequestTracing }
-          ).catch((err) => log.error("share req", err));
+          );
           promiseArrRequest.push(p);
         }
       }
