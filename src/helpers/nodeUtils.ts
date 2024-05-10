@@ -208,9 +208,7 @@ export async function retrieveOrImportShare(params: {
       }),
       null,
       { logTracingHeader: config.logRequestTracing }
-    ).catch((err) => {
-      log.error("commitment error", err);
-    });
+    );
     promiseArr.push(p);
   }
   // send share request once k + t number of commitment requests have completed
@@ -230,7 +228,7 @@ export async function retrieveOrImportShare(params: {
       return Promise.resolve(resultArr);
     } else if (importedShares?.length === 0 && completedRequests.length >= ~~((endpoints.length * 3) / 4) + 1) {
       const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
-        if (resp && resp.result?.nodeindex === "1") {
+        if (resp) {
           return true;
         }
         return false;
@@ -294,7 +292,7 @@ export async function retrieveOrImportShare(params: {
             }),
             null,
             { logTracingHeader: config.logRequestTracing }
-          ).catch((err) => log.error("share req", err));
+          );
           promiseArrRequest.push(p);
         } else {
           const p = post<JRPCResponse<ShareRequestResult>>(
@@ -317,7 +315,7 @@ export async function retrieveOrImportShare(params: {
             }),
             null,
             { logTracingHeader: config.logRequestTracing }
-          ).catch((err) => log.error("share req", err));
+          );
           promiseArrRequest.push(p);
         }
       }

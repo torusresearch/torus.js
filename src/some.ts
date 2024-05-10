@@ -10,9 +10,13 @@ export class SomeError<T> extends Error {
   predicate: string;
 
   constructor({ errors, responses, predicate }: { errors: Error[]; responses: T[]; predicate: string }) {
+    // its fine to log responses in errors logs for better debugging,
+    // as data is always encrypted with temp key
+    // temp key should not be logged anywhere
     const message = `Unable to resolve enough promises. 
       errors: ${errors.map((x) => x?.message || x).join(", ")}, 
       ${responses.length} responses,
+      responses: ${JSON.stringify(responses)},
       predicate error: ${predicate}`;
     super(message);
     this.errors = errors;
