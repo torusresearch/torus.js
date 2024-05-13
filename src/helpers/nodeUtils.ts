@@ -26,7 +26,7 @@ import { Some } from "../some";
 import { calculateMedian, kCombinations, normalizeKeysResult, thresholdSame } from "./common";
 import { generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
-import { decryptNodeData, getMetadata, getOrSetNonce } from "./metadataUtils";
+import { decryptNodeData, getMetadata, getOrSetNonce, getSapphireMetadataNonce } from "./metadataUtils";
 
 export const GetPubKeyOrKeyAssign = async (params: {
   endpoints: string[];
@@ -56,7 +56,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
 
   let nonceResult: GetOrSetNonceResult | undefined;
   const nodeIndexes: number[] = [];
-  const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, (lookupResults) => {
+  const result = await Some<void | JRPCResponse<VerifierLookupResponse>, KeyLookupResult>(lookupPromises, async (lookupResults) => {
     const lookupPubKeys = lookupResults.filter((x1) => {
       if (x1 && !x1.error) {
         return x1;
@@ -86,6 +86,15 @@ export const GetPubKeyOrKeyAssign = async (params: {
             nonceResult = x1.result.keys[0].nonce_data;
             break;
           }
+        }
+      }
+
+      // if nonce result is not returned by nodes, fetch directly from metadata
+      if (!nonceResult) {
+        const metadataNonceResult = await getSapphireMetadataNonce(keyResult.keys[0].pub_key_X, keyResult.keys[0].pub_key_Y);
+        // rechecking nonceResult to avoid promise race condition.
+        if (!nonceResult && metadataNonceResult) {
+          nonceResult = metadataNonceResult;
         }
       }
     }
@@ -369,9 +378,15 @@ export async function retrieveOrImportShare(params: {
         // if both thresholdNonceData and extended_verifier_id are not available
         // then we need to throw other wise address would be incorrect.
         if (!thresholdNonceData && !verifierParams.extended_verifier_id && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
-          throw new Error(
-            `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
-          );
+          const metadataNonceResult = await getSapphireMetadataNonce(thresholdPublicKey.X, thresholdPublicKey.Y);
+          // rechecking nonceResult to avoid promise race condition.
+          if (metadataNonceResult && !thresholdNonceData) {
+            thresholdNonceData = metadataNonceResult;
+          } else {
+            throw new Error(
+              `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
+            );
+          }
         }
 
         const thresholdReqCount = importedShares.length > 0 ? endpoints.length : minThreshold;

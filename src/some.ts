@@ -15,9 +15,9 @@ export class SomeError<T> extends Error {
     // temp key should not be logged anywhere
     const message = `Unable to resolve enough promises. 
       errors: ${errors.map((x) => x?.message || x).join(", ")}, 
+      predicate error: ${predicate},
       ${responses.length} responses,
-      responses: ${JSON.stringify(responses)},
-      predicate error: ${predicate}`;
+      responses: ${JSON.stringify(responses)}`;
     super(message);
     this.errors = errors;
     this.responses = responses;
