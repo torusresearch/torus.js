@@ -92,12 +92,12 @@ export async function getNonce(
   return getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, X, Y, privKey, true);
 }
 
-export async function getSapphireMetadataNonce(X: string, Y: string): Promise<GetOrSetNonceResult> {
+export async function getOrSetSapphireMetadataNonce(X: string, Y: string): Promise<GetOrSetNonceResult> {
   const data = {
     pub_key_X: X,
     pub_key_Y: Y,
     key_type: "secp256k1",
-    set_data: { operation: "get_nonce" },
+    set_data: { operation: "getOrSetNonce" },
   };
   return post<GetOrSetNonceResult>(`${SAPPHIRE_METADATA_URL}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
 }
