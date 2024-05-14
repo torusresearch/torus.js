@@ -105,9 +105,9 @@ class Torus {
 
   static getPostboxKey(torusKey: TorusKey): string {
     if (torusKey.metadata.typeOfUser === "v1") {
-      return torusKey.finalKeyData.privKey || torusKey.oAuthKeyData.privKey;
+      return torusKey.finalKeyData.privKey || torusKey.postboxKeyData.privKey;
     }
-    return torusKey.oAuthKeyData.privKey;
+    return torusKey.postboxKeyData.privKey;
   }
 
   async retrieveShares(
