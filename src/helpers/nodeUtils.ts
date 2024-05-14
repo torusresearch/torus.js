@@ -95,6 +95,9 @@ export const GetPubKeyOrKeyAssign = async (params: {
         // rechecking nonceResult to avoid promise race condition.
         if (!nonceResult && metadataNonceResult) {
           nonceResult = metadataNonceResult;
+          if (nonceResult.nonce) {
+            delete nonceResult.nonce;
+          }
         }
       }
     }
@@ -375,29 +378,11 @@ export async function retrieveOrImportShare(params: {
           }
         });
 
-        // if both thresholdNonceData and extended_verifier_id are not available
-        // then we need to throw other wise address would be incorrect.
-        if (!thresholdNonceData && !verifierParams.extended_verifier_id && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
-          const metadataNonceResult = await getOrSetSapphireMetadataNonce(thresholdPublicKey.X, thresholdPublicKey.Y);
-          // rechecking nonceResult to avoid promise race condition.
-          if (metadataNonceResult && !thresholdNonceData) {
-            thresholdNonceData = metadataNonceResult;
-          } else {
-            throw new Error(
-              `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
-            );
-          }
-        }
-
         const thresholdReqCount = importedShares.length > 0 ? endpoints.length : minThreshold;
         // optimistically run lagrange interpolation once threshold number of shares have been received
         // this is matched against the user public key to ensure that shares are consistent
         // Note: no need of thresholdMetadataNonce for extended_verifier_id key
-        if (
-          completedRequests.length >= thresholdReqCount &&
-          thresholdPublicKey &&
-          (thresholdNonceData || verifierParams.extended_verifier_id || LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE])
-        ) {
+        if (completedRequests.length >= thresholdReqCount && thresholdPublicKey) {
           const sharePromises: Promise<void | Buffer>[] = [];
           const sessionTokenSigPromises: Promise<void | Buffer>[] = [];
           const sessionTokenPromises: Promise<void | Buffer>[] = [];
@@ -564,13 +549,28 @@ export async function retrieveOrImportShare(params: {
       });
     })
     .then(async (res) => {
-      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey, serverTimeOffsetResponse } = res;
+      const { privateKey, sessionTokenData, nodeIndexes, thresholdNonceData, isNewKey, serverTimeOffsetResponse } = res;
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
+
       const oAuthKey = privateKey;
       const oAuthPubKey = getPublic(Buffer.from(oAuthKey.toString(16, 64), "hex")).toString("hex");
       const oAuthPubkeyX = oAuthPubKey.slice(2, 66);
       const oAuthPubkeyY = oAuthPubKey.slice(66);
+
+      // if both thresholdNonceData and extended_verifier_id are not available
+      // then we need to throw other wise address would be incorrect.
+      if (!nonceResult && !verifierParams.extended_verifier_id && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
+        const metadataNonceResult = await getOrSetSapphireMetadataNonce(oAuthPubkeyX, oAuthPubkeyY, serverTimeOffset, oAuthKey);
+        // rechecking nonceResult to avoid promise race condition.
+        if (metadataNonceResult && !thresholdNonceData) {
+          nonceResult = metadataNonceResult;
+        } else {
+          throw new Error(
+            `invalid metadata result from nodes, nonce metadata is empty for verifier: ${verifier} and verifierId: ${verifierParams.verifier_id}`
+          );
+        }
+      }
       let metadataNonce = new BN(nonceResult?.nonce ? nonceResult.nonce.padStart(64, "0") : "0", "hex");
       let finalPubKey: curve.base.BasePoint;
       let pubNonce: { X: string; Y: string } | undefined;

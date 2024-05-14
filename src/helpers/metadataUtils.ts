@@ -1,15 +1,16 @@
 import { decrypt } from "@toruslabs/eccrypto";
 import { Data, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
-import { ec } from "elliptic";
+import { ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 import log from "loglevel";
 
 import { SAPPHIRE_METADATA_URL } from "../constants";
-import { EciesHex, GetOrSetNonceResult, MetadataParams } from "../interfaces";
+import { EciesHex, GetOrSetNonceResult, MetadataParams, SapphireMetadataParams } from "../interfaces";
 import { encParamsHexToBuf } from "./common";
 import { keccak256 } from "./keyUtils";
 
+const secp256k1Curve = new EC("secp256k1");
 export function convertMetadataToNonce(params: { message?: string }) {
   if (!params || !params.message) {
     return new BN(0);
@@ -26,7 +27,7 @@ export async function decryptNodeData(eciesData: EciesHex, ciphertextHex: string
   return decryptedSigBuffer;
 }
 
-export function generateMetadataParams(ecCurve: ec, serverTimeOffset: number, message: string, privateKey: BN): MetadataParams {
+export function generateMetadataParams(ecCurve: EC, serverTimeOffset: number, message: string, privateKey: BN): MetadataParams {
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64));
   const setData = {
     data: message,
@@ -60,7 +61,7 @@ export async function getMetadata(
 
 export async function getOrSetNonce(
   legacyMetadataHost: string,
-  ecCurve: ec,
+  ecCurve: EC,
   serverTimeOffset: number,
   X: string,
   Y: string,
@@ -83,7 +84,7 @@ export async function getOrSetNonce(
 
 export async function getNonce(
   legacyMetadataHost: string,
-  ecCurve: ec,
+  ecCurve: EC,
   serverTimeOffset: number,
   X: string,
   Y: string,
@@ -91,13 +92,27 @@ export async function getNonce(
 ): Promise<GetOrSetNonceResult> {
   return getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, X, Y, privKey, true);
 }
-
-export async function getOrSetSapphireMetadataNonce(X: string, Y: string): Promise<GetOrSetNonceResult> {
-  const data = {
+export async function getOrSetSapphireMetadataNonce(X: string, Y: string, serverTimeOffset?: number, privKey?: BN): Promise<GetOrSetNonceResult> {
+  let data: SapphireMetadataParams = {
     pub_key_X: X,
     pub_key_Y: Y,
     key_type: "secp256k1",
     set_data: { operation: "getOrSetNonce" },
   };
+  if (privKey) {
+    const key = secp256k1Curve.keyFromPrivate(privKey.toString("hex", 64));
+
+    const setData = {
+      operation: "getOrSetNonce",
+      timestamp: new BN(~~(serverTimeOffset + Date.now() / 1000)).toString(16),
+    };
+    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+    data = {
+      ...data,
+      set_data: setData,
+      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
+    };
+  }
+
   return post<GetOrSetNonceResult>(`${SAPPHIRE_METADATA_URL}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
 }
