@@ -276,7 +276,7 @@ describe("torus utils migrated testnet on sapphire", function () {
       network: TORUS_LEGACY_NETWORK.TESTNET,
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
-      serverTimeOffset: -100,
+      serverTimeOffset: -700,
     });
     const { torusNodeSSSEndpoints: torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     try {
