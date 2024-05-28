@@ -23,7 +23,7 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { Some } from "../some";
-import { calculateMedian, kCombinations, normalizeKeysResult, thresholdSame } from "./common";
+import { calculateMedian, kCombinations, normalizeKeysResult, retryCommitment, thresholdSame } from "./common";
 import { generateAddressFromPrivKey, generateAddressFromPubKey, keccak256 } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import { decryptNodeData, getMetadata, getOrSetNonce, getOrSetSapphireMetadataNonce } from "./metadataUtils";
@@ -209,19 +209,21 @@ export async function retrieveOrImportShare(params: {
         VerifierIdentifier string `json:"verifieridentifier"`
       } 
       */
-    const p = post<JRPCResponse<CommitmentRequestResult>>(
-      endpoints[i],
-      generateJsonRPCObject(JRPC_METHODS.COMMITMENT_REQUEST, {
-        messageprefix: "mug00",
-        tokencommitment: tokenCommitment.slice(2),
-        temppubx: pubKeyX,
-        temppuby: pubKeyY,
-        verifieridentifier: verifier,
-      }),
-      null,
-      { logTracingHeader: config.logRequestTracing }
-    );
-    promiseArr.push(p);
+    const p = () =>
+      post<JRPCResponse<CommitmentRequestResult>>(
+        endpoints[i],
+        generateJsonRPCObject(JRPC_METHODS.COMMITMENT_REQUEST, {
+          messageprefix: "mug00",
+          tokencommitment: tokenCommitment.slice(2),
+          temppubx: pubKeyX,
+          temppuby: pubKeyY,
+          verifieridentifier: verifier,
+        }),
+        null,
+        { logTracingHeader: config.logRequestTracing }
+      );
+    const r = retryCommitment(p, 4);
+    promiseArr.push(r);
   }
   // send share request once k + t number of commitment requests have completed
   return Some<void | JRPCResponse<CommitmentRequestResult>, (void | JRPCResponse<CommitmentRequestResult>)[]>(promiseArr, (resultArr) => {
