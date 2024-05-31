@@ -1,12 +1,4 @@
-import {
-  INodePub,
-  LEGACY_NETWORKS_ROUTE_MAP,
-  METADATA_MAP,
-  SIGNER_MAP,
-  TORUS_LEGACY_NETWORK_TYPE,
-  TORUS_NETWORK_TYPE,
-  TORUS_SAPPHIRE_NETWORK,
-} from "@toruslabs/constants";
+import { INodePub, LEGACY_NETWORKS_ROUTE_MAP, METADATA_MAP, SIGNER_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
@@ -67,7 +59,7 @@ class Torus {
   }: TorusCtorOptions) {
     if (!clientId) throw new Error("Please provide a valid clientId in constructor");
     if (!network) throw new Error("Please provide a valid network in constructor");
-    if (keyType === "ed25519" && network !== TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET) {
+    if (keyType === "ed25519" && LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
       throw new Error(`keyType: ${keyType} is not supported by ${network} network`);
     }
     this.keyType = keyType;
