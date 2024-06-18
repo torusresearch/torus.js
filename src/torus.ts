@@ -1,28 +1,24 @@
 import { INodePub, LEGACY_NETWORKS_ROUTE_MAP, METADATA_MAP, SIGNER_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
-import { Ecies, encrypt, generatePrivate } from "@toruslabs/eccrypto";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
-import stringify from "json-stable-stringify";
 
 import { config } from "./config";
 import {
-  encParamsBufToHex,
+  encodeEd25519Point,
   generateAddressFromPubKey,
-  generateRandomPolynomial,
+  generateShares,
+  getEd25519ExtendedPublicKey,
   getMetadata,
   getOrSetNonce,
   GetOrSetNonceError,
   GetPubKeyOrKeyAssign,
-  keccak256,
   retrieveOrImportShare,
 } from "./helpers";
 import {
   GetOrSetNonceResult,
-  ImportedShare,
+  KeyType,
   LegacyVerifierLookupResponse,
-  NonceMetadataParams,
-  SetNonceData,
   TorusCtorOptions,
   TorusKey,
   TorusPublicKey,
@@ -50,10 +46,24 @@ class Torus {
 
   private legacyMetadataHost: string;
 
-  constructor({ enableOneKey = false, clientId, network, serverTimeOffset = 0, allowHost, legacyMetadataHost }: TorusCtorOptions) {
-    if (!clientId) throw Error("Please provide a valid clientId in constructor");
-    if (!network) throw Error("Please provide a valid network in constructor");
-    this.ec = new EC("secp256k1");
+  private keyType: KeyType = "secp256k1";
+
+  constructor({
+    enableOneKey = false,
+    clientId,
+    network,
+    serverTimeOffset = 0,
+    allowHost,
+    legacyMetadataHost,
+    keyType = "secp256k1",
+  }: TorusCtorOptions) {
+    if (!clientId) throw new Error("Please provide a valid clientId in constructor");
+    if (!network) throw new Error("Please provide a valid network in constructor");
+    if (keyType === "ed25519" && LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
+      throw new Error(`keyType: ${keyType} is not supported by ${network} network`);
+    }
+    this.keyType = keyType;
+    this.ec = new EC(this.keyType);
     this.serverTimeOffset = serverTimeOffset || 0; // ms
     this.network = network;
     this.clientId = clientId;
@@ -87,9 +97,9 @@ class Torus {
 
   static getPostboxKey(torusKey: TorusKey): string {
     if (torusKey.metadata.typeOfUser === "v1") {
-      return torusKey.finalKeyData.privKey || torusKey.oAuthKeyData.privKey;
+      return torusKey.finalKeyData.privKey || torusKey.postboxKeyData.privKey;
     }
-    return torusKey.oAuthKeyData.privKey;
+    return torusKey.postboxKeyData.privKey;
   }
 
   async retrieveShares(
@@ -98,22 +108,52 @@ class Torus {
     verifier: string,
     verifierParams: VerifierParams,
     idToken: string,
-    extraParams: Record<string, unknown> = {}
+    nodePubkeys: INodePub[],
+    extraParams: Record<string, unknown> = {},
+    useDkg?: boolean
   ): Promise<TorusKey> {
+    if (nodePubkeys.length === 0) {
+      throw new Error("nodePubkeys param is required");
+    }
+
+    if (nodePubkeys.length !== indexes.length) {
+      throw new Error("nodePubkeys length must be same as indexes length");
+    }
+
+    if (nodePubkeys.length !== endpoints.length) {
+      throw new Error("nodePubkeys length must be same as endpoints length");
+    }
+    // dkg is used by default only for secp256k1 keys,
+    // for ed25519 keys import keys flows is the default
+    let shouldUseDkg;
+    if (typeof useDkg === "boolean") {
+      shouldUseDkg = useDkg;
+    } else if (this.keyType === "ed25519") {
+      shouldUseDkg = false;
+    } else {
+      shouldUseDkg = true;
+    }
+    if (!shouldUseDkg && nodePubkeys.length === 0) {
+      throw new Error("nodePubkeys param is required");
+    }
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
       enableOneKey: this.enableOneKey,
       ecCurve: this.ec,
+      keyType: this.keyType,
       allowHost: this.allowHost,
       network: this.network,
       clientId: this.clientId,
       endpoints,
+      indexes,
       verifier,
       verifierParams,
       idToken,
-      indexes,
-      importedShares: [],
+      useDkg: shouldUseDkg,
+      newImportedShares: [],
+      overrideExistingKey: false,
+      nodePubkeys,
       extraParams: {
         ...extraParams,
         session_token_exp_second: Torus.sessionTime,
@@ -143,65 +183,51 @@ class Torus {
     if (endpoints.length !== nodeIndexes.length) {
       throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
     }
-    const threshold = ~~(endpoints.length / 2) + 1;
-    const degree = threshold - 1;
-    const nodeIndexesBn: BN[] = [];
 
-    const key = this.ec.keyFromPrivate(newPrivateKey.padStart(64, "0"), "hex");
-    for (const nodeIndex of nodeIndexes) {
-      nodeIndexesBn.push(new BN(nodeIndex));
-    }
-    const privKeyBn = key.getPrivate();
-    const randomNonce = new BN(generatePrivate());
+    let privKeyBuffer;
 
-    const oAuthKey = privKeyBn.sub(randomNonce).umod(this.ec.curve.n);
-    const oAuthPubKey = this.ec.keyFromPrivate(oAuthKey.toString("hex").padStart(64, "0")).getPublic();
-    const poly = generateRandomPolynomial(this.ec, degree, oAuthKey);
-    const shares = poly.generateShares(nodeIndexesBn);
-    const nonceParams = this.generateNonceMetadataParams("getOrSetNonce", oAuthKey, randomNonce);
-    const nonceData = Buffer.from(stringify(nonceParams.set_data), "utf8").toString("base64");
-    const sharesData: ImportedShare[] = [];
-    const encPromises: Promise<Ecies>[] = [];
-    for (let i = 0; i < nodeIndexesBn.length; i++) {
-      const shareJson = shares[nodeIndexesBn[i].toString("hex", 64)].toJSON() as Record<string, string>;
-      if (!nodePubkeys[i]) {
-        throw new Error(`Missing node pub key for node index: ${nodeIndexesBn[i].toString("hex", 64)}`);
+    if (this.keyType === "secp256k1") {
+      privKeyBuffer = Buffer.from(newPrivateKey.padStart(64, "0"), "hex");
+      if (privKeyBuffer.length !== 32) {
+        throw new Error("Invalid private key length for given secp256k1 key");
       }
-      const nodePubKey = this.ec.keyFromPublic({ x: nodePubkeys[i].X, y: nodePubkeys[i].Y });
-      encPromises.push(encrypt(Buffer.from(nodePubKey.getPublic().encodeCompressed("hex"), "hex"), Buffer.from(shareJson.share, "hex")));
     }
-    const encShares = await Promise.all(encPromises);
-    for (let i = 0; i < nodeIndexesBn.length; i++) {
-      const shareJson = shares[nodeIndexesBn[i].toString("hex", 64)].toJSON() as Record<string, string>;
-      const encParams = encShares[i];
-      const encParamsMetadata = encParamsBufToHex(encParams);
-      const shareData: ImportedShare = {
-        pub_key_x: oAuthPubKey.getX().toString("hex", 64),
-        pub_key_y: oAuthPubKey.getY().toString("hex", 64),
-        encrypted_share: encParamsMetadata.ciphertext,
-        encrypted_share_metadata: encParamsMetadata,
-        node_index: Number.parseInt(shareJson.shareIndex, 16),
-        key_type: "secp256k1",
-        nonce_data: nonceData,
-        nonce_signature: nonceParams.signature,
-      };
-      sharesData.push(shareData);
+    if (this.keyType === "ed25519") {
+      privKeyBuffer = Buffer.from(newPrivateKey, "hex");
+      if (privKeyBuffer.length !== 32) {
+        throw new Error("Invalid private key length for given ed25519 key");
+      }
     }
 
+    const sharesData = await generateShares(this.ec, this.keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, privKeyBuffer);
+    if (this.keyType === "ed25519") {
+      const ed25519Key = getEd25519ExtendedPublicKey(privKeyBuffer);
+      const ed25519PubKey = encodeEd25519Point(ed25519Key.point);
+      const encodedPubKey = encodeEd25519Point(sharesData[0].final_user_point);
+      const importedPubKey = Buffer.from(ed25519PubKey).toString("hex");
+      const derivedPubKey = encodedPubKey.toString("hex");
+      if (importedPubKey !== derivedPubKey) {
+        throw new Error("invalid shares data for ed25519 key, public key is not matching after generating shares");
+      }
+    }
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
       enableOneKey: this.enableOneKey,
       ecCurve: this.ec,
+      keyType: this.keyType,
       allowHost: this.allowHost,
       network: this.network,
       clientId: this.clientId,
       endpoints,
+      indexes: nodeIndexes,
       verifier,
       verifierParams,
       idToken,
-      indexes: nodeIndexes,
-      importedShares: sharesData,
+      useDkg: false,
+      overrideExistingKey: true,
+      newImportedShares: sharesData,
+      nodePubkeys,
       extraParams: {
         ...extraParams,
         session_token_exp_second: Torus.sessionTime,
@@ -215,30 +241,9 @@ class Torus {
    */
   async getUserTypeAndAddress(
     endpoints: string[],
-    torusNodePubs: INodePub[],
     { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string }
   ): Promise<TorusPublicKey> {
-    log.info(torusNodePubs, { verifier, verifierId, extendedVerifierId });
     return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, true) as Promise<TorusPublicKey>;
-  }
-
-  private generateNonceMetadataParams(operation: string, privateKey: BN, nonce?: BN): NonceMetadataParams {
-    const key = this.ec.keyFromPrivate(privateKey.toString("hex", 64));
-    const setData: Partial<SetNonceData> = {
-      operation,
-      timestamp: new BN(~~(this.serverTimeOffset + Date.now() / 1000)).toString(16),
-    };
-
-    if (nonce) {
-      setData.data = nonce.toString("hex", 64);
-    }
-    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
-    return {
-      pub_key_X: key.getPublic().getX().toString("hex", 64),
-      pub_key_Y: key.getPublic().getY().toString("hex", 64),
-      set_data: setData,
-      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
-    };
   }
 
   private async getNewPublicAddress(
@@ -251,8 +256,10 @@ class Torus {
       network: this.network,
       verifier,
       verifierId,
+      keyType: this.keyType,
       extendedVerifierId,
     });
+
     const { errorResult, keyResult, nodeIndexes = [], serverTimeOffset } = keyAssignResult;
     const finalServerTimeOffset = this.serverTimeOffset || serverTimeOffset;
     const { nonceResult } = keyAssignResult;
@@ -307,22 +314,22 @@ class Torus {
     }
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
-    const oAuthAddress = generateAddressFromPubKey(this.ec, oAuthPubKey.getX(), oAuthPubKey.getY());
+    const oAuthAddress = generateAddressFromPubKey(this.keyType, oAuthPubKey.getX(), oAuthPubKey.getY());
 
     if (!finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
     }
     const finalX = finalPubKey ? finalPubKey.getX().toString(16, 64) : "";
     const finalY = finalPubKey ? finalPubKey.getY().toString(16, 64) : "";
-    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY()) : "";
+    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.keyType, finalPubKey.getX(), finalPubKey.getY()) : "";
     return {
       oAuthKeyData: {
-        evmAddress: oAuthAddress,
+        walletAddress: oAuthAddress,
         X: oAuthX,
         Y: oAuthY,
       },
       finalKeyData: {
-        evmAddress: finalAddress,
+        walletAddress: finalAddress,
         X: finalX,
         Y: finalY,
       },
@@ -393,22 +400,22 @@ class Torus {
     }
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
-    const oAuthAddress = generateAddressFromPubKey(this.ec, oAuthPubKey.getX(), oAuthPubKey.getY());
+    const oAuthAddress = generateAddressFromPubKey(this.keyType, oAuthPubKey.getX(), oAuthPubKey.getY());
 
     if (typeOfUser === "v2" && !finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
     }
     const finalX = finalPubKey ? finalPubKey.getX().toString(16, 64) : "";
     const finalY = finalPubKey ? finalPubKey.getY().toString(16, 64) : "";
-    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.ec, finalPubKey.getX(), finalPubKey.getY()) : "";
+    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.keyType, finalPubKey.getX(), finalPubKey.getY()) : "";
     return {
       oAuthKeyData: {
-        evmAddress: oAuthAddress,
+        walletAddress: oAuthAddress,
         X: oAuthX,
         Y: oAuthY,
       },
       finalKeyData: {
-        evmAddress: finalAddress,
+        walletAddress: finalAddress,
         X: finalX,
         Y: finalY,
       },

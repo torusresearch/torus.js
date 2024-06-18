@@ -1,15 +1,15 @@
-import { generatePrivate } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 import { ec as EC } from "elliptic";
 
 import Point from "../Point";
 import Polynomial from "../Polynomial";
 import Share from "../Share";
+import { generatePrivateKey } from ".";
 
-function generatePrivateExcludingIndexes(shareIndexes: BN[]): BN {
-  const key = new BN(generatePrivate());
+function generatePrivateExcludingIndexes(shareIndexes: BN[], ecCurve: EC): BN {
+  const key = new BN(generatePrivateKey(ecCurve, Buffer));
   if (shareIndexes.find((el) => el.eq(key))) {
-    return generatePrivateExcludingIndexes(shareIndexes);
+    return generatePrivateExcludingIndexes(shareIndexes, ecCurve);
   }
   return key;
 }
@@ -111,12 +111,12 @@ export function lagrangeInterpolation(ecCurve: EC, shares: BN[], nodeIndex: BN[]
 export function generateRandomPolynomial(ecCurve: EC, degree: number, secret?: BN, deterministicShares?: Share[]): Polynomial {
   let actualS = secret;
   if (!secret) {
-    actualS = generatePrivateExcludingIndexes([new BN(0)]);
+    actualS = generatePrivateExcludingIndexes([new BN(0)], ecCurve);
   }
   if (!deterministicShares) {
     const poly = [actualS];
     for (let i = 0; i < degree; i += 1) {
-      const share = generatePrivateExcludingIndexes(poly);
+      const share = generatePrivateExcludingIndexes(poly, ecCurve);
       poly.push(share);
     }
     return new Polynomial(poly, ecCurve);
@@ -133,11 +133,11 @@ export function generateRandomPolynomial(ecCurve: EC, degree: number, secret?: B
     points[share.shareIndex.toString("hex", 64)] = new Point(share.shareIndex, share.share, ecCurve);
   });
   for (let i = 0; i < degree - deterministicShares.length; i += 1) {
-    let shareIndex = generatePrivateExcludingIndexes([new BN(0)]);
+    let shareIndex = generatePrivateExcludingIndexes([new BN(0)], ecCurve);
     while (points[shareIndex.toString("hex", 64)] !== undefined) {
-      shareIndex = generatePrivateExcludingIndexes([new BN(0)]);
+      shareIndex = generatePrivateExcludingIndexes([new BN(0)], ecCurve);
     }
-    points[shareIndex.toString("hex", 64)] = new Point(shareIndex, new BN(generatePrivate()), ecCurve);
+    points[shareIndex.toString("hex", 64)] = new Point(shareIndex, new BN(generatePrivateKey(ecCurve, Buffer)), ecCurve);
   }
   points["0"] = new Point(new BN(0), actualS, ecCurve);
   return lagrangeInterpolatePolynomial(ecCurve, Object.values(points));
