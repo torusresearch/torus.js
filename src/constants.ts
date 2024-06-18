@@ -4,3 +4,6 @@ export const JRPC_METHODS = {
   IMPORT_SHARES: "ImportShares",
   GET_SHARE_OR_KEY_ASSIGN: "GetShareOrKeyAssign",
 };
+
+export const SAPPHIRE_METADATA_URL = "https://node-1.node.web3auth.io/metadata";
+export const SAPPHIRE_DEVNET_METADATA_URL = "https://node-1.dev-node.web3auth.io/metadata";

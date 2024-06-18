@@ -239,3 +239,14 @@ export interface EncryptedSeed {
   public_key?: string;
   metadata: EciesHex;
 }
+export interface SapphireMetadataParams {
+  namespace?: string;
+  pub_key_X: string;
+  pub_key_Y: string;
+  key_type: "secp256k1" | "ed25519";
+  set_data: {
+    operation: "getNonce" | "getOrSetNonce" | string;
+    timestamp?: string;
+  };
+  signature?: string;
+}

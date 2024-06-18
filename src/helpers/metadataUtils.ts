@@ -1,11 +1,22 @@
+import { LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { decrypt } from "@toruslabs/eccrypto";
 import { Data, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
-import { ec } from "elliptic";
+import { ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 import log from "loglevel";
 
-import { EciesHex, EncryptedSeed, GetOrSetNonceResult, KeyType, MetadataParams, NonceMetadataParams, SetNonceData } from "../interfaces";
+import { SAPPHIRE_DEVNET_METADATA_URL, SAPPHIRE_METADATA_URL } from "../constants";
+import {
+  EciesHex,
+  EncryptedSeed,
+  GetOrSetNonceResult,
+  KeyType,
+  MetadataParams,
+  NonceMetadataParams,
+  SapphireMetadataParams,
+  SetNonceData,
+} from "../interfaces";
 import { encParamsHexToBuf, secp256k1Curve } from "./common";
 import { getSecpKeyFromEd25519, keccak256 } from "./keyUtils";
 
@@ -42,7 +53,7 @@ export async function decryptNodeDataWithPadding(eciesData: EciesHex, ciphertext
   }
 }
 
-export function generateMetadataParams(ecCurve: ec, serverTimeOffset: number, message: string, privateKey: BN): MetadataParams {
+export function generateMetadataParams(ecCurve: EC, serverTimeOffset: number, message: string, privateKey: BN): MetadataParams {
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64));
   const setData = {
     data: message,
@@ -111,7 +122,7 @@ export function generateNonceMetadataParams(
 
 export async function getOrSetNonce(
   metadataHost: string,
-  ecCurve: ec,
+  ecCurve: EC,
   serverTimeOffset: number,
   X: string,
   Y: string,
@@ -164,7 +175,7 @@ export async function getOrSetNonce(
 }
 export async function getNonce(
   legacyMetadataHost: string,
-  ecCurve: ec,
+  ecCurve: EC,
   serverTimeOffset: number,
   X: string,
   Y: string,
@@ -191,3 +202,38 @@ export const decryptSeedData = async (seedBase64: string, finalUserKey: BN) => {
 
   return decText;
 };
+export async function getOrSetSapphireMetadataNonce(
+  network: TORUS_NETWORK_TYPE,
+  X: string,
+  Y: string,
+  serverTimeOffset?: number,
+  privKey?: BN
+): Promise<GetOrSetNonceResult> {
+  if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
+    throw new Error("getOrSetSapphireMetadataNonce should only be used for sapphire networks");
+  }
+  let data: SapphireMetadataParams = {
+    pub_key_X: X,
+    pub_key_Y: Y,
+    key_type: "secp256k1",
+    set_data: { operation: "getOrSetNonce" },
+  };
+  if (privKey) {
+    const key = secp256k1Curve.keyFromPrivate(privKey.toString("hex", 64));
+
+    const setData = {
+      operation: "getOrSetNonce",
+      timestamp: new BN(~~(serverTimeOffset + Date.now() / 1000)).toString(16),
+    };
+    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+    data = {
+      ...data,
+      set_data: setData,
+      signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
+    };
+  }
+
+  const metadataUrl = network === TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET ? SAPPHIRE_DEVNET_METADATA_URL : SAPPHIRE_METADATA_URL;
+
+  return post<GetOrSetNonceResult>(`${metadataUrl}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
+}
