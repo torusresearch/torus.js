@@ -91,7 +91,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
 
       // if nonce result is not returned by nodes, fetch directly from metadata
       if (!nonceResult) {
-        const metadataNonceResult = await getOrSetSapphireMetadataNonce(keyResult.keys[0].pub_key_X, keyResult.keys[0].pub_key_Y);
+        const metadataNonceResult = await getOrSetSapphireMetadataNonce(network, keyResult.keys[0].pub_key_X, keyResult.keys[0].pub_key_Y);
         // rechecking nonceResult to avoid promise race condition.
         if (!nonceResult && metadataNonceResult) {
           nonceResult = metadataNonceResult;
@@ -143,7 +143,7 @@ export async function retrieveOrImportShare(params: {
   enableOneKey: boolean;
   ecCurve: ec;
   allowHost: string;
-  network: string;
+  network: TORUS_NETWORK_TYPE;
   clientId: string;
   endpoints: string[];
   verifier: string;
@@ -338,6 +338,10 @@ export async function retrieveOrImportShare(params: {
         void | JRPCResponse<ShareRequestResult>,
         | {
             privateKey: BN;
+            thresholdPublicKey: {
+              X: string;
+              Y: string;
+            };
             sessionTokenData: SessionToken[];
             thresholdNonceData: GetOrSetNonceResult;
             nodeIndexes: BN[];
@@ -534,6 +538,7 @@ export async function retrieveOrImportShare(params: {
 
           return {
             privateKey,
+            thresholdPublicKey,
             sessionTokenData,
             thresholdNonceData,
             nodeIndexes,
@@ -551,7 +556,7 @@ export async function retrieveOrImportShare(params: {
       });
     })
     .then(async (res) => {
-      const { privateKey, sessionTokenData, nodeIndexes, thresholdNonceData, isNewKey, serverTimeOffsetResponse } = res;
+      const { privateKey, thresholdPublicKey, sessionTokenData, nodeIndexes, thresholdNonceData, isNewKey, serverTimeOffsetResponse } = res;
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
 
@@ -563,7 +568,14 @@ export async function retrieveOrImportShare(params: {
       // if both thresholdNonceData and extended_verifier_id are not available
       // then we need to throw other wise address would be incorrect.
       if (!nonceResult && !verifierParams.extended_verifier_id && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
-        const metadataNonceResult = await getOrSetSapphireMetadataNonce(oAuthPubkeyX, oAuthPubkeyY, serverTimeOffset, oAuthKey);
+        // NOTE: dont use padded pub key anywhere in metadata apis, send pub keys as is received from nodes.
+        const metadataNonceResult = await getOrSetSapphireMetadataNonce(
+          network,
+          thresholdPublicKey.X,
+          thresholdPublicKey.Y,
+          serverTimeOffset,
+          oAuthKey
+        );
         // rechecking nonceResult to avoid promise race condition.
         if (metadataNonceResult && !thresholdNonceData) {
           nonceResult = metadataNonceResult;
