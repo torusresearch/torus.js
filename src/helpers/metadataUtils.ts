@@ -1,3 +1,4 @@
+import { LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { decrypt } from "@toruslabs/eccrypto";
 import { Data, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -5,7 +6,7 @@ import { ec as EC } from "elliptic";
 import stringify from "json-stable-stringify";
 import log from "loglevel";
 
-import { SAPPHIRE_METADATA_URL } from "../constants";
+import { SAPPHIRE_DEVNET_METADATA_URL, SAPPHIRE_METADATA_URL } from "../constants";
 import { EciesHex, GetOrSetNonceResult, MetadataParams, SapphireMetadataParams } from "../interfaces";
 import { encParamsHexToBuf } from "./common";
 import { keccak256 } from "./keyUtils";
@@ -92,7 +93,16 @@ export async function getNonce(
 ): Promise<GetOrSetNonceResult> {
   return getOrSetNonce(legacyMetadataHost, ecCurve, serverTimeOffset, X, Y, privKey, true);
 }
-export async function getOrSetSapphireMetadataNonce(X: string, Y: string, serverTimeOffset?: number, privKey?: BN): Promise<GetOrSetNonceResult> {
+export async function getOrSetSapphireMetadataNonce(
+  network: TORUS_NETWORK_TYPE,
+  X: string,
+  Y: string,
+  serverTimeOffset?: number,
+  privKey?: BN
+): Promise<GetOrSetNonceResult> {
+  if (LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
+    throw new Error("getOrSetSapphireMetadataNonce should only be used for sapphire networks");
+  }
   let data: SapphireMetadataParams = {
     pub_key_X: X,
     pub_key_Y: Y,
@@ -114,5 +124,7 @@ export async function getOrSetSapphireMetadataNonce(X: string, Y: string, server
     };
   }
 
-  return post<GetOrSetNonceResult>(`${SAPPHIRE_METADATA_URL}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
+  const metadataUrl = network === TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET ? SAPPHIRE_DEVNET_METADATA_URL : SAPPHIRE_METADATA_URL;
+
+  return post<GetOrSetNonceResult>(`${metadataUrl}/get_or_set_nonce`, data, undefined, { useAPIKey: true });
 }
