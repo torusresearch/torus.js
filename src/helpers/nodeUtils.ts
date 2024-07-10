@@ -49,7 +49,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
         fetch_node_index: true,
         client_time: Math.floor(Date.now() / 1000).toString(),
       }),
-      null,
+      {},
       { logTracingHeader: config.logRequestTracing }
     ).catch((err) => log.error(`${JRPC_METHODS.GET_OR_SET_KEY} request failed`, err))
   );
@@ -219,7 +219,7 @@ export async function retrieveOrImportShare(params: {
           temppuby: pubKeyY,
           verifieridentifier: verifier,
         }),
-        null,
+        {},
         { logTracingHeader: config.logRequestTracing }
       );
     const r = retryCommitment(p, 4);
@@ -304,7 +304,7 @@ export async function retrieveOrImportShare(params: {
               one_key_flow: true,
               client_time: Math.floor(Date.now() / 1000).toString(),
             }),
-            null,
+            {},
             { logTracingHeader: config.logRequestTracing }
           );
           promiseArrRequest.push(p);
@@ -327,7 +327,7 @@ export async function retrieveOrImportShare(params: {
               client_time: Math.floor(Date.now() / 1000).toString(),
               one_key_flow: true,
             }),
-            null,
+            {},
             { logTracingHeader: config.logRequestTracing }
           );
           promiseArrRequest.push(p);
