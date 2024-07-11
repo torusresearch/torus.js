@@ -38,7 +38,7 @@ export const lookupVerifier = (endpoint: string, pubKeyX: string, pubKeyY: strin
       pub_key_x: pubKeyX,
       pub_key_y: pubKeyY,
     }),
-    null,
+    {},
     { logTracingHeader: config.logRequestTracing }
   );
 };

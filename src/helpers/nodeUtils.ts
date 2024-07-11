@@ -384,7 +384,6 @@ export async function retrieveOrImportShare(params: {
         }
         const p = post<JRPCResponse<ImportShareRequestResult[]>>(
           endpoints[proxyEndpointNum],
-
           generateJsonRPCObject(JRPC_METHODS.IMPORT_SHARES, {
             encrypted: "yes",
             use_temp: true,
@@ -392,7 +391,7 @@ export async function retrieveOrImportShare(params: {
             key_type: keyType,
             one_key_flow: true,
           }),
-          null,
+          {},
           { logTracingHeader: config.logRequestTracing }
         ).catch((err) => log.error("share req", err));
         promiseArrRequest.push(p);
