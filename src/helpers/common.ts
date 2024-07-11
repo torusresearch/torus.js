@@ -1,4 +1,4 @@
-import { JRPCResponse } from "@toruslabs/constants";
+import { JRPCResponse, KEY_TYPE } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
 import { BN } from "bn.js";
 import { ec as EC } from "elliptic";
@@ -7,14 +7,11 @@ import JsonStringify from "json-stable-stringify";
 import { CommitmentRequestResult, EciesHex, KeyType, VerifierLookupResponse } from "../interfaces";
 import { keccak256 } from "./keyUtils";
 
-export const ed25519Curve = new EC("ed25519");
-export const secp256k1Curve = new EC("secp256k1");
-
 export const getKeyCurve = (keyType: KeyType) => {
-  if (keyType === "ed25519") {
-    return ed25519Curve;
-  } else if (keyType === "secp256k1") {
-    return secp256k1Curve;
+  if (keyType === KEY_TYPE.ED25519) {
+    return new EC(KEY_TYPE.ED25519);
+  } else if (keyType === KEY_TYPE.SECP256K1) {
+    return new EC(KEY_TYPE.SECP256K1);
   }
   throw new Error(`Invalid keyType: ${keyType}`);
 };

@@ -1,4 +1,12 @@
-import { INodePub, LEGACY_NETWORKS_ROUTE_MAP, METADATA_MAP, SIGNER_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import {
+  INodePub,
+  KEY_TYPE,
+  LEGACY_NETWORKS_ROUTE_MAP,
+  METADATA_MAP,
+  SIGNER_MAP,
+  TORUS_LEGACY_NETWORK_TYPE,
+  TORUS_NETWORK_TYPE,
+} from "@toruslabs/constants";
 import { setAPIKey, setEmbedHost } from "@toruslabs/http-helpers";
 import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
@@ -46,7 +54,7 @@ class Torus {
 
   private legacyMetadataHost: string;
 
-  private keyType: KeyType = "secp256k1";
+  private keyType: KeyType = KEY_TYPE.SECP256K1;
 
   constructor({
     enableOneKey = false,
@@ -55,11 +63,11 @@ class Torus {
     serverTimeOffset = 0,
     allowHost,
     legacyMetadataHost,
-    keyType = "secp256k1",
+    keyType = KEY_TYPE.SECP256K1,
   }: TorusCtorOptions) {
     if (!clientId) throw new Error("Please provide a valid clientId in constructor");
     if (!network) throw new Error("Please provide a valid network in constructor");
-    if (keyType === "ed25519" && LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
+    if (keyType === KEY_TYPE.ED25519 && LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
       throw new Error(`keyType: ${keyType} is not supported by ${network} network`);
     }
     this.keyType = keyType;
@@ -128,7 +136,7 @@ class Torus {
     let shouldUseDkg;
     if (typeof useDkg === "boolean") {
       shouldUseDkg = useDkg;
-    } else if (this.keyType === "ed25519") {
+    } else if (this.keyType === KEY_TYPE.ED25519) {
       shouldUseDkg = false;
     } else {
       shouldUseDkg = true;
@@ -186,13 +194,13 @@ class Torus {
 
     let privKeyBuffer;
 
-    if (this.keyType === "secp256k1") {
+    if (this.keyType === KEY_TYPE.SECP256K1) {
       privKeyBuffer = Buffer.from(newPrivateKey.padStart(64, "0"), "hex");
       if (privKeyBuffer.length !== 32) {
         throw new Error("Invalid private key length for given secp256k1 key");
       }
     }
-    if (this.keyType === "ed25519") {
+    if (this.keyType === KEY_TYPE.ED25519) {
       privKeyBuffer = Buffer.from(newPrivateKey, "hex");
       if (privKeyBuffer.length !== 32) {
         throw new Error("Invalid private key length for given ed25519 key");
@@ -200,7 +208,7 @@ class Torus {
     }
 
     const sharesData = await generateShares(this.ec, this.keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, privKeyBuffer);
-    if (this.keyType === "ed25519") {
+    if (this.keyType === KEY_TYPE.ED25519) {
       const ed25519Key = getEd25519ExtendedPublicKey(privKeyBuffer);
       const ed25519PubKey = encodeEd25519Point(ed25519Key.point);
       const encodedPubKey = encodeEd25519Point(sharesData[0].final_user_point);

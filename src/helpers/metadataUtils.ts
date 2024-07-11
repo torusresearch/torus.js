@@ -1,4 +1,4 @@
-import { LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
+import { KEY_TYPE, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { decrypt } from "@toruslabs/eccrypto";
 import { Data, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -17,7 +17,7 @@ import {
   SapphireMetadataParams,
   SetNonceData,
 } from "../interfaces";
-import { encParamsHexToBuf, secp256k1Curve } from "./common";
+import { encParamsHexToBuf, getKeyCurve } from "./common";
 import { getSecpKeyFromEd25519, keccak256 } from "./keyUtils";
 export function convertMetadataToNonce(params: { message?: string }) {
   if (!params || !params.message) {
@@ -93,7 +93,7 @@ export function generateNonceMetadataParams(
   seed?: string
 ): NonceMetadataParams {
   // metadata only uses secp for sig validation
-  const key = secp256k1Curve.keyFromPrivate(privateKey.toString("hex", 64));
+  const key = getKeyCurve(KEY_TYPE.SECP256K1).keyFromPrivate(privateKey.toString("hex", 64));
   const setData: Partial<SetNonceData> = {
     operation,
     timestamp: new BN(~~(serverTimeOffset + Date.now() / 1000)).toString(16),
@@ -157,7 +157,7 @@ export async function getOrSetNonce(
     if (nonce.cmp(new BN(0)) === 0) {
       throw new Error("nonce is required while `getOrSetNonce` for non legacy metadata");
     }
-    if (keyType === "ed25519" && !seed) {
+    if (keyType === KEY_TYPE.ED25519 && !seed) {
       throw new Error("seed is required while `getOrSetNonce` for non legacy metadata for ed25519 key type");
     }
     const data = generateNonceMetadataParams(serverTimeOffset, operation, privKey, keyType, nonce, seed);
@@ -218,7 +218,7 @@ export async function getOrSetSapphireMetadataNonce(
     set_data: { operation: "getOrSetNonce" },
   };
   if (privKey) {
-    const key = secp256k1Curve.keyFromPrivate(privKey.toString("hex", 64));
+    const key = getKeyCurve(KEY_TYPE.SECP256K1).keyFromPrivate(privKey.toString("hex", 64));
 
     const setData = {
       operation: "getOrSetNonce",

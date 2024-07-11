@@ -1,4 +1,4 @@
-import { INodePub } from "@toruslabs/constants";
+import { INodePub, KEY_TYPE } from "@toruslabs/constants";
 import { Ecies, encrypt } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 import base58 from "bs58";
@@ -9,7 +9,7 @@ import stringify from "json-stable-stringify";
 import log from "loglevel";
 
 import { EncryptedSeed, ImportedShare, KeyType, PrivateKeyData } from "../interfaces";
-import { ed25519Curve, encParamsBufToHex, getKeyCurve, secp256k1Curve } from "./common";
+import { encParamsBufToHex, getKeyCurve } from "./common";
 import { generateRandomPolynomial } from "./langrangeInterpolatePoly";
 import { generateNonceMetadataParams } from "./metadataUtils";
 
@@ -60,6 +60,7 @@ export function getEd25519ExtendedPublicKey(keyBuffer: Buffer): {
   scalar: BN;
   point: curve.base.BasePoint;
 } {
+  const ed25519Curve = getKeyCurve(KEY_TYPE.ED25519);
   const len = 32;
   const G = ed25519Curve.g;
   const N = ed25519Curve.n;
@@ -86,6 +87,8 @@ export const getSecpKeyFromEd25519 = (
   scalar: BN;
   point: curve.base.BasePoint;
 } => {
+  const secp256k1Curve = getKeyCurve(KEY_TYPE.SECP256K1);
+
   const ed25519Key = ed25519Scalar.toString("hex", 64);
   const keyHash = keccakHash(Buffer.from(ed25519Key, "hex"));
   const secpKey = new BN(keyHash).umod(secp256k1Curve.curve.n).toString("hex", 64);
@@ -103,6 +106,8 @@ export const getSecpKeyFromEd25519 = (
 };
 
 export function encodeEd25519Point(point: curve.base.BasePoint) {
+  const ed25519Curve = getKeyCurve(KEY_TYPE.ED25519);
+
   const encodingLength = Math.ceil(ed25519Curve.n.bitLength() / 8);
   const enc = point.getY().toArrayLike(Buffer, "le", encodingLength);
   enc[encodingLength - 1] |= point.getX().isOdd() ? 0x80 : 0;
@@ -110,6 +115,8 @@ export function encodeEd25519Point(point: curve.base.BasePoint) {
 }
 
 export const generateEd25519KeyData = async (ed25519Seed: Buffer): Promise<PrivateKeyData> => {
+  const ed25519Curve = getKeyCurve(KEY_TYPE.ED25519);
+
   const finalEd25519Key = getEd25519ExtendedPublicKey(ed25519Seed);
   const encryptionKey = getSecpKeyFromEd25519(finalEd25519Key.scalar);
   const encryptedSeed = await encrypt(Buffer.from(encryptionKey.point.encodeCompressed("hex"), "hex"), ed25519Seed);
@@ -138,6 +145,8 @@ export const generateEd25519KeyData = async (ed25519Seed: Buffer): Promise<Priva
 };
 
 export const generateSecp256k1KeyData = async (scalarBuffer: Buffer): Promise<PrivateKeyData> => {
+  const secp256k1Curve = getKeyCurve(KEY_TYPE.SECP256K1);
+
   const scalar = new BN(scalarBuffer);
   const randomNonce = new BN(generatePrivateKey(secp256k1Curve, Buffer));
   const oAuthKey = scalar.sub(randomNonce).umod(secp256k1Curve.curve.n);
@@ -162,11 +171,11 @@ export const generateSecp256k1KeyData = async (scalarBuffer: Buffer): Promise<Pr
 export function generateAddressFromPrivKey(keyType: KeyType, privateKey: BN): string {
   const ecCurve = getKeyCurve(keyType);
   const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64), "hex");
-  if (keyType === "secp256k1") {
+  if (keyType === KEY_TYPE.SECP256K1) {
     const publicKey = key.getPublic().encode("hex", false).slice(2);
     const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
     return toChecksumAddress(evmAddressLower);
-  } else if (keyType === "ed25519") {
+  } else if (keyType === KEY_TYPE.ED25519) {
     const publicKey = encodeEd25519Point(key.getPublic());
     const address = base58.encode(publicKey);
     return address;
@@ -177,11 +186,11 @@ export function generateAddressFromPrivKey(keyType: KeyType, privateKey: BN): st
 export function generateAddressFromPubKey(keyType: KeyType, publicKeyX: BN, publicKeyY: BN): string {
   const ecCurve = getKeyCurve(keyType);
   const key = ecCurve.keyFromPublic({ x: publicKeyX.toString("hex", 64), y: publicKeyY.toString("hex", 64) });
-  if (keyType === "secp256k1") {
+  if (keyType === KEY_TYPE.SECP256K1) {
     const publicKey = key.getPublic().encode("hex", false).slice(2);
     const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
     return toChecksumAddress(evmAddressLower);
-  } else if (keyType === "ed25519") {
+  } else if (keyType === KEY_TYPE.ED25519) {
     const publicKey = encodeEd25519Point(key.getPublic());
     const address = base58.encode(publicKey);
     return address;
@@ -200,7 +209,9 @@ export function derivePubKey(ecCurve: EC, sk: BN): curve.base.BasePoint {
   return ecCurve.keyFromPrivate(skHex).getPublic();
 }
 
-export const encryptionEC = new EC("secp256k1");
+export const getEncryptionEC = (): EC => {
+  return new EC("secp256k1");
+};
 
 export const generateShares = async (
   ecCurve: EC,
@@ -210,7 +221,7 @@ export const generateShares = async (
   nodePubkeys: INodePub[],
   privKey: Buffer
 ) => {
-  const keyData = keyType === "ed25519" ? await generateEd25519KeyData(privKey) : await generateSecp256k1KeyData(privKey);
+  const keyData = keyType === KEY_TYPE.ED25519 ? await generateEd25519KeyData(privKey) : await generateSecp256k1KeyData(privKey);
   const { metadataNonce, oAuthKeyScalar: oAuthKey, encryptedSeed, metadataSigningKey } = keyData;
   const threshold = ~~(nodePubkeys.length / 2) + 1;
   const degree = threshold - 1;
@@ -231,7 +242,7 @@ export const generateShares = async (
     if (!nodePubkeys[i]) {
       throw new Error(`Missing node pub key for node index: ${nodeIndexesBn[i].toString("hex", 64)}`);
     }
-    const nodePubKey = encryptionEC.keyFromPublic({ x: nodePubkeys[i].X, y: nodePubkeys[i].Y });
+    const nodePubKey = getEncryptionEC().keyFromPublic({ x: nodePubkeys[i].X, y: nodePubkeys[i].Y });
     encPromises.push(
       encrypt(Buffer.from(nodePubKey.getPublic().encodeCompressed("hex"), "hex"), Buffer.from(shareJson.share.padStart(64, "0"), "hex"))
     );

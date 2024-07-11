@@ -1,4 +1,4 @@
-import { INodePub, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import { INodePub, KEY_TYPE, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
 import BN from "bn.js";
@@ -224,7 +224,7 @@ export async function retrieveOrImportShare(params: {
     }
     finalImportedShares = newImportedShares;
   } else if (!useDkg) {
-    const bufferKey = keyType === "secp256k1" ? generatePrivateKey(ecCurve, Buffer) : await getRandomBytes(32);
+    const bufferKey = keyType === KEY_TYPE.SECP256K1 ? generatePrivateKey(ecCurve, Buffer) : await getRandomBytes(32);
     const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, Buffer.from(bufferKey));
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
@@ -757,9 +757,9 @@ export async function retrieveOrImportShare(params: {
         const privateKeyWithNonce = oAuthKey.add(metadataNonce).umod(ecCurve.curve.n);
         keyWithNonce = privateKeyWithNonce.toString("hex", 64);
       }
-      if (keyType === "secp256k1") {
+      if (keyType === KEY_TYPE.SECP256K1) {
         finalPrivKey = keyWithNonce;
-      } else if (keyType === "ed25519") {
+      } else if (keyType === KEY_TYPE.ED25519) {
         if (keyWithNonce && !nonceResult.seed) {
           throw new Error("Invalid data, seed data is missing for ed25519 key, Please report this bug");
         } else if (keyWithNonce && nonceResult.seed) {
@@ -774,7 +774,7 @@ export async function retrieveOrImportShare(params: {
       let postboxKey = oAuthKey;
       let postboxPubX = oAuthPubkeyX;
       let postboxPubY = oAuthPubkeyY;
-      if (keyType === "ed25519") {
+      if (keyType === KEY_TYPE.ED25519) {
         const { scalar, point } = getSecpKeyFromEd25519(privateKey);
         postboxKey = scalar;
         postboxPubX = point.getX().toString(16, 64);
