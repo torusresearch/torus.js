@@ -69,7 +69,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
         fetch_node_index: true,
         client_time: Math.floor(Date.now() / 1000).toString(),
       }),
-      null,
+      {},
       { logTracingHeader: config.logRequestTracing }
     ).catch((err) => log.error(`${JRPC_METHODS.GET_OR_SET_KEY} request failed`, err))
   );
@@ -256,7 +256,7 @@ export async function retrieveOrImportShare(params: {
           extended_verifier_id: verifierParams.extended_verifier_id,
           is_import_key_flow: true,
         }),
-        null,
+        {},
         { logTracingHeader: config.logRequestTracing }
       );
     const r = retryCommitment(p, 4);
@@ -422,7 +422,7 @@ export async function retrieveOrImportShare(params: {
               client_time: Math.floor(Date.now() / 1000).toString(),
               one_key_flow: true,
             }),
-            null,
+            {},
             { logTracingHeader: config.logRequestTracing }
           );
           promiseArrRequest.push(p);
@@ -664,7 +664,7 @@ export async function retrieveOrImportShare(params: {
       });
     })
     .then(async (res) => {
-      const { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey, serverTimeOffsetResponse, thresholdPubKey } = res;
+      const { privateKey, thresholdPubKey, sessionTokenData, nodeIndexes, thresholdNonceData, isNewKey, serverTimeOffsetResponse } = res;
       let nonceResult = thresholdNonceData;
       if (!privateKey) throw new Error("Invalid private key returned");
 
@@ -676,7 +676,8 @@ export async function retrieveOrImportShare(params: {
       // if both thresholdNonceData and extended_verifier_id are not available
       // then we need to throw other wise address would be incorrect.
       if (!nonceResult && !verifierParams.extended_verifier_id && !LEGACY_NETWORKS_ROUTE_MAP[network as TORUS_LEGACY_NETWORK_TYPE]) {
-        const metadataNonceResult = await getOrSetSapphireMetadataNonce(network, oAuthPubkeyX, oAuthPubkeyY, serverTimeOffset, oAuthKey);
+        // NOTE: dont use padded pub key anywhere in metadata apis, send pub keys as is received from nodes.
+        const metadataNonceResult = await getOrSetSapphireMetadataNonce(network, thresholdPubKey.X, thresholdPubKey.Y, serverTimeOffset, oAuthKey);
         // rechecking nonceResult to avoid promise race condition.
         if (metadataNonceResult && !thresholdNonceData) {
           nonceResult = metadataNonceResult;

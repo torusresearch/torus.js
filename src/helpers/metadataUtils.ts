@@ -19,7 +19,6 @@ import {
 } from "../interfaces";
 import { encParamsHexToBuf, secp256k1Curve } from "./common";
 import { getSecpKeyFromEd25519, keccak256 } from "./keyUtils";
-
 export function convertMetadataToNonce(params: { message?: string }) {
   if (!params || !params.message) {
     return new BN(0);
