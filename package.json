@@ -35,10 +35,10 @@
   },
   "devDependencies": {
     "@babel/register": "^7.24.6",
-    "@babel/runtime": "^7.24.7",
+    "@babel/runtime": "^7.24.8",
     "@toruslabs/config": "^2.1.0",
     "@toruslabs/eslint-config-typescript": "^3.3.1",
-    "@toruslabs/fetch-node-details": "^14.0.0",
+    "@toruslabs/fetch-node-details": "^14.0.1",
     "@toruslabs/torus-scripts": "^6.0.1",
     "@types/chai": "^4.3.16",
     "@types/elliptic": "^6.4.18",
@@ -56,8 +56,8 @@
     "jsonwebtoken": "^9.0.2",
     "lint-staged": "^15.2.7",
     "mocha": "^10.6.0",
-    "prettier": "^3.3.2",
-    "rimraf": "^6.0.0",
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
     "sinon": "^18.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3"
