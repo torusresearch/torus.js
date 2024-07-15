@@ -1,5 +1,5 @@
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
-import FetchNodeDetails from "@toruslabs/fetch-node-details";
+import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 import faker from "faker";
@@ -8,7 +8,7 @@ import { keccak256, TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken } from "./helpers";
 
-const TORUS_NODE_MANAGER = new FetchNodeDetails({
+const TORUS_NODE_MANAGER = new NodeDetailManager({
   network: TORUS_LEGACY_NETWORK.TESTNET,
 });
 const TORUS_TEST_EMAIL = "hello@tor.us";
