@@ -1,5 +1,5 @@
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
-import NodeManager from "@toruslabs/fetch-node-details";
+import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 import faker from "faker";
@@ -14,12 +14,12 @@ const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
 describe("torus utils mainnet", function () {
   let torus: TorusUtils;
-  let TORUS_NODE_MANAGER: NodeManager;
+  let TORUS_NODE_MANAGER: NodeDetailManager;
 
   beforeEach("one time execution before all tests", async function () {
     // TorusUtils.enableLogging(true);
     torus = new TorusUtils({ network: "mainnet", clientId: "YOUR_CLIENT_ID" });
-    TORUS_NODE_MANAGER = new NodeManager({
+    TORUS_NODE_MANAGER = new NodeDetailManager({
       network: TORUS_LEGACY_NETWORK.MAINNET,
     });
   });

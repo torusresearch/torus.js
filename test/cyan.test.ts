@@ -1,5 +1,5 @@
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
-import NodeManager from "@toruslabs/fetch-node-details";
+import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 import faker from "faker";
@@ -14,14 +14,14 @@ const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
 describe("torus utils cyan", function () {
   let torus: TorusUtils;
-  let TORUS_NODE_MANAGER: NodeManager;
+  let TORUS_NODE_MANAGER: NodeDetailManager;
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({
       network: "cyan",
       clientId: "YOUR_CLIENT_ID",
     });
-    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_LEGACY_NETWORK.CYAN });
+    TORUS_NODE_MANAGER = new NodeDetailManager({ network: TORUS_LEGACY_NETWORK.CYAN });
   });
 
   it("should fetch public address", async function () {

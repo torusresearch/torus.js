@@ -1,5 +1,5 @@
 import { TORUS_LEGACY_NETWORK, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
-import NodeManager from "@toruslabs/fetch-node-details";
+import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 import { ec as EC } from "elliptic";
@@ -23,10 +23,10 @@ const HashEnabledVerifier = "torus-test-verifierid-hash";
 
 describe("torus utils sapphire devnet", function () {
   let torus: TorusUtils;
-  let TORUS_NODE_MANAGER: NodeManager;
+  let TORUS_NODE_MANAGER: NodeDetailManager;
 
   beforeEach("one time execution before all tests", async function () {
-    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET });
+    TORUS_NODE_MANAGER = new NodeDetailManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET });
     torus = new TorusUtils({
       network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET,
       clientId: "YOUR_CLIENT_ID",
@@ -37,7 +37,7 @@ describe("torus utils sapphire devnet", function () {
 
   it("should fetch public address of a legacy v1 user", async function () {
     const verifier = "google-lrc"; // any verifier
-    const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
+    const LEGACY_TORUS_NODE_MANAGER = new NodeDetailManager({
       network: TORUS_LEGACY_NETWORK.TESTNET,
       // fndServerEndpoint: "http://localhost:8060/node-details",
     });
@@ -79,7 +79,7 @@ describe("torus utils sapphire devnet", function () {
     const verifier = "google-lrc";
     const token = generateIdToken(email, "ES256");
 
-    const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
+    const LEGACY_TORUS_NODE_MANAGER = new NodeDetailManager({
       network: TORUS_LEGACY_NETWORK.TESTNET,
     });
 
@@ -130,7 +130,7 @@ describe("torus utils sapphire devnet", function () {
   });
 
   it("should fetch user type and public address of legacy v2 user", async function () {
-    const LEGACY_TORUS_NODE_MANAGER = new NodeManager({
+    const LEGACY_TORUS_NODE_MANAGER = new NodeDetailManager({
       network: TORUS_LEGACY_NETWORK.TESTNET,
       // fndServerEndpoint: "http://localhost:8060/node-details",
     });

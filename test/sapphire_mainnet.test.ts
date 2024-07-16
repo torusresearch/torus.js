@@ -1,5 +1,5 @@
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
-import NodeManager from "@toruslabs/fetch-node-details";
+import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 import { ec as EC } from "elliptic";
@@ -17,7 +17,7 @@ const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
 
 describe("torus utils sapphire mainnet", function () {
   let torus: TorusUtils;
-  let TORUS_NODE_MANAGER: NodeManager;
+  let TORUS_NODE_MANAGER: NodeDetailManager;
 
   beforeEach("one time execution before all tests", async function () {
     torus = new TorusUtils({
@@ -25,7 +25,7 @@ describe("torus utils sapphire mainnet", function () {
       clientId: "YOUR_CLIENT_ID",
       enableOneKey: true,
     });
-    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_MAINNET });
+    TORUS_NODE_MANAGER = new NodeDetailManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_MAINNET });
   });
 
   it("should fetch public address", async function () {
