@@ -1,5 +1,5 @@
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
-import NodeManager from "@toruslabs/fetch-node-details";
+import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import base58 from "bs58";
 import { expect } from "chai";
@@ -21,10 +21,10 @@ const HashEnabledVerifier = "torus-test-verifierid-hash";
 
 describe("torus utils ed25519 sapphire devnet", function () {
   let torus: TorusUtils;
-  let TORUS_NODE_MANAGER: NodeManager;
+  let TORUS_NODE_MANAGER: NodeDetailManager;
 
   beforeEach("one time execution before all tests", async function () {
-    TORUS_NODE_MANAGER = new NodeManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET });
+    TORUS_NODE_MANAGER = new NodeDetailManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET });
     torus = new TorusUtils({
       network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET,
       clientId: "YOUR_CLIENT_ID",
