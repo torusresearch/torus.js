@@ -748,4 +748,144 @@ describe("torus utils sapphire devnet", function () {
     expect(result.metadata.nonce).to.not.equal(null);
     expect(result.metadata.upgraded).to.equal(false);
   });
+
+  it("should be able to login with different accounts and get different addresses for each", async function () {
+    const email1 = faker.internet.email();
+    const email2 = faker.internet.email();
+
+    const idToken1 = generateIdToken(email1, "ES256");
+    const idToken2 = generateIdToken(email2, "ES256");
+    const hashedIdToken1 = keccak256(Buffer.from(idToken1, "utf8"));
+    const hashedIdToken2 = keccak256(Buffer.from(idToken2, "utf8"));
+    const verifierDetails1 = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email1 };
+    const verifierDetails2 = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email2 };
+
+    const nodeDetails1 = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails1);
+    const nodeDetails2 = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails2);
+    const torusNodeEndpoints1 = nodeDetails1.torusNodeSSSEndpoints;
+    const torusNodeEndpoints2 = nodeDetails1.torusNodeSSSEndpoints;
+    const result1 = await torus.retrieveShares(
+      torusNodeEndpoints1,
+      nodeDetails1.torusIndexes,
+      TORUS_TEST_AGGREGATE_VERIFIER,
+      {
+        verify_params: [{ verifier_id: email1, idtoken: idToken1 }],
+        sub_verifier_ids: [TORUS_TEST_VERIFIER],
+        verifier_id: email1,
+      },
+      hashedIdToken1.substring(2),
+      nodeDetails1.torusNodePub
+    );
+    const result2 = await torus.retrieveShares(
+      torusNodeEndpoints2,
+      nodeDetails2.torusIndexes,
+      TORUS_TEST_AGGREGATE_VERIFIER,
+      {
+        verify_params: [{ verifier_id: email2, idtoken: idToken2 }],
+        sub_verifier_ids: [TORUS_TEST_VERIFIER],
+        verifier_id: email2,
+      },
+      hashedIdToken2.substring(2),
+      nodeDetails2.torusNodePub
+    );
+    expect(result1.metadata.serverTimeOffset).lessThan(20);
+
+    expect(result1.finalKeyData.walletAddress).to.not.equal(null);
+    expect(result1.finalKeyData.walletAddress).to.not.equal("");
+    expect(result1.oAuthKeyData.walletAddress).to.not.equal(null);
+    expect(result1.metadata.typeOfUser).to.equal("v2");
+    expect(result1.metadata.nonce).to.not.equal(null);
+    expect(result1.metadata.upgraded).to.equal(false);
+
+    expect(result2.metadata.serverTimeOffset).lessThan(20);
+
+    expect(result2.finalKeyData.walletAddress).to.not.equal(null);
+    expect(result2.finalKeyData.walletAddress).to.not.equal("");
+    expect(result2.oAuthKeyData.walletAddress).to.not.equal(null);
+    expect(result2.metadata.typeOfUser).to.equal("v2");
+    expect(result2.metadata.nonce).to.not.equal(null);
+    expect(result2.metadata.upgraded).to.equal(false);
+
+    expect(result2.finalKeyData.walletAddress).to.not.equal(result1.finalKeyData.walletAddress);
+  });
+
+  it("should be able to login with the same account repeatedly and get the same address", async function () {
+    const addresses = [];
+    const iterations = 5;
+    const email = faker.internet.email();
+    for (let i = 0; i <= iterations; i++) {
+      const idToken = generateIdToken(email, "ES256");
+      const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+      const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
+
+      const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+      const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+      const result = await torus.retrieveShares(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_AGGREGATE_VERIFIER,
+        {
+          verify_params: [{ verifier_id: email, idtoken: idToken }],
+          sub_verifier_ids: [TORUS_TEST_VERIFIER],
+          verifier_id: email,
+        },
+        hashedIdToken.substring(2),
+        nodeDetails.torusNodePub
+      );
+      expect(result.metadata.serverTimeOffset).lessThan(20);
+      delete result.metadata.serverTimeOffset;
+
+      expect(result.finalKeyData.walletAddress).to.not.equal(null);
+      expect(result.finalKeyData.walletAddress).to.not.equal("");
+      expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
+      expect(result.metadata.typeOfUser).to.equal("v2");
+      expect(result.metadata.nonce).to.not.equal(null);
+      expect(result.metadata.upgraded).to.equal(false);
+
+      addresses.push(result.finalKeyData.walletAddress);
+    }
+    const set = new Set(addresses);
+    expect(set.size).to.equal(1);
+  });
+
+  it("should be able to login with a fixed set of different accounts repeatedly and get a constant set of addresses", async function () {
+    const addresses = [];
+    const iterations = 5;
+    for (let i = 0; i <= iterations; i++) {
+      const email = faker.internet.email();
+      for (let k = 0; k <= iterations; k++) {
+        const idToken = generateIdToken(email, "ES256");
+        const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+        const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
+
+        const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+        const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+        const result = await torus.retrieveShares(
+          torusNodeEndpoints,
+          nodeDetails.torusIndexes,
+          TORUS_TEST_AGGREGATE_VERIFIER,
+          {
+            verify_params: [{ verifier_id: email, idtoken: idToken }],
+            sub_verifier_ids: [TORUS_TEST_VERIFIER],
+            verifier_id: email,
+          },
+          hashedIdToken.substring(2),
+          nodeDetails.torusNodePub
+        );
+        expect(result.metadata.serverTimeOffset).lessThan(20);
+        delete result.metadata.serverTimeOffset;
+
+        expect(result.finalKeyData.walletAddress).to.not.equal(null);
+        expect(result.finalKeyData.walletAddress).to.not.equal("");
+        expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
+        expect(result.metadata.typeOfUser).to.equal("v2");
+        expect(result.metadata.nonce).to.not.equal(null);
+        expect(result.metadata.upgraded).to.equal(false);
+
+        addresses.push(result.finalKeyData.walletAddress);
+      }
+    }
+    const set = new Set(addresses);
+    expect(set.size).to.equal(6);
+  });
 });
