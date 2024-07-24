@@ -34,6 +34,7 @@ import {
   VerifierParams,
 } from "./interfaces";
 import log from "./loglevel";
+import { TorusUtilsExtraParams } from "./TorusUtilsExtraParams";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -117,7 +118,7 @@ class Torus {
     verifierParams: VerifierParams,
     idToken: string,
     nodePubkeys: INodePub[],
-    extraParams: Record<string, unknown> = {},
+    extraParams: TorusUtilsExtraParams = {},
     useDkg?: boolean
   ): Promise<TorusKey> {
     if (nodePubkeys.length === 0) {
@@ -144,6 +145,11 @@ class Torus {
     if (!shouldUseDkg && nodePubkeys.length === 0) {
       throw new Error("nodePubkeys param is required");
     }
+
+    if (!extraParams.session_token_exp_second) {
+      extraParams.session_token_exp_second = Torus.sessionTime;
+    }
+
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
@@ -162,10 +168,7 @@ class Torus {
       newImportedShares: [],
       overrideExistingKey: false,
       nodePubkeys,
-      extraParams: {
-        ...extraParams,
-        session_token_exp_second: Torus.sessionTime,
-      },
+      extraParams,
     });
   }
 
@@ -186,10 +189,14 @@ class Torus {
     verifierParams: VerifierParams,
     idToken: string,
     newPrivateKey: string,
-    extraParams: Record<string, unknown> = {}
+    extraParams: TorusUtilsExtraParams = {}
   ): Promise<TorusKey> {
     if (endpoints.length !== nodeIndexes.length) {
       throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
+    }
+
+    if (!extraParams.session_token_exp_second) {
+      extraParams.session_token_exp_second = Torus.sessionTime;
     }
 
     let privKeyBuffer;
@@ -218,6 +225,7 @@ class Torus {
         throw new Error("invalid shares data for ed25519 key, public key is not matching after generating shares");
       }
     }
+
     return retrieveOrImportShare({
       legacyMetadataHost: this.legacyMetadataHost,
       serverTimeOffset: this.serverTimeOffset,
@@ -236,10 +244,7 @@ class Torus {
       overrideExistingKey: true,
       newImportedShares: sharesData,
       nodePubkeys,
-      extraParams: {
-        ...extraParams,
-        session_token_exp_second: Torus.sessionTime,
-      },
+      extraParams,
     });
   }
 

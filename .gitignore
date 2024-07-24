@@ -104,3 +104,4 @@ dist
 .tern-port
 
 .env.test
+**/*.DS_Store

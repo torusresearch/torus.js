@@ -26,6 +26,7 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { Some } from "../some";
+import { TorusUtilsExtraParams } from "../TorusUtilsExtraParams";
 import { calculateMedian, getProxyCoordinatorEndpointIndex, kCombinations, normalizeKeysResult, retryCommitment, thresholdSame } from "./common";
 import {
   derivePubKey,
@@ -174,7 +175,7 @@ export async function retrieveOrImportShare(params: {
   overrideExistingKey: boolean;
   nodePubkeys: INodePub[];
   newImportedShares?: ImportedShare[];
-  extraParams: Record<string, unknown>;
+  extraParams: TorusUtilsExtraParams;
 }): Promise<TorusKey> {
   const {
     legacyMetadataHost,
