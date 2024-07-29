@@ -1,7 +1,9 @@
-import type { TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import type { INodePub, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
 import BN from "bn.js";
 import { curve } from "elliptic";
+
+import { TorusUtilsExtraParams } from "./TorusUtilsExtraParams";
 
 export interface KeyIndex {
   index: string;
@@ -249,4 +251,26 @@ export interface SapphireMetadataParams {
     timestamp?: string;
   };
   signature?: string;
+}
+
+export interface ImportKeyParams {
+  endpoints: string[];
+  nodeIndexes: number[];
+  nodePubkeys: INodePub[];
+  verifier: string;
+  verifierParams: VerifierParams;
+  idToken: string;
+  newPrivateKey: string;
+  extraParams?: TorusUtilsExtraParams;
+}
+
+export interface RetrieveSharesParams {
+  endpoints: string[];
+  indexes: number[];
+  verifier: string;
+  verifierParams: VerifierParams;
+  idToken: string;
+  nodePubkeys: INodePub[];
+  extraParams?: TorusUtilsExtraParams;
+  useDkg?: boolean;
 }

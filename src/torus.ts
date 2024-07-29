@@ -25,16 +25,16 @@ import {
 } from "./helpers";
 import {
   GetOrSetNonceResult,
+  ImportKeyParams,
   KeyType,
   LegacyVerifierLookupResponse,
+  RetrieveSharesParams,
   TorusCtorOptions,
   TorusKey,
   TorusPublicKey,
   v2NonceResultType,
-  VerifierParams,
 } from "./interfaces";
 import log from "./loglevel";
-import { TorusUtilsExtraParams } from "./TorusUtilsExtraParams";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -111,16 +111,8 @@ class Torus {
     return torusKey.postboxKeyData.privKey;
   }
 
-  async retrieveShares(
-    endpoints: string[],
-    indexes: number[],
-    verifier: string,
-    verifierParams: VerifierParams,
-    idToken: string,
-    nodePubkeys: INodePub[],
-    extraParams: TorusUtilsExtraParams = {},
-    useDkg?: boolean
-  ): Promise<TorusKey> {
+  async retrieveShares(params: RetrieveSharesParams): Promise<TorusKey> {
+    const { verifier, verifierParams, idToken, nodePubkeys, indexes, endpoints, useDkg, extraParams = {} } = params;
     if (nodePubkeys.length === 0) {
       throw new Error("nodePubkeys param is required");
     }
@@ -181,16 +173,9 @@ class Torus {
     return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, this.enableOneKey);
   }
 
-  async importPrivateKey(
-    endpoints: string[],
-    nodeIndexes: number[],
-    nodePubkeys: INodePub[],
-    verifier: string,
-    verifierParams: VerifierParams,
-    idToken: string,
-    newPrivateKey: string,
-    extraParams: TorusUtilsExtraParams = {}
-  ): Promise<TorusKey> {
+  async importPrivateKey(params: ImportKeyParams): Promise<TorusKey> {
+    const { nodeIndexes, newPrivateKey, verifier, verifierParams, idToken, nodePubkeys, endpoints, extraParams = {} } = params;
+
     if (endpoints.length !== nodeIndexes.length) {
       throw new Error(`length of endpoints array must be same as length of nodeIndexes array`);
     }

@@ -7,7 +7,7 @@ import faker from "faker";
 
 import { keccak256 } from "../src";
 import TorusUtils from "../src/torus";
-import { generateIdToken, lookupVerifier } from "./helpers";
+import { generateIdToken, getImportKeyParams, getRetrieveSharesParams, lookupVerifier } from "./helpers";
 
 const TORUS_TEST_EMAIL = "ed25519testuser@tor.us";
 const TORUS_TEST_EMAIL_HASHED = "ed25519testuserhashed19@tor.us";
@@ -77,25 +77,29 @@ describe("torus utils ed25519 sapphire devnet", function () {
     const decodedKey = Buffer.from(base58.decode(privB58));
     const seedKey = decodedKey.subarray(0, 32).toString("hex");
     const result = await torus.importPrivateKey(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      nodeDetails.torusNodePub,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: email },
-      token,
-      seedKey
+      getImportKeyParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        nodeDetails.torusNodePub,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: email },
+        token,
+        seedKey
+      )
     );
     expect(result.finalKeyData.walletAddress).eql("3TTBP4g4UZNH1Tga1D4D6tBGrXUpVXcWt1PX2W19CRqM");
     expect(result.finalKeyData.privKey).to.be.equal(seedKey);
 
     const token1 = generateIdToken(email, "ES256");
     const result1 = await torus.retrieveShares(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: email },
-      token1,
-      nodeDetails.torusNodePub
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: email },
+        token1,
+        nodeDetails.torusNodePub
+      )
     );
     expect(result1.finalKeyData.walletAddress).eql("3TTBP4g4UZNH1Tga1D4D6tBGrXUpVXcWt1PX2W19CRqM");
     expect(result.finalKeyData.privKey).to.be.equal(seedKey);
@@ -115,12 +119,14 @@ describe("torus utils ed25519 sapphire devnet", function () {
 
     const token = generateIdToken(`${testEmail}`, "ES256");
     const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: testEmail },
-      token,
-      nodeDetails.torusNodePub
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: testEmail },
+        token,
+        nodeDetails.torusNodePub
+      )
     );
 
     delete result.metadata.serverTimeOffset;
@@ -171,12 +177,14 @@ describe("torus utils ed25519 sapphire devnet", function () {
     expect(result.finalKeyData.walletAddress).to.not.equal("");
     expect(result.finalKeyData.walletAddress).to.not.equal(null);
     const result2 = await torus.retrieveShares(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: email },
-      token,
-      nodeDetails.torusNodePub
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: email },
+        token,
+        nodeDetails.torusNodePub
+      )
     );
     expect(result.finalKeyData.walletAddress).to.equal(result2.finalKeyData.walletAddress);
   });
@@ -188,14 +196,16 @@ describe("torus utils ed25519 sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: email },
-      token,
-      nodeDetails.torusNodePub,
-      {},
-      false
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: email },
+        token,
+        nodeDetails.torusNodePub,
+        {},
+        false
+      )
     );
 
     const publicResult = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
@@ -209,12 +219,14 @@ describe("torus utils ed25519 sapphire devnet", function () {
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     torusNodeEndpoints[1] = "https://example.com";
     const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: TORUS_TEST_EMAIL },
-      token,
-      nodeDetails.torusNodePub
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: TORUS_TEST_EMAIL },
+        token,
+        nodeDetails.torusNodePub
+      )
     );
     expect(result.finalKeyData.privKey).to.be.equal("ea39cc89d2d8b8403858d1c518fe82e2500cc83e472ba86d006323b57835a519");
   });
@@ -275,12 +287,14 @@ describe("torus utils ed25519 sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifierId: email, verifier: TORUS_TEST_VERIFIER });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      TORUS_TEST_VERIFIER,
-      { extended_verifier_id: tssVerifierId, verifier_id: email },
-      token,
-      nodeDetails.torusNodePub
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { extended_verifier_id: tssVerifierId, verifier_id: email },
+        token,
+        nodeDetails.torusNodePub
+      )
     );
     expect(result.finalKeyData.privKey).to.not.equal(null);
     expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
@@ -290,12 +304,14 @@ describe("torus utils ed25519 sapphire devnet", function () {
     const token2 = generateIdToken(email, "ES256");
 
     const result2 = await torus.retrieveShares(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      TORUS_TEST_VERIFIER,
-      { extended_verifier_id: tssVerifierId, verifier_id: email },
-      token2,
-      nodeDetails.torusNodePub
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { extended_verifier_id: tssVerifierId, verifier_id: email },
+        token2,
+        nodeDetails.torusNodePub
+      )
     );
     expect(result.finalKeyData.privKey).to.equal(result2.finalKeyData.privKey);
     expect(result.oAuthKeyData.walletAddress).to.equal(result2.finalKeyData.walletAddress);
@@ -347,12 +363,14 @@ describe("torus utils ed25519 sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: HashEnabledVerifier, verifierId: TORUS_TEST_EMAIL_HASHED });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      HashEnabledVerifier,
-      { verifier_id: TORUS_TEST_EMAIL_HASHED },
-      token,
-      nodeDetails.torusNodePub
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        HashEnabledVerifier,
+        { verifier_id: TORUS_TEST_EMAIL_HASHED },
+        token,
+        nodeDetails.torusNodePub
+      )
     );
     delete result.metadata.serverTimeOffset;
     expect(result).eql({
@@ -412,16 +430,18 @@ describe("torus utils ed25519 sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      nodeDetails.torusIndexes,
-      TORUS_TEST_AGGREGATE_VERIFIER,
-      {
-        verify_params: [{ verifier_id: email, idtoken: idToken }],
-        sub_verifier_ids: [TORUS_TEST_VERIFIER],
-        verifier_id: email,
-      },
-      hashedIdToken.substring(2),
-      nodeDetails.torusNodePub
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_AGGREGATE_VERIFIER,
+        {
+          verify_params: [{ verifier_id: email, idtoken: idToken }],
+          sub_verifier_ids: [TORUS_TEST_VERIFIER],
+          verifier_id: email,
+        },
+        hashedIdToken.substring(2),
+        nodeDetails.torusNodePub
+      )
     );
     expect(result.finalKeyData.walletAddress).to.not.equal(null);
     expect(result.finalKeyData.walletAddress).to.not.equal("");

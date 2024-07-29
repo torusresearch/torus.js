@@ -1,9 +1,11 @@
+import { INodePub } from "@toruslabs/constants";
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import dotenv from "dotenv";
 import jwt, { Algorithm } from "jsonwebtoken";
 
-import { JRPCResponse } from "../src";
+import { ImportKeyParams, JRPCResponse, RetrieveSharesParams, VerifierParams } from "../src";
 import { config } from "../src/config";
+import { TorusUtilsExtraParams } from "../src/TorusUtilsExtraParams";
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 const jwtPrivateKey = `-----BEGIN PRIVATE KEY-----\nMEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCCD7oLrcKae+jVZPGx52Cb/lKhdKxpXjl9eGNa1MlY57A==\n-----END PRIVATE KEY-----`;
@@ -41,4 +43,48 @@ export const lookupVerifier = (endpoint: string, pubKeyX: string, pubKeyY: strin
     {},
     { logTracingHeader: config.logRequestTracing }
   );
+};
+
+export const getRetrieveSharesParams = (
+  endpoints: string[],
+  indexes: number[],
+  verifier: string,
+  verifierParams: VerifierParams,
+  idToken: string,
+  nodePubkeys: INodePub[],
+  extraParams: TorusUtilsExtraParams = {},
+  useDkg?: boolean
+): RetrieveSharesParams => {
+  return {
+    endpoints,
+    indexes,
+    verifier,
+    verifierParams,
+    idToken,
+    nodePubkeys,
+    extraParams,
+    useDkg,
+  };
+};
+
+export const getImportKeyParams = (
+  endpoints: string[],
+  nodeIndexes: number[],
+  nodePubkeys: INodePub[],
+  verifier: string,
+  verifierParams: VerifierParams,
+  idToken: string,
+  newPrivateKey: string,
+  extraParams: TorusUtilsExtraParams = {}
+): ImportKeyParams => {
+  return {
+    endpoints,
+    nodeIndexes,
+    nodePubkeys,
+    verifier,
+    verifierParams,
+    idToken,
+    newPrivateKey,
+    extraParams,
+  };
 };

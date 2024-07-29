@@ -6,7 +6,7 @@ import faker from "faker";
 
 import { keccak256 } from "../src";
 import TorusUtils from "../src/torus";
-import { generateIdToken } from "./helpers";
+import { generateIdToken, getRetrieveSharesParams } from "./helpers";
 
 const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
@@ -176,12 +176,7 @@ describe("torus utils mainnet", function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      torusIndexes,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: TORUS_TEST_EMAIL },
-      token,
-      torusNodePub
+      getRetrieveSharesParams(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token, torusNodePub)
     );
     delete result.sessionData;
     expect(result.metadata.serverTimeOffset).lessThan(20);
@@ -217,16 +212,18 @@ describe("torus utils mainnet", function () {
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      torusIndexes,
-      TORUS_TEST_AGGREGATE_VERIFIER,
-      {
-        verify_params: [{ verifier_id: TORUS_TEST_EMAIL, idtoken: idToken }],
-        sub_verifier_ids: [TORUS_TEST_VERIFIER],
-        verifier_id: TORUS_TEST_EMAIL,
-      },
-      hashedIdToken.substring(2),
-      torusNodePub
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        torusIndexes,
+        TORUS_TEST_AGGREGATE_VERIFIER,
+        {
+          verify_params: [{ verifier_id: TORUS_TEST_EMAIL, idtoken: idToken }],
+          sub_verifier_ids: [TORUS_TEST_VERIFIER],
+          verifier_id: TORUS_TEST_EMAIL,
+        },
+        hashedIdToken.substring(2),
+        torusNodePub
+      )
     );
     expect(result.oAuthKeyData.walletAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");
     expect(result.finalKeyData.walletAddress).to.be.equal("0x621a4d458cFd345dAE831D9E756F10cC40A50381");

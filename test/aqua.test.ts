@@ -6,7 +6,7 @@ import faker from "faker";
 
 import { keccak256, TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
-import { generateIdToken } from "./helpers";
+import { generateIdToken, getRetrieveSharesParams } from "./helpers";
 
 const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
@@ -173,12 +173,7 @@ describe("torus utils aqua", function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      torusIndexes,
-      TORUS_TEST_VERIFIER,
-      { verifier_id: TORUS_TEST_EMAIL },
-      token,
-      torusNodePub
+      getRetrieveSharesParams(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token, torusNodePub)
     );
     expect(result.finalKeyData.privKey).to.be.equal("f726ce4ac79ae4475d72633c94769a8817aff35eebe2d4790aed7b5d8a84aa1d");
     expect(result.metadata.serverTimeOffset).lessThan(20);
@@ -214,16 +209,18 @@ describe("torus utils aqua", function () {
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const result = await torus.retrieveShares(
-      torusNodeEndpoints,
-      torusIndexes,
-      TORUS_TEST_AGGREGATE_VERIFIER,
-      {
-        verify_params: [{ verifier_id: TORUS_TEST_EMAIL, idtoken: idToken }],
-        sub_verifier_ids: [TORUS_TEST_VERIFIER],
-        verifier_id: TORUS_TEST_EMAIL,
-      },
-      hashedIdToken.substring(2),
-      torusNodePub
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        torusIndexes,
+        TORUS_TEST_AGGREGATE_VERIFIER,
+        {
+          verify_params: [{ verifier_id: TORUS_TEST_EMAIL, idtoken: idToken }],
+          sub_verifier_ids: [TORUS_TEST_VERIFIER],
+          verifier_id: TORUS_TEST_EMAIL,
+        },
+        hashedIdToken.substring(2),
+        torusNodePub
+      )
     );
     expect(result.metadata.serverTimeOffset).lessThan(20);
     delete result.metadata.serverTimeOffset;
