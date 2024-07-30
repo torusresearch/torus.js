@@ -9,18 +9,9 @@ import stringify from "json-stable-stringify";
 import log from "loglevel";
 
 import { EncryptedSeed, ImportedShare, KeyType, PrivateKeyData } from "../interfaces";
-import { encParamsBufToHex, getKeyCurve } from "./common";
+import { encParamsBufToHex, generatePrivateKey, getKeyCurve, keccak256 } from "./common";
 import { generateRandomPolynomial } from "./langrangeInterpolatePoly";
-import { generateNonceMetadataParams } from "./metadataUtils";
-
-export function keccak256(a: Buffer): string {
-  const hash = Buffer.from(keccakHash(a)).toString("hex");
-  return `0x${hash}`;
-}
-
-export const generatePrivateKey = (ecCurve: EC, buf: typeof Buffer): Buffer => {
-  return ecCurve.genKeyPair().getPrivate().toArrayLike(buf);
-};
+import { generateNonceMetadataParams, getSecpKeyFromEd25519 } from "./metadataUtils";
 
 export function stripHexPrefix(str: string): string {
   return str.startsWith("0x") ? str.slice(2) : str;
@@ -81,30 +72,6 @@ export function getEd25519ExtendedPublicKey(keyBuffer: Buffer): {
   return { scalar, point };
 }
 
-export const getSecpKeyFromEd25519 = (
-  ed25519Scalar: BN
-): {
-  scalar: BN;
-  point: curve.base.BasePoint;
-} => {
-  const secp256k1Curve = getKeyCurve(KEY_TYPE.SECP256K1);
-
-  const ed25519Key = ed25519Scalar.toString("hex", 64);
-  const keyHash = keccakHash(Buffer.from(ed25519Key, "hex"));
-  const secpKey = new BN(keyHash).umod(secp256k1Curve.curve.n).toString("hex", 64);
-  const bufferKey = Buffer.from(secpKey, "hex");
-
-  const secpKeyPair = secp256k1Curve.keyFromPrivate(bufferKey);
-
-  if (bufferKey.length < 32) {
-    throw new Error("Invalid key length, please try again");
-  }
-  return {
-    scalar: secpKeyPair.getPrivate(),
-    point: secpKeyPair.getPublic(),
-  };
-};
-
 export function encodeEd25519Point(point: curve.base.BasePoint) {
   const ed25519Curve = getKeyCurve(KEY_TYPE.ED25519);
 
@@ -149,11 +116,11 @@ export const generateSecp256k1KeyData = async (scalarBuffer: Buffer): Promise<Pr
 
   const scalar = new BN(scalarBuffer);
   const randomNonce = new BN(generatePrivateKey(secp256k1Curve, Buffer));
-  const oAuthKey = scalar.sub(randomNonce).umod(secp256k1Curve.curve.n);
-  const oAuthKeyPair = secp256k1Curve.keyFromPrivate(oAuthKey.toString("hex").padStart(64, "0"));
+  const oAuthKey = scalar.sub(randomNonce).umod(secp256k1Curve.n);
+  const oAuthKeyPair = secp256k1Curve.keyFromPrivate(oAuthKey.toArrayLike(Buffer));
   const oAuthPubKey = oAuthKeyPair.getPublic();
 
-  const finalUserKeyPair = secp256k1Curve.keyFromPrivate(scalar.toString("hex", 64));
+  const finalUserKeyPair = secp256k1Curve.keyFromPrivate(scalar.toString("hex", 64), "hex");
 
   return {
     oAuthKeyScalar: oAuthKeyPair.getPrivate(),
@@ -168,9 +135,7 @@ export const generateSecp256k1KeyData = async (scalarBuffer: Buffer): Promise<Pr
   };
 };
 
-export function generateAddressFromPrivKey(keyType: KeyType, privateKey: BN): string {
-  const ecCurve = getKeyCurve(keyType);
-  const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64), "hex");
+function generateAddressFromEcKey(keyType: KeyType, key: EC.KeyPair): string {
   if (keyType === KEY_TYPE.SECP256K1) {
     const publicKey = key.getPublic().encode("hex", false).slice(2);
     const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
@@ -181,32 +146,29 @@ export function generateAddressFromPrivKey(keyType: KeyType, privateKey: BN): st
     return address;
   }
   throw new Error(`Invalid keyType: ${keyType}`);
+}
+
+export function generateAddressFromPrivKey(keyType: KeyType, privateKey: BN): string {
+  const ecCurve = getKeyCurve(keyType);
+  const key = ecCurve.keyFromPrivate(privateKey.toString("hex", 64), "hex");
+  return generateAddressFromEcKey(keyType, key);
 }
 
 export function generateAddressFromPubKey(keyType: KeyType, publicKeyX: BN, publicKeyY: BN): string {
   const ecCurve = getKeyCurve(keyType);
   const key = ecCurve.keyFromPublic({ x: publicKeyX.toString("hex", 64), y: publicKeyY.toString("hex", 64) });
-  if (keyType === KEY_TYPE.SECP256K1) {
-    const publicKey = key.getPublic().encode("hex", false).slice(2);
-    const evmAddressLower = `0x${keccak256(Buffer.from(publicKey, "hex")).slice(64 - 38)}`;
-    return toChecksumAddress(evmAddressLower);
-  } else if (keyType === KEY_TYPE.ED25519) {
-    const publicKey = encodeEd25519Point(key.getPublic());
-    const address = base58.encode(publicKey);
-    return address;
-  }
-  throw new Error(`Invalid keyType: ${keyType}`);
+  return generateAddressFromEcKey(keyType, key);
 }
 
 export function getPostboxKeyFrom1OutOf1(ecCurve: EC, privKey: string, nonce: string): string {
   const privKeyBN = new BN(privKey, 16);
   const nonceBN = new BN(nonce, 16);
-  return privKeyBN.sub(nonceBN).umod(ecCurve.curve.n).toString("hex");
+  return privKeyBN.sub(nonceBN).umod(ecCurve.n).toString("hex");
 }
 
 export function derivePubKey(ecCurve: EC, sk: BN): curve.base.BasePoint {
   const skHex = sk.toString(16, 64);
-  return ecCurve.keyFromPrivate(skHex).getPublic();
+  return ecCurve.keyFromPrivate(skHex, "hex").getPublic();
 }
 
 export const getEncryptionEC = (): EC => {
@@ -230,7 +192,7 @@ export const generateShares = async (
   for (const nodeIndex of nodeIndexes) {
     nodeIndexesBn.push(new BN(nodeIndex));
   }
-  const oAuthPubKey = ecCurve.keyFromPrivate(oAuthKey.toString("hex").padStart(64, "0")).getPublic();
+  const oAuthPubKey = ecCurve.keyFromPrivate(oAuthKey.toString("hex", 64), "hex").getPublic();
   const poly = generateRandomPolynomial(ecCurve, degree, oAuthKey);
   const shares = poly.generateShares(nodeIndexesBn);
   const nonceParams = generateNonceMetadataParams(serverTimeOffset, "getOrSetNonce", metadataSigningKey, keyType, metadataNonce, encryptedSeed);
@@ -248,7 +210,7 @@ export const generateShares = async (
     );
   }
   const encShares = await Promise.all(encPromises);
-  for (let i = 0; i < nodeIndexesBn.length; i++) {
+  for (let i = 0; i < nodeIndexesBn.length; i += 1) {
     const shareJson = shares[nodeIndexesBn[i].toString("hex", 64)].toJSON() as Record<string, string>;
     const encParams = encShares[i];
     const encParamsMetadata = encParamsBufToHex(encParams);

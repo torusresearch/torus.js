@@ -28,15 +28,15 @@
     "@toruslabs/eccrypto": "^5.0.4",
     "@toruslabs/http-helpers": "^7.0.0",
     "bn.js": "^5.2.1",
-    "elliptic": "^6.5.5",
-    "bs58": "^5.0.0",
+    "elliptic": "^6.5.6",
+    "bs58": "^6.0.0",
     "ethereum-cryptography": "^2.2.1",
     "json-stable-stringify": "^1.1.1",
     "loglevel": "^1.9.1"
   },
   "devDependencies": {
     "@babel/register": "^7.24.6",
-    "@babel/runtime": "^7.24.8",
+    "@babel/runtime": "^7.25.0",
     "@toruslabs/config": "^2.1.0",
     "@toruslabs/eslint-config-typescript": "^3.3.1",
     "@toruslabs/fetch-node-details": "^14.0.1",
@@ -53,15 +53,15 @@
     "dotenv": "^16.4.5",
     "eslint": "^8.57.0",
     "faker": "^5.5.3",
-    "husky": "^9.0.11",
+    "husky": "^9.1.4",
     "jsonwebtoken": "^9.0.2",
     "lint-staged": "^15.2.7",
-    "mocha": "^10.6.0",
+    "mocha": "^10.7.0",
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
     "sinon": "^18.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.4"
   },
   "repository": {
     "type": "git",

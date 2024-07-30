@@ -156,11 +156,13 @@ export interface SessionToken {
   node_puby: string;
 }
 export interface TorusPublicKey {
+  // based on curve type
   finalKeyData: {
     walletAddress: string; // format depends on key type
     X: string; // this is final pub x user before and after updating to 2/n
     Y: string; // this is final pub y user before and after updating to 2/n
   };
+  // based on curve type
   oAuthKeyData: {
     walletAddress: string; // format depends on key type
     X: string;
@@ -185,6 +187,7 @@ export interface TorusKey {
   oAuthKeyData: TorusPublicKey["oAuthKeyData"] & {
     privKey: string;
   };
+  // always secp key
   postboxKeyData: {
     X: string;
     Y: string;
