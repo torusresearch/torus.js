@@ -1,6 +1,9 @@
-import type { TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import type { INodePub, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
 import BN from "bn.js";
+import { curve } from "elliptic";
+
+import { TorusUtilsExtraParams } from "./TorusUtilsExtraParams";
 
 export interface KeyIndex {
   index: string;
@@ -9,14 +12,23 @@ export interface KeyIndex {
 }
 
 export type UserType = "v1" | "v2";
-export type v2NonceResultType = { typeOfUser: "v2"; nonce?: string; pubNonce: { x: string; y: string }; ipfs?: string; upgraded: boolean };
+export type v2NonceResultType = {
+  typeOfUser: "v2";
+  nonce?: string;
+  seed?: string;
+  pubNonce: { x: string; y: string };
+  ipfs?: string;
+  upgraded: boolean;
+};
 
-export type v1NonceResultType = { typeOfUser: "v1"; nonce?: string };
+export type v1NonceResultType = { typeOfUser: "v1"; nonce?: string; seed?: string };
 export type GetOrSetNonceResult = v2NonceResultType | v1NonceResultType;
+export type KeyType = "secp256k1" | "ed25519";
 
 export interface SetNonceData {
   operation: string;
   data: string;
+  seed?: string;
   timestamp: string;
 }
 
@@ -26,11 +38,14 @@ export interface NonceMetadataParams {
   pub_key_Y: string;
   set_data: Partial<SetNonceData>;
   signature: string;
+  key_type?: KeyType;
+  seed?: string;
 }
 
 export interface TorusCtorOptions {
   clientId: string;
   network: TORUS_NETWORK_TYPE;
+  keyType?: KeyType;
   enableOneKey?: boolean;
   serverTimeOffset?: number;
   allowHost?: string;
@@ -61,6 +76,7 @@ export interface CommitmentRequestResult {
   nodepubx: string;
   nodepuby: string;
   nodeindex: string;
+  pub_key_x: string;
 }
 
 export interface JRPCResponse<T> {
@@ -86,12 +102,15 @@ export type EciesHex = {
   [key in keyof Ecies]: string;
 } & { mode?: string };
 
+export interface ExtendedPublicKey {
+  X: string;
+  Y: string;
+  SignerX: string;
+  SignerY: string;
+}
 export interface KeyAssignment {
   index: KeyIndex;
-  public_key: {
-    X: string;
-    Y: string;
-  };
+  public_key: ExtendedPublicKey;
   threshold: string;
   node_index: string;
   // this is encrypted ciphertext
@@ -115,10 +134,14 @@ export interface ShareRequestResult {
 }
 
 export interface ImportedShare {
-  pub_key_x: string;
-  pub_key_y: string;
+  oauth_pub_key_x: string;
+  oauth_pub_key_y: string;
+  final_user_point: curve.base.BasePoint;
+  signing_pub_key_x: string;
+  signing_pub_key_y: string;
   encrypted_share: string;
   encrypted_share_metadata: EciesHex;
+  encrypted_seed?: string;
   node_index: number;
   key_type: string;
   nonce_data: string;
@@ -133,13 +156,15 @@ export interface SessionToken {
   node_puby: string;
 }
 export interface TorusPublicKey {
+  // based on curve type
   finalKeyData: {
-    evmAddress: string;
+    walletAddress: string; // format depends on key type
     X: string; // this is final pub x user before and after updating to 2/n
     Y: string; // this is final pub y user before and after updating to 2/n
   };
+  // based on curve type
   oAuthKeyData: {
-    evmAddress: string;
+    walletAddress: string; // format depends on key type
     X: string;
     Y: string;
   };
@@ -160,6 +185,12 @@ export interface TorusKey {
     privKey?: string;
   };
   oAuthKeyData: TorusPublicKey["oAuthKeyData"] & {
+    privKey: string;
+  };
+  // always secp key
+  postboxKeyData: {
+    X: string;
+    Y: string;
     privKey: string;
   };
   sessionData: {
@@ -188,6 +219,7 @@ export interface MetadataParams {
   namespace?: string;
   pub_key_X: string;
   pub_key_Y: string;
+  key_type?: KeyType;
   set_data: {
     data: "getNonce" | "getOrSetNonce" | string;
     timestamp: string;
@@ -195,6 +227,23 @@ export interface MetadataParams {
   signature: string;
 }
 
+export interface PrivateKeyData {
+  oAuthKeyScalar: BN;
+  oAuthPubX: BN;
+  oAuthPubY: BN;
+  SigningPubX: BN;
+  SigningPubY: BN;
+  metadataNonce: BN;
+  metadataSigningKey: BN;
+  finalUserPubKeyPoint: curve.base.BasePoint;
+  encryptedSeed?: string;
+}
+
+export interface EncryptedSeed {
+  enc_text: string;
+  public_key?: string;
+  metadata: EciesHex;
+}
 export interface SapphireMetadataParams {
   namespace?: string;
   pub_key_X: string;
@@ -205,4 +254,26 @@ export interface SapphireMetadataParams {
     timestamp?: string;
   };
   signature?: string;
+}
+
+export interface ImportKeyParams {
+  endpoints: string[];
+  nodeIndexes: number[];
+  nodePubkeys: INodePub[];
+  verifier: string;
+  verifierParams: VerifierParams;
+  idToken: string;
+  newPrivateKey: string;
+  extraParams?: TorusUtilsExtraParams;
+}
+
+export interface RetrieveSharesParams {
+  endpoints: string[];
+  indexes: number[];
+  verifier: string;
+  verifierParams: VerifierParams;
+  idToken: string;
+  nodePubkeys: INodePub[];
+  extraParams?: TorusUtilsExtraParams;
+  useDkg?: boolean;
 }

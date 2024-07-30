@@ -19,7 +19,11 @@ class Point {
   encode(enc: string): Buffer {
     switch (enc) {
       case "arr":
-        return Buffer.concat([Buffer.from("04", "hex"), Buffer.from(this.x.toString("hex"), "hex"), Buffer.from(this.y.toString("hex"), "hex")]);
+        return Buffer.concat([
+          Buffer.from("04", "hex"),
+          Buffer.from(this.x.toString("hex", 64), "hex"),
+          Buffer.from(this.y.toString("hex", 64), "hex"),
+        ]);
       case "elliptic-compressed": {
         const key = this.ecCurve.keyFromPublic({ x: this.x.toString("hex", 64), y: this.y.toString("hex", 64) }, "hex");
         return Buffer.from(key.getPublic(true, "hex"));

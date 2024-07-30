@@ -1,9 +1,29 @@
-import { JRPCResponse } from "@toruslabs/constants";
+import { JRPCResponse, KEY_TYPE } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
+import { BN } from "bn.js";
+import { ec as EC } from "elliptic";
+import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 import JsonStringify from "json-stable-stringify";
 
-import { CommitmentRequestResult, EciesHex, VerifierLookupResponse } from "../interfaces";
+import { CommitmentRequestResult, EciesHex, KeyType, VerifierLookupResponse } from "../interfaces";
 
+export function keccak256(a: Buffer): string {
+  const hash = Buffer.from(keccakHash(a)).toString("hex");
+  return `0x${hash}`;
+}
+
+export const generatePrivateKey = (ecCurve: EC, buf: typeof Buffer): Buffer => {
+  return ecCurve.genKeyPair().getPrivate().toArrayLike(buf);
+};
+
+export const getKeyCurve = (keyType: KeyType) => {
+  if (keyType === KEY_TYPE.ED25519) {
+    return new EC(KEY_TYPE.ED25519);
+  } else if (keyType === KEY_TYPE.SECP256K1) {
+    return new EC(KEY_TYPE.SECP256K1);
+  }
+  throw new Error(`Invalid keyType: ${keyType}`);
+};
 // this function normalizes the result from nodes before passing the result to threshold check function
 // For ex: some fields returns by nodes might be different from each other
 // like created_at field might vary and nonce_data might not be returned by all nodes because
@@ -84,6 +104,13 @@ export function encParamsHexToBuf(eciesData: Omit<EciesHex, "ciphertext">): Omit
     iv: Buffer.from(eciesData.iv, "hex"),
     mac: Buffer.from(eciesData.mac, "hex"),
   };
+}
+
+export function getProxyCoordinatorEndpointIndex(endpoints: string[], verifier: string, verifierId: string) {
+  const verifierIdStr = `${verifier}${verifierId}`;
+  const hashedVerifierId = keccak256(Buffer.from(verifierIdStr, "utf8")).slice(2);
+  const proxyEndpointNum = new BN(hashedVerifierId, "hex").mod(new BN(endpoints.length)).toNumber();
+  return proxyEndpointNum;
 }
 
 export function calculateMedian(arr: number[]): number {

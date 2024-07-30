@@ -30,9 +30,9 @@ class Polynomial {
     for (let i = 1; i < this.polynomial.length; i += 1) {
       const tmp = xi.mul(this.polynomial[i]);
       sum = sum.add(tmp);
-      sum = sum.umod(this.ecCurve.curve.n);
+      sum = sum.umod(this.ecCurve.n);
       xi = xi.mul(new BN(tmpX));
-      xi = xi.umod(this.ecCurve.curve.n);
+      xi = xi.umod(this.ecCurve.n);
     }
     return sum;
   }
