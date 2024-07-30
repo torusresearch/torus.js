@@ -193,7 +193,7 @@ class Torus {
       }
     }
     if (this.keyType === KEY_TYPE.ED25519) {
-      privKeyBuffer = Buffer.from(newPrivateKey, "hex");
+      privKeyBuffer = Buffer.from(newPrivateKey.padStart(64, "0"), "hex");
       if (privKeyBuffer.length !== 32) {
         throw new Error("Invalid private key length for given ed25519 key");
       }

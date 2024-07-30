@@ -2,10 +2,19 @@ import { JRPCResponse, KEY_TYPE } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
 import { BN } from "bn.js";
 import { ec as EC } from "elliptic";
+import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 import JsonStringify from "json-stable-stringify";
 
 import { CommitmentRequestResult, EciesHex, KeyType, VerifierLookupResponse } from "../interfaces";
-import { keccak256 } from "./keyUtils";
+
+export function keccak256(a: Buffer): string {
+  const hash = Buffer.from(keccakHash(a)).toString("hex");
+  return `0x${hash}`;
+}
+
+export const generatePrivateKey = (ecCurve: EC, buf: typeof Buffer): Buffer => {
+  return ecCurve.genKeyPair().getPrivate().toArrayLike(buf);
+};
 
 export const getKeyCurve = (keyType: KeyType) => {
   if (keyType === KEY_TYPE.ED25519) {
