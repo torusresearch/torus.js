@@ -66,7 +66,7 @@ describe("torus utils ed25519 sapphire devnet", function () {
   });
 
   it("should be able to import a key for a new user", async function () {
-    const email = "Willa_Funk1289@gmail.com";
+    const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     // const privKeyBuffer = new BN(generatePrivateKey(ec, Buffer));
     // key exported from phantom wallet
