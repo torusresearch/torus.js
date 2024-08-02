@@ -1,7 +1,6 @@
 import { INodePub, KEY_TYPE } from "@toruslabs/constants";
 import { Ecies, encrypt } from "@toruslabs/eccrypto";
 import BN from "bn.js";
-import base58 from "bs58";
 import { curve, ec as EC } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 import { sha512 } from "ethereum-cryptography/sha512";
@@ -9,6 +8,7 @@ import stringify from "json-stable-stringify";
 import log from "loglevel";
 
 import { EncryptedSeed, ImportedShare, KeyType, PrivateKeyData } from "../interfaces";
+import { bs58 } from "./bs58";
 import { encParamsBufToHex, generatePrivateKey, getKeyCurve, keccak256 } from "./common";
 import { generateRandomPolynomial } from "./langrangeInterpolatePoly";
 import { generateNonceMetadataParams, getSecpKeyFromEd25519 } from "./metadataUtils";
@@ -142,7 +142,7 @@ function generateAddressFromEcKey(keyType: KeyType, key: EC.KeyPair): string {
     return toChecksumAddress(evmAddressLower);
   } else if (keyType === KEY_TYPE.ED25519) {
     const publicKey = encodeEd25519Point(key.getPublic());
-    const address = base58.encode(publicKey);
+    const address = bs58.encode(publicKey);
     return address;
   }
   throw new Error(`Invalid keyType: ${keyType}`);
