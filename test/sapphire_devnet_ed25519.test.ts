@@ -1,7 +1,7 @@
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
-import base58 from "bs58";
+import * as base58 from "bs58";
 import { expect } from "chai";
 import faker from "faker";
 
@@ -74,7 +74,7 @@ describe("torus utils ed25519 sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
 
-    const decodedKey = Buffer.from(base58.decode(privB58));
+    const decodedKey = Buffer.from(base58.default.decode(privB58));
     const seedKey = decodedKey.subarray(0, 32).toString("hex");
     const result = await torus.importPrivateKey(
       getImportKeyParams(
