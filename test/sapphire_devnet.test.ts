@@ -777,30 +777,30 @@ describe("torus utils sapphire devnet", function () {
     const nodeDetails2 = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails2);
     const torusNodeEndpoints1 = nodeDetails1.torusNodeSSSEndpoints;
     const torusNodeEndpoints2 = nodeDetails1.torusNodeSSSEndpoints;
-    const result1 = await torus.retrieveShares(
-      torusNodeEndpoints1,
-      nodeDetails1.torusIndexes,
-      TORUS_TEST_AGGREGATE_VERIFIER,
-      {
+    const result1 = await torus.retrieveShares({
+      endpoints: torusNodeEndpoints1,
+      indexes: nodeDetails1.torusIndexes,
+      verifier: TORUS_TEST_AGGREGATE_VERIFIER,
+      verifierParams: {
         verify_params: [{ verifier_id: email1, idtoken: idToken1 }],
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: email1,
       },
-      hashedIdToken1.substring(2),
-      nodeDetails1.torusNodePub
-    );
-    const result2 = await torus.retrieveShares(
-      torusNodeEndpoints2,
-      nodeDetails2.torusIndexes,
-      TORUS_TEST_AGGREGATE_VERIFIER,
-      {
+      idToken: hashedIdToken1.substring(2),
+      nodePubkeys: nodeDetails1.torusNodePub,
+    });
+    const result2 = await torus.retrieveShares({
+      endpoints: torusNodeEndpoints2,
+      indexes: nodeDetails2.torusIndexes,
+      verifier: TORUS_TEST_AGGREGATE_VERIFIER,
+      verifierParams: {
         verify_params: [{ verifier_id: email2, idtoken: idToken2 }],
         sub_verifier_ids: [TORUS_TEST_VERIFIER],
         verifier_id: email2,
       },
-      hashedIdToken2.substring(2),
-      nodeDetails2.torusNodePub
-    );
+      idToken: hashedIdToken2.substring(2),
+      nodePubkeys: nodeDetails2.torusNodePub,
+    });
     expect(result1.metadata.serverTimeOffset).lessThan(20);
 
     expect(result1.finalKeyData.walletAddress).to.not.equal(null);
@@ -833,18 +833,18 @@ describe("torus utils sapphire devnet", function () {
 
       const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
       const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-      const result = await torus.retrieveShares(
-        torusNodeEndpoints,
-        nodeDetails.torusIndexes,
-        TORUS_TEST_AGGREGATE_VERIFIER,
-        {
+      const result = await torus.retrieveShares({
+        endpoints: torusNodeEndpoints,
+        indexes: nodeDetails.torusIndexes,
+        verifier: TORUS_TEST_AGGREGATE_VERIFIER,
+        verifierParams: {
           verify_params: [{ verifier_id: email, idtoken: idToken }],
           sub_verifier_ids: [TORUS_TEST_VERIFIER],
           verifier_id: email,
         },
-        hashedIdToken.substring(2),
-        nodeDetails.torusNodePub
-      );
+        idToken: hashedIdToken.substring(2),
+        nodePubkeys: nodeDetails.torusNodePub,
+      });
       expect(result.metadata.serverTimeOffset).lessThan(20);
       delete result.metadata.serverTimeOffset;
 
@@ -873,18 +873,18 @@ describe("torus utils sapphire devnet", function () {
 
         const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
         const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-        const result = await torus.retrieveShares(
-          torusNodeEndpoints,
-          nodeDetails.torusIndexes,
-          TORUS_TEST_AGGREGATE_VERIFIER,
-          {
+        const result = await torus.retrieveShares({
+          endpoints: torusNodeEndpoints,
+          indexes: nodeDetails.torusIndexes,
+          verifier: TORUS_TEST_AGGREGATE_VERIFIER,
+          verifierParams: {
             verify_params: [{ verifier_id: email, idtoken: idToken }],
             sub_verifier_ids: [TORUS_TEST_VERIFIER],
             verifier_id: email,
           },
-          hashedIdToken.substring(2),
-          nodeDetails.torusNodePub
-        );
+          idToken: hashedIdToken.substring(2),
+          nodePubkeys: nodeDetails.torusNodePub,
+        });
         expect(result.metadata.serverTimeOffset).lessThan(20);
         delete result.metadata.serverTimeOffset;
 
