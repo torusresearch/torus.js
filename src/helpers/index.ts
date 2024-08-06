@@ -1,4 +1,3 @@
-export * from "./bs58";
 export * from "./common";
 export * from "./errorUtils";
 export * from "./keyUtils";
