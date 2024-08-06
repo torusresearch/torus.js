@@ -1,3 +1,4 @@
+import { bs58 } from "@toruslabs/bs58";
 import { INodePub, KEY_TYPE } from "@toruslabs/constants";
 import { Ecies, encrypt } from "@toruslabs/eccrypto";
 import BN from "bn.js";
@@ -8,7 +9,6 @@ import stringify from "json-stable-stringify";
 import log from "loglevel";
 
 import { EncryptedSeed, ImportedShare, KeyType, PrivateKeyData } from "../interfaces";
-import { bs58 } from "./bs58";
 import { encParamsBufToHex, generatePrivateKey, getKeyCurve, keccak256 } from "./common";
 import { generateRandomPolynomial } from "./langrangeInterpolatePoly";
 import { generateNonceMetadataParams, getSecpKeyFromEd25519 } from "./metadataUtils";

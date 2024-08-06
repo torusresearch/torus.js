@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@toruslabs/constants": "^14.0.0",
+    "@toruslabs/bs58": "^1.0.0",
     "@toruslabs/eccrypto": "^5.0.4",
     "@toruslabs/http-helpers": "^7.0.0",
     "bn.js": "^5.2.1",

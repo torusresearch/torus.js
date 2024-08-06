@@ -1,10 +1,11 @@
+import { bs58 as base58 } from "@toruslabs/bs58";
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 import faker from "faker";
 
-import { bs58 as base58, keccak256 } from "../src";
+import { keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, getImportKeyParams, getRetrieveSharesParams, lookupVerifier } from "./helpers";
 
