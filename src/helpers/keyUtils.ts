@@ -1,7 +1,7 @@
+import { bs58 } from "@toruslabs/bs58";
 import { INodePub, KEY_TYPE } from "@toruslabs/constants";
 import { Ecies, encrypt } from "@toruslabs/eccrypto";
 import BN from "bn.js";
-import * as base58 from "bs58";
 import { curve, ec as EC } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 import { sha512 } from "ethereum-cryptography/sha512";
@@ -142,7 +142,7 @@ function generateAddressFromEcKey(keyType: KeyType, key: EC.KeyPair): string {
     return toChecksumAddress(evmAddressLower);
   } else if (keyType === KEY_TYPE.ED25519) {
     const publicKey = encodeEd25519Point(key.getPublic());
-    const address = base58.default.encode(publicKey);
+    const address = bs58.encode(publicKey);
     return address;
   }
   throw new Error(`Invalid keyType: ${keyType}`);
