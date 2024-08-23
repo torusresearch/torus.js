@@ -57,7 +57,7 @@ export interface LegacyVerifierLookupResponse {
   server_time_offset?: string;
 }
 
-export interface VerifierLookupResponse {
+export interface GetORSetKeyResponse {
   keys: {
     pub_key_X: string;
     pub_key_Y: string;
@@ -70,13 +70,15 @@ export interface VerifierLookupResponse {
   server_time_offset?: string;
 }
 
-export interface CommitmentRequestResult {
-  signature: string;
-  data: string;
-  nodepubx: string;
-  nodepuby: string;
-  nodeindex: string;
-  pub_key_x: string;
+export interface VerifierLookupResponse {
+  keys: {
+    pub_key_X: string;
+    pub_key_Y: string;
+    signing_pub_key_X?: string;
+    signing_pub_key_Y?: string;
+    address: string;
+  }[];
+  server_time_offset?: string;
 }
 
 export interface JRPCResponse<T> {
@@ -91,11 +93,16 @@ export interface JRPCResponse<T> {
 }
 
 export interface KeyLookupResult {
-  keyResult: Pick<VerifierLookupResponse, "keys" | "is_new_key">;
+  keyResult: Pick<GetORSetKeyResponse, "keys" | "is_new_key">;
   nodeIndexes: number[];
   serverTimeOffset: number;
-  errorResult: JRPCResponse<VerifierLookupResponse>["error"];
+  errorResult: JRPCResponse<GetORSetKeyResponse>["error"];
   nonceResult?: GetOrSetNonceResult;
+}
+export interface VerifierLookupResult {
+  keyResult: Pick<VerifierLookupResponse, "keys">;
+  serverTimeOffset: number;
+  errorResult: JRPCResponse<VerifierLookupResponse>["error"];
 }
 
 export type EciesHex = {

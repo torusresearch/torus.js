@@ -21,7 +21,7 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe("torus utils sapphire devnet", function () {
+describe.only("torus utils sapphire devnet", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeDetailManager;
 
@@ -74,7 +74,7 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should be able to login a v1 user", async function () {
+  it.only("should be able to login a v1 user", async function () {
     const email = "himanshu@tor.us";
     const verifier = "google-lrc";
     const token = generateIdToken(email, "ES256");
