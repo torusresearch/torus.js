@@ -376,7 +376,10 @@ export async function retrieveOrImportShare(params: {
           const sessionTokenPromises: Promise<void | Buffer>[] = [];
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
-          const isNewKeyResponses: string[] = [];
+          const isNewKeyResponses: {
+            isNewKey: string;
+            publicKey: string;
+          }[] = [];
 
           for (let i = 0; i < completedRequests.length; i += 1) {
             const currentShareResponse = completedRequests[i] as JRPCResponse<ShareRequestResult>;
@@ -389,7 +392,10 @@ export async function retrieveOrImportShare(params: {
               is_new_key: isNewKey,
             } = currentShareResponse.result;
 
-            isNewKeyResponses.push(isNewKey);
+            isNewKeyResponses.push({
+              isNewKey,
+              publicKey: currentShareResponse.result?.keys[0]?.public_key?.X || "",
+            });
 
             if (sessionTokenSigs?.length > 0) {
               // decrypt sessionSig if enc metadata is sent
@@ -511,9 +517,15 @@ export async function retrieveOrImportShare(params: {
           if (privateKey === undefined || privateKey === null) {
             throw new Error("could not derive private key");
           }
-          const thresholdIsNewKey = thresholdSame(isNewKeyResponses, ~~(endpoints.length / 2) + 1);
+          let isNewKey = false;
 
-          return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey: thresholdIsNewKey === "true" };
+          isNewKeyResponses.forEach((x) => {
+            if (x.isNewKey === "true" && x.publicKey.toLowerCase() === thresholdPublicKey.X.toLowerCase()) {
+              isNewKey = true;
+            }
+          });
+
+          return { privateKey, sessionTokenData, thresholdNonceData, nodeIndexes, isNewKey };
         }
         throw new Error("Invalid");
       });
