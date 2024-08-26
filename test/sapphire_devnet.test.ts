@@ -74,7 +74,7 @@ describe.only("torus utils sapphire devnet", function () {
     });
   });
 
-  it.only("should be able to login a v1 user", async function () {
+  it("should be able to login a v1 user", async function () {
     const email = "himanshu@tor.us";
     const verifier = "google-lrc";
     const token = generateIdToken(email, "ES256");
