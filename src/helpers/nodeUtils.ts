@@ -507,7 +507,10 @@ export async function retrieveOrImportShare(params: {
           const sessionTokenPromises: Promise<void | Buffer>[] = [];
           const nodeIndexes: BN[] = [];
           const sessionTokenData: SessionToken[] = [];
-          const isNewKeyResponses: string[] = [];
+          const isNewKeyResponses: {
+            isNewKey: string;
+            publicKey: string;
+          }[] = [];
           const serverTimeOffsetResponses: string[] = [];
 
           for (let i = 0; i < completedRequests.length; i += 1) {
@@ -522,7 +525,10 @@ export async function retrieveOrImportShare(params: {
               server_time_offset: serverTimeOffsetResponse,
             } = currentShareResponse.result;
 
-            isNewKeyResponses.push(isNewKey);
+            isNewKeyResponses.push({
+              isNewKey,
+              publicKey: currentShareResponse.result?.keys[0]?.public_key?.X || "",
+            });
             serverTimeOffsetResponses.push(serverTimeOffsetResponse || "0");
 
             if (sessionTokenSigs?.length > 0) {
@@ -644,7 +650,12 @@ export async function retrieveOrImportShare(params: {
             throw new Error("could not derive private key");
           }
 
-          const thresholdIsNewKey = thresholdSame(isNewKeyResponses, halfThreshold);
+          let isNewKey = false;
+          isNewKeyResponses.forEach((x) => {
+            if (x.isNewKey === "true" && x.publicKey.toLowerCase() === thresholdPublicKey.X.toLowerCase()) {
+              isNewKey = true;
+            }
+          });
 
           // Convert each string timestamp to a number
           const serverOffsetTimes = serverTimeOffsetResponses.map((timestamp) => Number.parseInt(timestamp, 10));
@@ -655,7 +666,7 @@ export async function retrieveOrImportShare(params: {
             thresholdNonceData,
             nodeIndexes,
             thresholdPubKey: thresholdPublicKey,
-            isNewKey: thresholdIsNewKey === "true",
+            isNewKey,
             serverTimeOffsetResponse: serverTimeOffset || calculateMedian(serverOffsetTimes),
           };
         }
