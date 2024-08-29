@@ -74,7 +74,7 @@ describe.only("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should be able to login a v1 user", async function () {
+  it.only("should be able to login a v1 user", async function () {
     const email = "himanshu@tor.us";
     const verifier = "google-lrc";
     const token = generateIdToken(email, "ES256");
@@ -122,6 +122,11 @@ describe.only("torus utils sapphire devnet", function () {
       },
       nodesData: retrieveSharesResponse.nodesData,
     });
+    const retrieveSharesResponse1 = await legacyTorus.retrieveShares(
+      getRetrieveSharesParams(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token, torusNodePub)
+    );
+    // eslint-disable-next-line no-console
+    console.log("retrieveSharesResponse1", retrieveSharesResponse1);
   });
 
   it("should fetch user type and public address of legacy v2 user", async function () {
