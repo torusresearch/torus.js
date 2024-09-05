@@ -88,7 +88,7 @@ export const GetPubKeyOrKeyAssign = async (params: {
     });
 
     const errorResult = thresholdSame(
-      lookupPubKeys.map((x2) => x2 && x2.error),
+      lookupResults.map((x2) => x2 && x2.error),
       minThreshold
     );
 
@@ -191,7 +191,7 @@ export const VerifierLookupRequest = async (params: {
     });
 
     const errorResult = thresholdSame(
-      lookupPubKeys.map((x2) => x2 && x2.error),
+      lookupResults.map((x2) => x2 && x2.error),
       minThreshold
     );
 
@@ -283,19 +283,21 @@ export async function retrieveOrImportShare(params: {
     }
     finalImportedShares = newImportedShares;
   } else if (!useDkg) {
-    // TODO: why use getrandombytes here?
     const bufferKey = keyType === KEY_TYPE.SECP256K1 ? generatePrivateKey(ecCurve, Buffer) : await getRandomBytes(32);
     const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, Buffer.from(bufferKey));
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
   let existingPubKey;
-  // can only import shares if override existing key is allowed or for new non dkg registration
+  // can only import new shares if override existing key is allowed or when doing a new non dkg registration
   if (finalImportedShares.length > 0) {
-    // in case not allowed to overide existing key for import request
+    // in case not allowed to override existing key for import request
     // check if key exists
     if (!overrideExistingKey) {
       const keyLookupResult = await VerifierLookupRequest({ endpoints, verifier, verifierId: verifierParams.verifier_id, keyType });
-      if (keyLookupResult.errorResult) {
+      if (
+        keyLookupResult.errorResult &&
+        !(keyLookupResult.errorResult?.data as string)?.includes("Verifier + VerifierID has not yet been assigned")
+      ) {
         throw new Error(
           `node results do not match at first lookup ${JSON.stringify(keyLookupResult.keyResult || {})}, ${JSON.stringify(keyLookupResult.errorResult || {})}`
         );
