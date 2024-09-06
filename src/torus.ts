@@ -131,7 +131,7 @@ class Torus {
       if (useDkg === false && LEGACY_NETWORKS_ROUTE_MAP[this.network as TORUS_LEGACY_NETWORK_TYPE]) {
         throw new Error(`useDkg cannot be false for legacy network; ${this.network}`);
       }
-      shouldUseDkg = useDkg;
+      shouldUseDkg = this.keyType === KEY_TYPE.ED25519 ? false : useDkg;
     } else if (this.keyType === KEY_TYPE.ED25519) {
       shouldUseDkg = false;
     } else {
