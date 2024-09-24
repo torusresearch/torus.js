@@ -8,6 +8,7 @@ import { getRandomBytes } from "ethereum-cryptography/random";
 import { config } from "../config";
 import { JRPC_METHODS } from "../constants";
 import {
+  CommitmentRequestResult,
   ExtendedPublicKey,
   GetORSetKeyResponse,
   GetOrSetNonceResult,
@@ -33,8 +34,10 @@ import {
   generatePrivateKey,
   getProxyCoordinatorEndpointIndex,
   kCombinations,
+  keccak256,
   normalizeKeysResult,
   normalizeLookUpResult,
+  retryCommitment,
   thresholdSame,
 } from "./common";
 import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generateShares } from "./keyUtils";
@@ -215,6 +218,136 @@ export const VerifierLookupRequest = async (params: {
 
   return result;
 };
+
+const commitmentRequest = async (params: {
+  idToken: string;
+  endpoints: string[];
+  indexes: number[];
+  keyType: KeyType;
+  verifier: string;
+  verifierParams: VerifierParams;
+  pubKeyX: string;
+  pubKeyY: string;
+  finalImportedShares: ImportedShare[];
+  overrideExistingKey: boolean;
+}): Promise<(void | JRPCResponse<CommitmentRequestResult>)[]> => {
+  const { idToken, endpoints, indexes, keyType, verifier, verifierParams, pubKeyX, pubKeyY, finalImportedShares, overrideExistingKey } = params;
+  const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
+  const threeFourthsThreshold = ~~((endpoints.length * 3) / 4) + 1;
+  const halfThreshold = ~~(endpoints.length / 2) + 1;
+
+  const promiseArr: Promise<JRPCResponse<CommitmentRequestResult>>[] = [];
+  // make commitment requests to endpoints
+  for (let i = 0; i < endpoints.length; i += 1) {
+    /*
+      CommitmentRequestParams struct {
+        MessagePrefix      string `json:"messageprefix"`
+        TokenCommitment    string `json:"tokencommitment"`
+        TempPubX           string `json:"temppubx"`
+        TempPubY           string `json:"temppuby"`
+        VerifierIdentifier string `json:"verifieridentifier"`
+      } 
+      */
+    const p = () =>
+      post<JRPCResponse<CommitmentRequestResult>>(
+        endpoints[i],
+        generateJsonRPCObject(JRPC_METHODS.COMMITMENT_REQUEST, {
+          messageprefix: "mug00",
+          keytype: keyType,
+          tokencommitment: tokenCommitment.slice(2),
+          temppubx: pubKeyX,
+          temppuby: pubKeyY,
+          verifieridentifier: verifier,
+          verifier_id: verifierParams.verifier_id,
+          extended_verifier_id: verifierParams.extended_verifier_id,
+          is_import_key_flow: true,
+        }),
+        {},
+        { logTracingHeader: config.logRequestTracing }
+      );
+    const r = retryCommitment(p, 4);
+    promiseArr.push(r);
+  }
+  return new Promise<(void | JRPCResponse<CommitmentRequestResult>)[]>((resolve, reject) => {
+    // send share request once k + t number of commitment requests have completed
+    Some<void | JRPCResponse<CommitmentRequestResult>, (void | JRPCResponse<CommitmentRequestResult>)[]>(promiseArr, (resultArr) => {
+      const completedRequests = resultArr.filter((x) => {
+        if (!x || typeof x !== "object") {
+          return false;
+        }
+        if (x.error) {
+          return false;
+        }
+        return true;
+      });
+
+      if (finalImportedShares.length > 0) {
+        // this is a optimization is for imported keys
+        // for new imported keys registration we need to wait for all nodes to agree on commitment
+        // for fetching existing imported keys we can rely on threshold nodes commitment
+        if (overrideExistingKey && completedRequests.length === endpoints.length) {
+          const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
+            if (resp) {
+              return true;
+            }
+            return false;
+          });
+          if (requiredNodeResult) {
+            return Promise.resolve(resultArr);
+          }
+        } else if (!overrideExistingKey && completedRequests.length >= threeFourthsThreshold) {
+          const nodeSigs: CommitmentRequestResult[] = [];
+          for (let i = 0; i < completedRequests.length; i += 1) {
+            const x = completedRequests[i];
+            if (!x || typeof x !== "object" || x.error) {
+              continue;
+            }
+            if (x) nodeSigs.push((x as JRPCResponse<CommitmentRequestResult>).result);
+          }
+          const existingPubKey = thresholdSame(
+            nodeSigs.map((x) => x && x.pub_key_x),
+            halfThreshold
+          );
+          const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
+          // for import shares, proxy node response is required.
+          // proxy node returns metadata.
+          // if user's account already
+          const requiredNodeIndex = indexes[proxyEndpointNum].toString(10);
+
+          // if not a existing key we need to wait for nodes to agree on commitment
+          if (existingPubKey || (!existingPubKey && completedRequests.length === endpoints.length)) {
+            const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
+              if (resp && resp.result?.nodeindex === requiredNodeIndex) {
+                return true;
+              }
+              return false;
+            });
+            if (requiredNodeResult) {
+              return Promise.resolve(resultArr);
+            }
+          }
+        }
+      } else if (completedRequests.length >= threeFourthsThreshold) {
+        // this case is for dkg keys
+        const requiredNodeResult = completedRequests.find((resp: void | JRPCResponse<CommitmentRequestResult>) => {
+          if (resp) {
+            return true;
+          }
+          return false;
+        });
+        if (requiredNodeResult) {
+          return Promise.resolve(resultArr);
+        }
+      }
+
+      return Promise.reject(new Error(`invalid commitment results ${JSON.stringify(resultArr)}`));
+    })
+      .then((resultArr: (void | JRPCResponse<CommitmentRequestResult>)[]) => {
+        return resolve(resultArr);
+      })
+      .catch(reject);
+  });
+};
 export async function retrieveOrImportShare(params: {
   legacyMetadataHost: string;
   serverTimeOffset: number;
@@ -232,8 +365,9 @@ export async function retrieveOrImportShare(params: {
   useDkg: boolean;
   overrideExistingKey: boolean;
   nodePubkeys: INodePub[];
-  newImportedShares?: ImportedShare[];
   extraParams: TorusUtilsExtraParams;
+  newImportedShares?: ImportedShare[];
+  checkCommitment?: boolean;
 }): Promise<TorusKey> {
   const {
     legacyMetadataHost,
@@ -254,6 +388,7 @@ export async function retrieveOrImportShare(params: {
     extraParams,
     useDkg = true,
     serverTimeOffset,
+    checkCommitment = true,
   } = params;
   await get<void>(
     allowHost,
@@ -287,9 +422,36 @@ export async function retrieveOrImportShare(params: {
     const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, Buffer.from(bufferKey));
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
-  let existingPubKey;
-  // can only import new shares if override existing key is allowed or when doing a new non dkg registration
-  if (finalImportedShares.length > 0) {
+
+  let commitmentRequestResult: (void | JRPCResponse<CommitmentRequestResult>)[] = [];
+  let isExistingKey: boolean;
+  const nodeSigs: CommitmentRequestResult[] = [];
+  if (checkCommitment) {
+    commitmentRequestResult = await commitmentRequest({
+      idToken,
+      endpoints,
+      indexes,
+      keyType,
+      verifier,
+      verifierParams,
+      pubKeyX: sessionPubX,
+      pubKeyY: sessionPubY,
+      finalImportedShares,
+      overrideExistingKey,
+    });
+    for (let i = 0; i < commitmentRequestResult.length; i += 1) {
+      const x = commitmentRequestResult[i];
+      if (!x || typeof x !== "object" || x.error) {
+        continue;
+      }
+      if (x) nodeSigs.push((x as JRPCResponse<CommitmentRequestResult>).result);
+    }
+    // if user's account already
+    isExistingKey = !!thresholdSame(
+      nodeSigs.map((x) => x && x.pub_key_x),
+      halfThreshold
+    );
+  } else if (!checkCommitment && finalImportedShares.length > 0) {
     // in case not allowed to override existing key for import request
     // check if key exists
     if (!overrideExistingKey) {
@@ -303,22 +465,25 @@ export async function retrieveOrImportShare(params: {
         );
       }
       if (keyLookupResult.keyResult?.keys?.length > 0) {
-        existingPubKey = keyLookupResult.keyResult.keys[0];
+        isExistingKey = !!keyLookupResult.keyResult.keys[0];
       }
     }
-    // check if key exists
   }
   const promiseArrRequest = [];
 
-  const canImportedShares = overrideExistingKey || (!useDkg && !existingPubKey);
+  const canImportedShares = overrideExistingKey || (!useDkg && !isExistingKey);
   if (canImportedShares) {
     const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
     const items: Record<string, unknown>[] = [];
     for (let i = 0; i < endpoints.length; i += 1) {
       const importedShare = finalImportedShares[i];
+      if (!importedShare) {
+        throw new Error(`invalid imported share at index ${i}`);
+      }
       items.push({
         ...verifierParams,
         idtoken: idToken,
+        nodesignatures: nodeSigs,
         verifieridentifier: verifier,
         pub_key_x: importedShare.oauth_pub_key_x,
         pub_key_y: importedShare.oauth_pub_key_y,
@@ -340,8 +505,8 @@ export async function retrieveOrImportShare(params: {
         encrypted: "yes",
         use_temp: true,
         verifieridentifier: verifier,
-        temppubx: sessionPubX,
-        temppuby: sessionPubY,
+        temppubx: nodeSigs.length === 0 && !checkCommitment ? sessionPubX : "", // send session pub key x only if node signatures are not available (Ie. in non commitment flow)
+        temppuby: nodeSigs.length === 0 && !checkCommitment ? sessionPubY : "", // send session pub key y only if node signatures are not available (Ie. in non commitment flow)
         item: items,
         key_type: keyType,
         one_key_flow: true,
@@ -360,13 +525,14 @@ export async function retrieveOrImportShare(params: {
           key_type: keyType,
           distributed_metadata: true,
           verifieridentifier: verifier,
-          temppubx: sessionPubX,
-          temppuby: sessionPubY,
+          temppubx: nodeSigs.length === 0 && !checkCommitment ? sessionPubX : "", // send session pub key x only if node signatures are not available (Ie. in non commitment flow)
+          temppuby: nodeSigs.length === 0 && !checkCommitment ? sessionPubY : "", // send session pub key y only if node signatures are not available (Ie. in non commitment flow)
           item: [
             {
               ...verifierParams,
               idtoken: idToken,
               key_type: keyType,
+              nodesignatures: nodeSigs,
               verifieridentifier: verifier,
               ...extraParams,
             },

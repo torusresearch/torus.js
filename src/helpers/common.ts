@@ -1,11 +1,11 @@
-import { KEY_TYPE } from "@toruslabs/constants";
+import { JRPCResponse, KEY_TYPE } from "@toruslabs/constants";
 import { Ecies } from "@toruslabs/eccrypto";
 import { BN } from "bn.js";
 import { ec as EC } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 import JsonStringify from "json-stable-stringify";
 
-import { EciesHex, GetORSetKeyResponse, KeyType, VerifierLookupResponse } from "../interfaces";
+import { CommitmentRequestResult, EciesHex, GetORSetKeyResponse, KeyType, VerifierLookupResponse } from "../interfaces";
 
 export function keccak256(a: Buffer): string {
   const hash = Buffer.from(keccakHash(a)).toString("hex");
@@ -159,4 +159,50 @@ export function waitFor(milliseconds: number) {
       reject(new Error("value of milliseconds must be greater than 0"));
     }
   });
+}
+
+export function retryCommitment(executionPromise: () => Promise<JRPCResponse<CommitmentRequestResult>>, maxRetries: number) {
+  // Notice that we declare an inner function here
+  // so we can encapsulate the retries and don't expose
+  // it to the caller. This is also a recursive function
+  async function retryWithBackoff(retries: number) {
+    try {
+      // we don't wait on the first attempt
+      if (retries > 0) {
+        // on every retry, we exponentially increase the time to wait.
+        // Here is how it looks for a `maxRetries` = 4
+        // (2 ** 1) * 100 = 200 ms
+        // (2 ** 2) * 100 = 400 ms
+        // (2 ** 3) * 100 = 800 ms
+        const timeToWait = 2 ** retries * 100;
+        await waitFor(timeToWait);
+      }
+      const a = await executionPromise();
+      return a;
+    } catch (e: unknown) {
+      const errorMsg = (e as Error).message;
+      const acceptedErrorMsgs = [
+        // Slow node
+        "Timed out",
+        "Failed to fetch",
+        "fetch failed",
+        "Load failed",
+        "cancelled",
+        "NetworkError when attempting to fetch resource.",
+        // Happens when the node is not reachable (dns issue etc)
+        "TypeError: Failed to fetch", // All except iOS and Firefox
+        "TypeError: cancelled", // iOS
+        "TypeError: NetworkError when attempting to fetch resource.", // Firefox
+      ];
+
+      if (retries < maxRetries && (acceptedErrorMsgs.includes(errorMsg) || (errorMsg && errorMsg.includes("reason: getaddrinfo EAI_AGAIN")))) {
+        // only retry if we didn't reach the limit
+        // otherwise, let the caller handle the error
+        return retryWithBackoff(retries + 1);
+      }
+      throw e;
+    }
+  }
+
+  return retryWithBackoff(0);
 }

@@ -112,7 +112,7 @@ class Torus {
   }
 
   async retrieveShares(params: RetrieveSharesParams): Promise<TorusKey> {
-    const { verifier, verifierParams, idToken, nodePubkeys, indexes, endpoints, useDkg, extraParams = {} } = params;
+    const { verifier, verifierParams, idToken, nodePubkeys, indexes, endpoints, useDkg, extraParams = {}, checkCommitment = true } = params;
     if (nodePubkeys.length === 0) {
       throw new Error("nodePubkeys param is required");
     }
@@ -164,6 +164,7 @@ class Torus {
       overrideExistingKey: false,
       nodePubkeys,
       extraParams,
+      checkCommitment,
     });
   }
 
@@ -177,7 +178,17 @@ class Torus {
   }
 
   async importPrivateKey(params: ImportKeyParams): Promise<TorusKey> {
-    const { nodeIndexes, newPrivateKey, verifier, verifierParams, idToken, nodePubkeys, endpoints, extraParams = {} } = params;
+    const {
+      nodeIndexes,
+      newPrivateKey,
+      verifier,
+      verifierParams,
+      idToken,
+      nodePubkeys,
+      endpoints,
+      extraParams = {},
+      checkCommitment = true,
+    } = params;
 
     if (LEGACY_NETWORKS_ROUTE_MAP[this.network as TORUS_LEGACY_NETWORK_TYPE]) {
       throw new Error(`importPrivateKey is not supported by legacy network; ${this.network}`);
@@ -236,6 +247,7 @@ class Torus {
       newImportedShares: sharesData,
       nodePubkeys,
       extraParams,
+      checkCommitment,
     });
   }
 

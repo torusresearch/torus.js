@@ -81,6 +81,14 @@ export interface VerifierLookupResponse {
   server_time_offset?: string;
 }
 
+export interface CommitmentRequestResult {
+  signature: string;
+  data: string;
+  nodepubx: string;
+  nodepuby: string;
+  nodeindex: string;
+  pub_key_x: string;
+}
 export interface JRPCResponse<T> {
   id: number;
   jsonrpc: "2.0";
@@ -272,6 +280,7 @@ export interface ImportKeyParams {
   idToken: string;
   newPrivateKey: string;
   extraParams?: TorusUtilsExtraParams;
+  checkCommitment?: boolean;
 }
 
 export interface RetrieveSharesParams {
@@ -283,4 +292,5 @@ export interface RetrieveSharesParams {
   nodePubkeys: INodePub[];
   extraParams?: TorusUtilsExtraParams;
   useDkg?: boolean;
+  checkCommitment?: boolean;
 }
