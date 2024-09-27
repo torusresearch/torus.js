@@ -214,8 +214,11 @@ export const decryptSeedData = async (seedBase64: string, finalUserKey: BN) => {
   const seedUtf8 = Buffer.from(seedBase64, "base64").toString("utf-8");
   const seedJson = JSON.parse(seedUtf8) as EncryptedSeed;
   const bufferMetadata = { ...encParamsHexToBuf(seedJson.metadata), mode: "AES256" };
-  const bufferKey = decryptionKey.scalar.toArrayLike(Buffer);
-  const decText = await decrypt(bufferKey, {
+  const paddedDecryptionKey = Buffer.from(decryptionKey.scalar.toString("hex", 64), "hex");
+  if (paddedDecryptionKey.length < 32) {
+    throw new Error(`decryption Key length must be less than 32. got ${paddedDecryptionKey.length}`);
+  }
+  const decText = await decrypt(paddedDecryptionKey, {
     ...bufferMetadata,
     ciphertext: Buffer.from(seedJson.enc_text, "hex"),
   });
