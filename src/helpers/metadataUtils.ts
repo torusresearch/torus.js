@@ -35,8 +35,8 @@ export const getSecpKeyFromEd25519 = (
 
   const secpKeyPair = secp256k1Curve.keyFromPrivate(bufferKey);
 
-  if (bufferKey.length < 32) {
-    throw new Error(`Key length must be less than 32. got ${bufferKey.length}`);
+  if (bufferKey.length !== 32) {
+    throw new Error(`Key length must be equal to 32. got ${bufferKey.length}`);
   }
   return {
     scalar: secpKeyPair.getPrivate(),
@@ -214,7 +214,7 @@ export const decryptSeedData = async (seedBase64: string, finalUserKey: BN) => {
   const seedUtf8 = Buffer.from(seedBase64, "base64").toString("utf-8");
   const seedJson = JSON.parse(seedUtf8) as EncryptedSeed;
   const bufferMetadata = { ...encParamsHexToBuf(seedJson.metadata), mode: "AES256" };
-  const bufferKey = decryptionKey.scalar.toArrayLike(Buffer);
+  const bufferKey = decryptionKey.scalar.toArrayLike(Buffer, "be", 32);
   const decText = await decrypt(bufferKey, {
     ...bufferMetadata,
     ciphertext: Buffer.from(seedJson.enc_text, "hex"),
