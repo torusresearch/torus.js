@@ -1,9 +1,10 @@
 // Note: Endpoints should be the sss node endpoints along with path
-import { JRPCResponse } from "@toruslabs/constants";
+import { JRPCResponse, KEY_TYPE } from "@toruslabs/constants";
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import log from "loglevel";
 
-import { GetORSetKeyResponse } from "../interfaces";
+import { JRPC_METHODS } from "../constants";
+import { GetORSetKeyResponse, KeyType } from "../interfaces";
 import { Some } from "../some";
 import { normalizeKeysResult, thresholdSame } from "./common";
 
@@ -13,6 +14,7 @@ export const GetOrSetTssDKGPubKey = async (params: {
   verifier: string;
   verifierId: string;
   tssVerifierId: string;
+  keyType?: KeyType;
 }): Promise<{
   key: {
     pubKeyX: string;
@@ -23,18 +25,18 @@ export const GetOrSetTssDKGPubKey = async (params: {
   isNewKey: boolean;
   nodeIndexes: number[];
 }> => {
-  const { endpoints, verifier, verifierId, tssVerifierId } = params;
+  const { endpoints, verifier, verifierId, tssVerifierId, keyType = KEY_TYPE.SECP256K1 } = params;
   const minThreshold = ~~(endpoints.length / 2) + 1;
   const lookupPromises = endpoints.map((x) =>
     post<JRPCResponse<GetORSetKeyResponse>>(
       x,
-      generateJsonRPCObject("GetPubKeyOrKeyAssign", {
+      generateJsonRPCObject(JRPC_METHODS.GET_OR_SET_KEY, {
         distributed_metadata: true,
         verifier,
         verifier_id: verifierId,
         extended_verifier_id: tssVerifierId,
         one_key_flow: true,
-        key_type: "secp256k1",
+        key_type: keyType,
         fetch_node_index: true,
         client_time: Math.floor(Date.now() / 1000).toString(),
       }),
@@ -42,7 +44,7 @@ export const GetOrSetTssDKGPubKey = async (params: {
       {
         logTracingHeader: false,
       }
-    ).catch((err) => log.error(`GetPubKeyOrKeyAssign request failed`, err))
+    ).catch((err) => log.error(`${JRPC_METHODS.GET_OR_SET_KEY} request failed`, err))
   );
 
   const nodeIndexes: number[] = [];
