@@ -53,7 +53,8 @@ export const getRetrieveSharesParams = (
   idToken: string,
   nodePubkeys: INodePub[],
   extraParams: TorusUtilsExtraParams = {},
-  useDkg?: boolean
+  useDkg?: boolean,
+  checkCommitment = true
 ): RetrieveSharesParams => {
   return {
     endpoints,
@@ -64,6 +65,7 @@ export const getRetrieveSharesParams = (
     nodePubkeys,
     extraParams,
     useDkg,
+    checkCommitment,
   };
 };
 
