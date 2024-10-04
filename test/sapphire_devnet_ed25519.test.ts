@@ -213,6 +213,30 @@ describe("torus utils ed25519 sapphire devnet", function () {
     expect(result.finalKeyData.X).eql(publicResult.finalKeyData.X);
   });
 
+  it("should be able to login a new user with use dkg flag is true", async function () {
+    const email = `${faker.internet.email()}`;
+    const token = generateIdToken(email, "ES256");
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.retrieveShares(
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: email },
+        token,
+        nodeDetails.torusNodePub,
+        {},
+        true
+      )
+    );
+
+    const publicResult = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
+
+    expect(result.finalKeyData.X).eql(publicResult.finalKeyData.X);
+  });
+
   it("should be able to login even when node is down", async function () {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
