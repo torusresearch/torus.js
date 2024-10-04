@@ -14,7 +14,7 @@ const TORUS_TEST_EMAIL = "archit1@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe.only("torus utils migrated testnet on sapphire", function () {
+describe("torus utils migrated testnet on sapphire", function () {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeDetailManager;
 

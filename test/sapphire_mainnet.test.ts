@@ -337,6 +337,60 @@ describe("torus utils sapphire mainnet", function () {
     });
   });
 
+  it("should be able to login without commitments", async function () {
+    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: TORUS_TEST_EMAIL },
+        token,
+        torusNodePub,
+        {},
+        true,
+        false
+      )
+    );
+    expect(result.finalKeyData.privKey).to.be.equal("dfb39b84e0c64b8c44605151bf8670ae6eda232056265434729b6a8a50fa3419");
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+
+    delete result.metadata.serverTimeOffset;
+
+    expect(result).eql({
+      finalKeyData: {
+        walletAddress: "0x70520A7F04868ACad901683699Fa32765C9F6871",
+        X: "adff099b5d3b1e238b43fba1643cfa486e8d9e8de22c1e6731d06a5303f9025b",
+        Y: "21060328e7889afd303acb63201b6493e3061057d1d81279931ab4a6cabf94d4",
+        privKey: "dfb39b84e0c64b8c44605151bf8670ae6eda232056265434729b6a8a50fa3419",
+      },
+      oAuthKeyData: {
+        walletAddress: "0x925c97404F1aBdf4A8085B93edC7B9F0CEB3C673",
+        X: "5cd8625fc01c7f7863a58c914a8c43b2833b3d0d5059350bab4acf6f4766a33d",
+        Y: "198a4989615c5c2c7fa4d49c076ea7765743d09816bb998acb9ff54f5db4a391",
+        privKey: "90a219ac78273e82e36eaa57c15f9070195e436644319d6b9aea422bb4d31906",
+      },
+      postboxKeyData: {
+        X: "5cd8625fc01c7f7863a58c914a8c43b2833b3d0d5059350bab4acf6f4766a33d",
+        Y: "198a4989615c5c2c7fa4d49c076ea7765743d09816bb998acb9ff54f5db4a391",
+        privKey: "90a219ac78273e82e36eaa57c15f9070195e436644319d6b9aea422bb4d31906",
+      },
+      sessionData: { sessionTokenData: result.sessionData.sessionTokenData, sessionAuthKey: result.sessionData.sessionAuthKey },
+      metadata: {
+        pubNonce: {
+          X: "ab4d287c263ab1bb83c37646d0279764e50fe4b0c34de4da113657866ddcf318",
+          Y: "ad35db2679dfad4b62d77cf753d7b98f73c902e5d101cc2c3c1209ece6d94382",
+        },
+        nonce: new BN("4f1181d8689f0d0960f1a6f9fe26e03e557bdfba11f4b6c8d7b1285e9c271b13", "hex"),
+        typeOfUser: "v2",
+        upgraded: false,
+      },
+      nodesData: result.nodesData,
+    });
+  });
+
   it("should be able to aggregate login", async function () {
     const email = faker.internet.email();
     const idToken = generateIdToken(email, "ES256");
@@ -357,6 +411,39 @@ describe("torus utils sapphire mainnet", function () {
         },
         hashedIdToken.substring(2),
         nodeDetails.torusNodePub
+      )
+    );
+    expect(result.finalKeyData.walletAddress).to.not.equal(null);
+    expect(result.finalKeyData.walletAddress).to.not.equal("");
+    expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
+    expect(result.metadata.typeOfUser).to.equal("v2");
+    expect(result.metadata.nonce).to.not.equal(null);
+    expect(result.metadata.upgraded).to.equal(false);
+  });
+
+  it("should be able to aggregate login without commitment", async function () {
+    const email = faker.internet.email();
+    const idToken = generateIdToken(email, "ES256");
+    const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+    const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
+
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.retrieveShares(
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_AGGREGATE_VERIFIER,
+        {
+          verify_params: [{ verifier_id: email, idtoken: idToken }],
+          sub_verifier_ids: [TORUS_TEST_VERIFIER],
+          verifier_id: email,
+        },
+        hashedIdToken.substring(2),
+        nodeDetails.torusNodePub,
+        {},
+        true,
+        false
       )
     );
     expect(result.finalKeyData.walletAddress).to.not.equal(null);
