@@ -5,7 +5,7 @@ import { ec as EC } from "elliptic";
 import { keccak256 as keccakHash } from "ethereum-cryptography/keccak";
 import JsonStringify from "json-stable-stringify";
 
-import { CommitmentRequestResult, EciesHex, KeyType, VerifierLookupResponse } from "../interfaces";
+import { CommitmentRequestResult, EciesHex, GetORSetKeyResponse, KeyType, VerifierLookupResponse } from "../interfaces";
 
 export function keccak256(a: Buffer): string {
   const hash = Buffer.from(keccakHash(a)).toString("hex");
@@ -28,10 +28,27 @@ export const getKeyCurve = (keyType: KeyType) => {
 // For ex: some fields returns by nodes might be different from each other
 // like created_at field might vary and nonce_data might not be returned by all nodes because
 // of the metadata implementation in sapphire.
-export const normalizeKeysResult = (result: VerifierLookupResponse) => {
-  const finalResult: Pick<VerifierLookupResponse, "keys" | "is_new_key"> = {
+export const normalizeKeysResult = (result: GetORSetKeyResponse) => {
+  const finalResult: Pick<GetORSetKeyResponse, "keys" | "is_new_key"> = {
     keys: [],
     is_new_key: result.is_new_key,
+  };
+  if (result && result.keys && result.keys.length > 0) {
+    const finalKey = result.keys[0];
+    finalResult.keys = [
+      {
+        pub_key_X: finalKey.pub_key_X,
+        pub_key_Y: finalKey.pub_key_Y,
+        address: finalKey.address,
+      },
+    ];
+  }
+  return finalResult;
+};
+
+export const normalizeLookUpResult = (result: VerifierLookupResponse) => {
+  const finalResult: Pick<VerifierLookupResponse, "keys"> = {
+    keys: [],
   };
   if (result && result.keys && result.keys.length > 0) {
     const finalKey = result.keys[0];

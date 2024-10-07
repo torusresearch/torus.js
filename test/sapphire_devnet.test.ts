@@ -367,6 +367,61 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
+  it("should be able to login without commitments", async function () {
+    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.retrieveShares(
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: TORUS_TEST_EMAIL },
+        token,
+        nodeDetails.torusNodePub,
+        {},
+        true,
+        false
+      )
+    );
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+    delete result.metadata.serverTimeOffset;
+
+    expect(result).eql({
+      finalKeyData: {
+        walletAddress: "0x462A8BF111A55C9354425F875F89B22678c0Bc44",
+        X: "36e257717f746cdd52ba85f24f7c9040db8977d3b0354de70ed43689d24fa1b1",
+        Y: "58ec9768c2fe871b3e2a83cdbcf37ba6a88ad19ec2f6e16a66231732713fd507",
+        privKey: "230dad9f42039569e891e6b066ff5258b14e9764ef5176d74aeb594d1a744203",
+      },
+      oAuthKeyData: {
+        walletAddress: "0x137B3607958562D03Eb3C6086392D1eFa01aA6aa",
+        X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
+        Y: "8325432b3a3418d632b4fe93db094d6d83250eea60fe512897c0ad548737f8a5",
+        privKey: "6b3c872a269aa8994a5acc8cdd70ea3d8d182d42f8af421c0c39ea124e9b66fa",
+      },
+      postboxKeyData: {
+        X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
+        Y: "8325432b3a3418d632b4fe93db094d6d83250eea60fe512897c0ad548737f8a5",
+        privKey: "6b3c872a269aa8994a5acc8cdd70ea3d8d182d42f8af421c0c39ea124e9b66fa",
+      },
+      sessionData: {
+        sessionTokenData: result.sessionData.sessionTokenData,
+        sessionAuthKey: result.sessionData.sessionAuthKey,
+      },
+      metadata: {
+        pubNonce: {
+          X: "5d03a0df9b3db067d3363733df134598d42873bb4730298a53ee100975d703cc",
+          Y: "279434dcf0ff22f077877a70bcad1732412f853c96f02505547f7ca002b133ed",
+        },
+        nonce: new BN("b7d126751b68ecd09e371a23898e6819dee54708a5ead4f6fe83cdc79c0f1c4a", "hex"),
+        typeOfUser: "v2",
+        upgraded: false,
+      },
+      nodesData: result.nodesData,
+    });
+  });
+
   it("should be able to login with non dkg keys", async function () {
     const email = `atomicimporttest2`;
     const token = generateIdToken(email, "ES256");

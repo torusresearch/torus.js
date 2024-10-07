@@ -207,6 +207,52 @@ describe("torus utils cyan", function () {
     });
   });
 
+  it("should be able to login without commitments", async function () {
+    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
+    const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const result = await torus.retrieveShares(
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: TORUS_TEST_EMAIL },
+        token,
+        torusNodePub,
+        {},
+        true,
+        false
+      )
+    );
+    delete result.sessionData;
+    expect(result.metadata.serverTimeOffset).lessThan(20);
+
+    delete result.metadata.serverTimeOffset;
+
+    expect(result.finalKeyData.privKey).to.be.equal("5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8");
+    expect(result).eql({
+      finalKeyData: {
+        X: "e2ed6033951af2851d1bea98799e62fb1ff24b952c1faea17922684678ba42d1",
+        Y: "beef0efad88e81385952c0068ca48e8b9c2121be87cb0ddf18a68806db202359",
+        walletAddress: "0xC615aA03Dd8C9b2dc6F7c43cBDfF2c34bBa47Ec9",
+        privKey: "5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8",
+      },
+      oAuthKeyData: {
+        X: "e2ed6033951af2851d1bea98799e62fb1ff24b952c1faea17922684678ba42d1",
+        Y: "beef0efad88e81385952c0068ca48e8b9c2121be87cb0ddf18a68806db202359",
+        walletAddress: "0xC615aA03Dd8C9b2dc6F7c43cBDfF2c34bBa47Ec9",
+        privKey: "5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8",
+      },
+      postboxKeyData: {
+        X: "e2ed6033951af2851d1bea98799e62fb1ff24b952c1faea17922684678ba42d1",
+        Y: "beef0efad88e81385952c0068ca48e8b9c2121be87cb0ddf18a68806db202359",
+        privKey: "5db51619684b32a2ff2375b4c03459d936179dfba401cb1c176b621e8a2e4ac8",
+      },
+      metadata: { pubNonce: undefined, nonce: new BN(0), typeOfUser: "v1", upgraded: null },
+      nodesData: result.nodesData,
+    });
+  });
+
   it("should be able to aggregate login", async function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
