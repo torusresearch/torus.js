@@ -1,5 +1,4 @@
-require:
-  - "./test/setup.mjs"
+import: "tsx"
 exit: true
 timeout: 0
 spec: "test/**/*.test.ts"
