@@ -1,9 +1,9 @@
+import { faker } from "@faker-js/faker";
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { fail } from "assert";
 import BN from "bn.js";
 import { expect } from "chai";
-import faker from "faker";
 import { useFakeTimers } from "sinon";
 
 import { keccak256, TorusPublicKey } from "../src";
