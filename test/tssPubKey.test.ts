@@ -1,7 +1,7 @@
+import { faker } from "@faker-js/faker";
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
-import faker from "faker";
 
 import { GetOrSetTssDKGPubKey } from "../src";
 

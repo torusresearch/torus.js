@@ -1,9 +1,9 @@
+import { faker } from "@faker-js/faker";
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { fail } from "assert";
 import BN from "bn.js";
 import { expect } from "chai";
-import faker from "faker";
 import { useFakeTimers } from "sinon";
 
 import { keccak256, TorusPublicKey } from "../src";
@@ -287,7 +287,7 @@ describe("torus utils migrated testnet on sapphire", function () {
   });
 
   it("should pass at get pub nonce when system time is incorrect", async function () {
-    const clock = useFakeTimers();
+    const clock = useFakeTimers({ toFake: ["Date"] });
     const fakeTime = new Date("2023-05-05T12:00:00").getTime();
 
     // Mock the system clock time to be a specific time
