@@ -28,7 +28,7 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { Some } from "../some";
-import { TorusUtilsExtraParams } from "../TorusUtilsExtraParams";
+import { TorusUtilsExtraParams, TorusUtilsPasskeyExtraParams } from "../TorusUtilsExtraParams";
 import {
   calculateMedian,
   generatePrivateKey,
@@ -368,6 +368,7 @@ export async function retrieveOrImportShare(params: {
   extraParams: TorusUtilsExtraParams;
   newImportedShares?: ImportedShare[];
   checkCommitment?: boolean;
+  useLinkedPasskey?: boolean;
 }): Promise<TorusKey> {
   const {
     legacyMetadataHost,
@@ -389,6 +390,7 @@ export async function retrieveOrImportShare(params: {
     useDkg = true,
     serverTimeOffset,
     checkCommitment = true,
+    useLinkedPasskey = false,
   } = params;
   await get<void>(
     allowHost,
@@ -517,33 +519,63 @@ export async function retrieveOrImportShare(params: {
     promiseArrRequest.push(p);
   } else {
     for (let i = 0; i < endpoints.length; i += 1) {
-      const p = post<JRPCResponse<ShareRequestResult>>(
-        endpoints[i],
-        generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
-          encrypted: "yes",
-          use_temp: true,
-          key_type: keyType,
-          distributed_metadata: true,
-          verifieridentifier: verifier,
-          temppubx: nodeSigs.length === 0 && !checkCommitment ? sessionPubX : "", // send session pub key x only if node signatures are not available (Ie. in non commitment flow)
-          temppuby: nodeSigs.length === 0 && !checkCommitment ? sessionPubY : "", // send session pub key y only if node signatures are not available (Ie. in non commitment flow)
-          item: [
-            {
+      if (useLinkedPasskey) {
+        const passkeyExtraParams = { ...extraParams } as TorusUtilsPasskeyExtraParams;
+        const p = post<JRPCResponse<ShareRequestResult>>(
+          endpoints[i],
+          generateJsonRPCObject(JRPC_METHODS.RETRIEVE_SHARES_WITH_LINKED_PASSKEY, {
+            encrypted: "yes",
+            use_temp: true,
+            key_type: keyType,
+            distributed_metadata: true,
+            verifier,
+            passkey_pub_key: verifierParams.verifier_id,
+            temp_pub_x: nodeSigs.length === 0 && !checkCommitment ? sessionPubX : "", // send session pub key x only if node signatures are not available (Ie. in non commitment flow)
+            temppuby: nodeSigs.length === 0 && !checkCommitment ? sessionPubY : "", // send session pub key y only if node signatures are not available (Ie. in non commitment flow)
+            passkey_auth_data: {
               ...verifierParams,
-              idtoken: idToken,
+              id_token: idToken,
               key_type: keyType,
-              nodesignatures: nodeSigs,
-              verifieridentifier: verifier,
-              ...extraParams,
+              node_signatures: nodeSigs,
+              verifier,
+              ...passkeyExtraParams,
             },
-          ],
-          client_time: Math.floor(Date.now() / 1000).toString(),
-          one_key_flow: true,
-        }),
-        {},
-        { logTracingHeader: config.logRequestTracing }
-      );
-      promiseArrRequest.push(p);
+            client_time: Math.floor(Date.now() / 1000).toString(),
+            one_key_flow: true,
+          }),
+          {},
+          { logTracingHeader: config.logRequestTracing }
+        );
+        promiseArrRequest.push(p);
+      } else {
+        const p = post<JRPCResponse<ShareRequestResult>>(
+          endpoints[i],
+          generateJsonRPCObject(JRPC_METHODS.GET_SHARE_OR_KEY_ASSIGN, {
+            encrypted: "yes",
+            use_temp: true,
+            key_type: keyType,
+            distributed_metadata: true,
+            verifieridentifier: verifier,
+            temppubx: nodeSigs.length === 0 && !checkCommitment ? sessionPubX : "", // send session pub key x only if node signatures are not available (Ie. in non commitment flow)
+            temppuby: nodeSigs.length === 0 && !checkCommitment ? sessionPubY : "", // send session pub key y only if node signatures are not available (Ie. in non commitment flow)
+            item: [
+              {
+                ...verifierParams,
+                idtoken: idToken,
+                key_type: keyType,
+                nodesignatures: nodeSigs,
+                verifieridentifier: verifier,
+                ...extraParams,
+              },
+            ],
+            client_time: Math.floor(Date.now() / 1000).toString(),
+            one_key_flow: true,
+          }),
+          {},
+          { logTracingHeader: config.logRequestTracing }
+        );
+        promiseArrRequest.push(p);
+      }
     }
   }
   return Some<

@@ -89,6 +89,10 @@ export interface CommitmentRequestResult {
   nodeindex: string;
   pub_key_x: string;
 }
+
+export interface AuthMessageRequestResult {
+  message: string;
+}
 export interface JRPCResponse<T> {
   id: number;
   jsonrpc: "2.0";
@@ -291,6 +295,7 @@ export interface RetrieveSharesParams {
   idToken: string;
   nodePubkeys: INodePub[];
   extraParams?: TorusUtilsExtraParams;
+  useLinkedPasskey?: boolean;
   useDkg?: boolean;
   checkCommitment?: boolean;
 }

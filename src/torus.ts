@@ -112,7 +112,18 @@ class Torus {
   }
 
   async retrieveShares(params: RetrieveSharesParams): Promise<TorusKey> {
-    const { verifier, verifierParams, idToken, nodePubkeys, indexes, endpoints, useDkg, extraParams = {}, checkCommitment = true } = params;
+    const {
+      verifier,
+      verifierParams,
+      idToken,
+      nodePubkeys,
+      indexes,
+      endpoints,
+      useDkg,
+      useLinkedPasskey,
+      extraParams = {},
+      checkCommitment = true,
+    } = params;
     if (nodePubkeys.length === 0) {
       throw new Error("nodePubkeys param is required");
     }
@@ -165,6 +176,7 @@ class Torus {
       nodePubkeys,
       extraParams,
       checkCommitment,
+      useLinkedPasskey,
     });
   }
 
