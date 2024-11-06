@@ -92,6 +92,7 @@ export interface CommitmentRequestResult {
 
 export interface AuthMessageRequestResult {
   message: string;
+  node_index: number;
 }
 export interface JRPCResponse<T> {
   id: number;

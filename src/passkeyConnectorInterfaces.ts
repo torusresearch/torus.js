@@ -1,3 +1,4 @@
+import { KeyType } from "./interfaces";
 import { TorusUtilsPasskeyExtraParams } from "./TorusUtilsExtraParams";
 
 export type GetAuthMessageFromNodesParams = { endpoints: string[]; verifier: string; verifierId?: string; passkeyPubKey?: string };
@@ -14,9 +15,9 @@ export type PasskeyAuthData = {
 export type LinkPasskeyParams = {
   endpoints: string[];
   passkeyPubKey: string;
-  message: string;
+  messages: string[];
   label: string;
-  oAuthKeySignature: string;
+  oAuthKeySignatures: string[];
   keyType: KeyType;
   passkeyAuthData?: PasskeyAuthData;
 };
@@ -24,14 +25,14 @@ export type LinkPasskeyParams = {
 export type UnLinkPasskeyParams = {
   endpoints: string[];
   passkeyPubKey: string;
-  message: string;
-  oAuthKeySignature: string;
+  messages: string[];
+  oAuthKeySignatures: string[];
   keyType: KeyType;
 };
 export type ListLinkedPasskeysParams = {
   endpoints: string[];
-  message: string;
-  oAuthKeySignature: string;
+  messages: string[];
+  oAuthKeySignatures: string[];
   keyType: KeyType;
 };
 

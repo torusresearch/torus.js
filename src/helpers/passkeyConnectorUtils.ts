@@ -58,11 +58,11 @@ export const getAuthMessageFromNodes = (params: GetAuthMessageFromNodesParams) =
 };
 
 export const linkPasskey = async (params: LinkPasskeyParams) => {
-  const { endpoints, message, label, passkeyPubKey, oAuthKeySignature, keyType, passkeyAuthData } = params;
+  const { endpoints, messages, label, passkeyPubKey, oAuthKeySignatures, keyType, passkeyAuthData } = params;
   const halfThreshold = ~~(endpoints.length / 2) + 1;
 
-  if (!endpoints || endpoints.length === 0) {
-    throw new Error("Endpoints are required");
+  if (!endpoints || endpoints.length < halfThreshold) {
+    throw new Error(`minimum ${halfThreshold} endpoints are required`);
   }
 
   const promiseArr: Promise<JRPCResponse<Record<string, never>>>[] = [];
@@ -70,10 +70,10 @@ export const linkPasskey = async (params: LinkPasskeyParams) => {
     const p = post<JRPCResponse<Record<string, never>>>(
       endpoints[i],
       generateJsonRPCObject(JRPC_METHODS.LINK_PASSKEY, {
-        message,
+        message: messages[i],
         label,
         passkey_pub_key: passkeyPubKey,
-        verifier_account_signature: oAuthKeySignature,
+        verifier_account_signature: oAuthKeySignatures[i],
         key_type: keyType,
         passkey_auth_data: passkeyAuthData,
       }),
@@ -107,11 +107,11 @@ export const linkPasskey = async (params: LinkPasskeyParams) => {
 };
 
 export const UnlinkPasskey = async (params: UnLinkPasskeyParams) => {
-  const { endpoints, message, passkeyPubKey, oAuthKeySignature, keyType } = params;
+  const { endpoints, messages, passkeyPubKey, oAuthKeySignatures, keyType } = params;
   const halfThreshold = ~~(endpoints.length / 2) + 1;
 
-  if (!endpoints || endpoints.length === 0) {
-    throw new Error("Endpoints are required");
+  if (!endpoints || endpoints.length < halfThreshold) {
+    throw new Error(`minimum ${halfThreshold} endpoints are required`);
   }
 
   const promiseArr: Promise<JRPCResponse<Record<string, never>>>[] = [];
@@ -119,9 +119,9 @@ export const UnlinkPasskey = async (params: UnLinkPasskeyParams) => {
     const p = post<JRPCResponse<Record<string, never>>>(
       endpoints[i],
       generateJsonRPCObject(JRPC_METHODS.UNLINK_PASSKEY, {
-        message,
+        message: messages[i],
         passkey_pub_key: passkeyPubKey,
-        verifier_account_signature: oAuthKeySignature,
+        verifier_account_signature: oAuthKeySignatures[i],
         key_type: keyType,
       }),
       {},
@@ -154,11 +154,11 @@ export const UnlinkPasskey = async (params: UnLinkPasskeyParams) => {
 };
 
 export const ListLinkedPasskey = async (params: ListLinkedPasskeysParams) => {
-  const { endpoints, message, oAuthKeySignature, keyType } = params;
+  const { endpoints, messages, oAuthKeySignatures, keyType } = params;
   const halfThreshold = ~~(endpoints.length / 2) + 1;
 
-  if (!endpoints || endpoints.length === 0) {
-    throw new Error("Endpoints are required");
+  if (!endpoints || endpoints.length < halfThreshold) {
+    throw new Error(`minimum ${halfThreshold} endpoints are required`);
   }
 
   const promiseArr: Promise<JRPCResponse<ListLinkedPasskeysResponse>>[] = [];
@@ -166,8 +166,8 @@ export const ListLinkedPasskey = async (params: ListLinkedPasskeysParams) => {
     const p = post<JRPCResponse<ListLinkedPasskeysResponse>>(
       endpoints[i],
       generateJsonRPCObject(JRPC_METHODS.GET_LINKED_PASSKEYS, {
-        message,
-        verifier_account_signature: oAuthKeySignature,
+        message: messages[i],
+        verifier_account_signature: oAuthKeySignatures[i],
         key_type: keyType,
       }),
       {},
