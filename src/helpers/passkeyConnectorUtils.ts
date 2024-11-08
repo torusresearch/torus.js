@@ -2,8 +2,10 @@ import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 
 import { config } from "../config";
 import { JRPC_METHODS } from "../constants";
-import { AuthMessageRequestResult, JRPCResponse } from "../interfaces";
+import { JRPCResponse } from "../interfaces";
 import {
+  AuthMessageData,
+  AuthMessageRequestJRPCResult,
   GetAuthMessageFromNodesParams,
   LinkPasskeyParams,
   ListLinkedPasskeysParams,
@@ -19,9 +21,9 @@ export const getAuthMessageFromNodes = (params: GetAuthMessageFromNodesParams) =
   if (!verifierId && !passkeyPubKey) {
     throw new Error("Verifier ID or passkey pub key is required");
   }
-  const promiseArr: Promise<JRPCResponse<AuthMessageRequestResult>>[] = [];
+  const promiseArr: Promise<JRPCResponse<AuthMessageRequestJRPCResult>>[] = [];
   for (let i = 0; i < endpoints.length; i++) {
-    const p = post<JRPCResponse<AuthMessageRequestResult>>(
+    const p = post<JRPCResponse<AuthMessageRequestJRPCResult>>(
       endpoints[i],
       generateJsonRPCObject(JRPC_METHODS.GENERATE_AUTH_MESSAGE, {
         verifier,
@@ -34,8 +36,8 @@ export const getAuthMessageFromNodes = (params: GetAuthMessageFromNodesParams) =
     promiseArr.push(p);
   }
 
-  return new Promise<JRPCResponse<AuthMessageRequestResult>[]>((resolve, reject) => {
-    Some<null | JRPCResponse<AuthMessageRequestResult>, (null | JRPCResponse<AuthMessageRequestResult>)[]>(promiseArr, (resultArr) => {
+  return new Promise<AuthMessageData[]>((resolve, reject) => {
+    Some<null | JRPCResponse<AuthMessageRequestJRPCResult>, (null | JRPCResponse<AuthMessageRequestJRPCResult>)[]>(promiseArr, (resultArr) => {
       const completedRequests = resultArr.filter((x) => {
         if (!x || typeof x !== "object") {
           return false;
@@ -50,8 +52,12 @@ export const getAuthMessageFromNodes = (params: GetAuthMessageFromNodesParams) =
       }
       return Promise.reject(new Error("Failed to get auth message from threshold number of nodes"));
     })
-      .then((resultArr: JRPCResponse<AuthMessageRequestResult>[]) => {
-        return resolve(resultArr);
+      .then((resultArr: JRPCResponse<AuthMessageRequestJRPCResult>[]) => {
+        const authMessageData: AuthMessageData[] = resultArr.map((x) => ({
+          message: x.result.message,
+          nodeIndex: x.result.node_index,
+        }));
+        return resolve(authMessageData);
       })
       .catch(reject);
   });
@@ -106,7 +112,7 @@ export const linkPasskey = async (params: LinkPasskeyParams) => {
   });
 };
 
-export const UnlinkPasskey = async (params: UnLinkPasskeyParams) => {
+export const unlinkPasskey = async (params: UnLinkPasskeyParams) => {
   const { endpoints, messages, passkeyPubKey, oAuthKeySignatures, keyType } = params;
   const halfThreshold = ~~(endpoints.length / 2) + 1;
 
@@ -153,7 +159,7 @@ export const UnlinkPasskey = async (params: UnLinkPasskeyParams) => {
   });
 };
 
-export const ListLinkedPasskey = async (params: ListLinkedPasskeysParams) => {
+export const listLinkedPasskey = async (params: ListLinkedPasskeysParams) => {
   const { endpoints, messages, oAuthKeySignatures, keyType } = params;
   const halfThreshold = ~~(endpoints.length / 2) + 1;
 
@@ -194,7 +200,8 @@ export const ListLinkedPasskey = async (params: ListLinkedPasskeysParams) => {
 
         // Count occurrences of each passkey by pub_key
         completedRequests.forEach((request) => {
-          request.result.passkeys.forEach((passkey) => {
+          const passkeys = request.result.passkeys || [];
+          passkeys.forEach((passkey) => {
             const existing = passkeyMap.get(passkey.passkey_pub_key);
             if (existing) {
               existing.count++;
@@ -211,7 +218,6 @@ export const ListLinkedPasskey = async (params: ListLinkedPasskeysParams) => {
 
         return Promise.resolve(result);
       }
-      return Promise.reject(new Error("Failed to get auth message from threshold number of nodes"));
     })
       .then((resultArr: PasskeyListItem[]) => {
         return resolve(resultArr);

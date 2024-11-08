@@ -5,7 +5,7 @@ import BN from "bn.js";
 import { expect } from "chai";
 import { ec as EC } from "elliptic";
 
-import { generatePrivateKey, keccak256 } from "../src";
+import { generatePrivateKey, getAuthMessageFromNodes, getKeyCurve, keccak256, linkPasskey, listLinkedPasskey, unlinkPasskey } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, getImportKeyParams, getRetrieveSharesParams, lookupVerifier } from "./helpers";
 
@@ -955,5 +955,111 @@ describe("torus utils sapphire devnet", function () {
     }
     const set = new Set(addresses);
     expect(set.size).to.equal(6);
+  });
+
+  it("should be able to get auth messages", async function () {
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await getAuthMessageFromNodes({
+      endpoints: torusNodeEndpoints,
+      verifier: TORUS_TEST_VERIFIER,
+      verifierId: TORUS_TEST_EMAIL,
+    });
+    expect(result.length).to.greaterThanOrEqual(4);
+  });
+
+  it.skip("should be able to link passkey", async function () {
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+
+    async function getAuthMessagesData(nodeEndpoints: string[], key: EC.KeyPair) {
+      const authMessages = await getAuthMessageFromNodes({
+        endpoints: nodeEndpoints,
+        verifier: TORUS_TEST_VERIFIER,
+        verifierId: TORUS_TEST_EMAIL,
+      });
+      const sigs = authMessages.map((msgData) => {
+        // const rawMessage = msgData.message.split("\u0017").join("");
+        const hash = keccak256(Buffer.from(msgData.message, "utf8")).slice(2);
+        const sig = key.sign(hash);
+        return Buffer.from(`${sig.r.toString(16, 64) + sig.s.toString(16, 64)}00`, "hex").toString("hex");
+      });
+
+      const validEndpoints = authMessages.map(({ nodeIndex }) => torusNodeEndpoints[nodeIndex - 1]);
+
+      return { authMessages, validEndpoints, sigs };
+    }
+
+    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+    const loginResult = await torus.retrieveShares(
+      getRetrieveSharesParams(
+        torusNodeEndpoints,
+        nodeDetails.torusIndexes,
+        TORUS_TEST_VERIFIER,
+        { verifier_id: TORUS_TEST_EMAIL },
+        token,
+        nodeDetails.torusNodePub
+      )
+    );
+
+    const postboxKey = loginResult.postboxKeyData.privKey.padStart(64, "0");
+    const key = getKeyCurve("secp256k1").keyFromPrivate(postboxKey, "hex");
+
+    const { authMessages, sigs, validEndpoints } = await getAuthMessagesData(torusNodeEndpoints, key);
+
+    // random credential pubkey
+    const credentialPubKey = "pQECAyYgASFYIJn3UuEVxjb8w4sztWIV3SL615NeU0Wps0D7sSuwWMwPIlggt_5cIKbXbvMtvvXLYT";
+    await linkPasskey({
+      endpoints: validEndpoints,
+      passkeyPubKey: credentialPubKey,
+      messages: authMessages.map(({ message }) => message),
+      label: "test",
+      oAuthKeySignatures: sigs,
+      keyType: "secp256k1",
+    });
+
+    const {
+      sigs: listingSigs,
+      validEndpoints: validEndpointsForList,
+      authMessages: authMessagesForList,
+    } = await getAuthMessagesData(torusNodeEndpoints, key);
+
+    const linkedPasskeys = await listLinkedPasskey({
+      endpoints: validEndpointsForList,
+      messages: authMessagesForList.map(({ message }) => message),
+      oAuthKeySignatures: listingSigs,
+      keyType: "secp256k1",
+    });
+    expect(linkedPasskeys.length).to.equal(1);
+
+    const {
+      authMessages: unlinkAuthMsgs,
+      sigs: unlinkSigs,
+      validEndpoints: unlinkValidEndpoints,
+    } = await getAuthMessagesData(torusNodeEndpoints, key);
+
+    await unlinkPasskey({
+      endpoints: unlinkValidEndpoints,
+      passkeyPubKey: credentialPubKey,
+      messages: unlinkAuthMsgs.map(({ message }) => message),
+      oAuthKeySignatures: unlinkSigs,
+      keyType: "secp256k1",
+    });
+
+    const {
+      authMessages: relistAuthMsgs,
+      sigs: relistSigs,
+      validEndpoints: relistValidEndpoints,
+    } = await getAuthMessagesData(torusNodeEndpoints, key);
+
+    const passkeysAfterUnlink = await listLinkedPasskey({
+      endpoints: relistValidEndpoints,
+      messages: relistAuthMsgs.map(({ message }) => message),
+      oAuthKeySignatures: relistSigs,
+      keyType: "secp256k1",
+    });
+    expect(passkeysAfterUnlink.length).to.equal(0);
   });
 });

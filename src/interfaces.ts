@@ -90,10 +90,6 @@ export interface CommitmentRequestResult {
   pub_key_x: string;
 }
 
-export interface AuthMessageRequestResult {
-  message: string;
-  node_index: number;
-}
 export interface JRPCResponse<T> {
   id: number;
   jsonrpc: "2.0";

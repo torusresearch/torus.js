@@ -3,6 +3,10 @@ import { TorusUtilsPasskeyExtraParams } from "./TorusUtilsExtraParams";
 
 export type GetAuthMessageFromNodesParams = { endpoints: string[]; verifier: string; verifierId?: string; passkeyPubKey?: string };
 
+export interface AuthMessageRequestJRPCResult {
+  message: string;
+  node_index: number;
+}
 export type PasskeyAuthData = {
   verifier: string;
   verifier_id: string;
@@ -39,4 +43,9 @@ export type ListLinkedPasskeysParams = {
 export type PasskeyListItem = { label: string; verifier: string; verifier_id: string; passkey_pub_key: string };
 export type ListLinkedPasskeysResponse = {
   passkeys: PasskeyListItem[];
+};
+
+export type AuthMessageData = {
+  message: string;
+  nodeIndex: number;
 };
