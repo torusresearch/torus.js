@@ -13,6 +13,7 @@ import { curve, ec as EC } from "elliptic";
 
 import { config } from "./config";
 import {
+  _linkedPasskeyRetrieveShares,
   encodeEd25519Point,
   generateAddressFromPubKey,
   generateShares,
@@ -35,6 +36,7 @@ import {
   v2NonceResultType,
 } from "./interfaces";
 import log from "./loglevel";
+import { RetrieveSharesWithLinkedPasskeyParams } from "./passkeyConnectorInterfaces";
 
 // Implement threshold logic wrappers around public APIs
 // of Torus nodes to handle malicious node responses
@@ -112,18 +114,7 @@ class Torus {
   }
 
   async retrieveShares(params: RetrieveSharesParams): Promise<TorusKey> {
-    const {
-      verifier,
-      verifierParams,
-      idToken,
-      nodePubkeys,
-      indexes,
-      endpoints,
-      useDkg,
-      useLinkedPasskey,
-      extraParams = {},
-      checkCommitment = true,
-    } = params;
+    const { verifier, verifierParams, idToken, nodePubkeys, indexes, endpoints, useDkg, extraParams = {}, checkCommitment = true } = params;
     if (nodePubkeys.length === 0) {
       throw new Error("nodePubkeys param is required");
     }
@@ -176,7 +167,42 @@ class Torus {
       nodePubkeys,
       extraParams,
       checkCommitment,
-      useLinkedPasskey,
+    });
+  }
+
+  async retrieveSharesWithLinkedPasskey(params: RetrieveSharesWithLinkedPasskeyParams): Promise<TorusKey> {
+    const { passkeyPublicKey, idToken, nodePubkeys, indexes, endpoints, extraParams = {}, passkeyVerifierID } = params;
+    if (nodePubkeys.length === 0) {
+      throw new Error("nodePubkeys param is required");
+    }
+
+    if (nodePubkeys.length !== indexes.length) {
+      throw new Error("nodePubkeys length must be same as indexes length");
+    }
+
+    if (nodePubkeys.length !== endpoints.length) {
+      throw new Error("nodePubkeys length must be same as endpoints length");
+    }
+
+    if (LEGACY_NETWORKS_ROUTE_MAP[this.network as TORUS_LEGACY_NETWORK_TYPE]) {
+      throw new Error(`retrieveSharesWithLinkedPasskey is not supported by legacy network; ${this.network}`);
+    }
+
+    return _linkedPasskeyRetrieveShares({
+      serverTimeOffset: this.serverTimeOffset,
+      ecCurve: this.ec,
+      keyType: this.keyType,
+      allowHost: this.allowHost,
+      network: this.network,
+      clientId: this.clientId,
+      endpoints,
+      indexes,
+      nodePubkeys,
+      idToken,
+      passkeyPublicKey,
+      passkeyVerifierID,
+      extraParams,
+      sessionExpSecond: Torus.sessionTime,
     });
   }
 

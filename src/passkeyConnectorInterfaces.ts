@@ -1,7 +1,15 @@
+import { INodePub } from "@toruslabs/constants";
+
 import { KeyType } from "./interfaces";
 import { TorusUtilsPasskeyExtraParams } from "./TorusUtilsExtraParams";
 
-export type GetAuthMessageFromNodesParams = { endpoints: string[]; verifier: string; verifierId?: string; passkeyPubKey?: string };
+export type GetAuthMessageFromNodesParams = {
+  endpoints: string[];
+  verifier: string;
+  verifierId?: string;
+  passkeyPubKey?: string;
+  requiredNodeIndexes?: number[];
+};
 
 export interface AuthMessageRequestJRPCResult {
   message: string;
@@ -23,6 +31,7 @@ export type LinkPasskeyParams = {
   label: string;
   oAuthKeySignatures: string[];
   keyType: KeyType;
+  sessionData: string[];
   passkeyAuthData?: PasskeyAuthData;
 };
 
@@ -31,6 +40,7 @@ export type UnLinkPasskeyParams = {
   passkeyPubKey: string;
   messages: string[];
   oAuthKeySignatures: string[];
+  sessionData: string[];
   keyType: KeyType;
 };
 export type ListLinkedPasskeysParams = {
@@ -49,3 +59,13 @@ export type AuthMessageData = {
   message: string;
   nodeIndex: number;
 };
+
+export interface RetrieveSharesWithLinkedPasskeyParams {
+  endpoints: string[];
+  indexes: number[];
+  passkeyPublicKey: string;
+  passkeyVerifierID: string;
+  idToken: string;
+  nodePubkeys: INodePub[];
+  extraParams?: TorusUtilsPasskeyExtraParams;
+}

@@ -1,8 +1,11 @@
+import { INodePub, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
+import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
+import { ec } from "elliptic";
 
 import { config } from "../config";
 import { JRPC_METHODS } from "../constants";
-import { JRPCResponse } from "../interfaces";
+import { JRPCResponse, KeyType, ShareRequestResult } from "../interfaces";
 import {
   AuthMessageData,
   AuthMessageRequestJRPCResult,
@@ -14,8 +17,10 @@ import {
   UnLinkPasskeyParams,
 } from "../passkeyConnectorInterfaces";
 import { Some } from "../some";
+import { TorusUtilsPasskeyExtraParams } from "../TorusUtilsExtraParams";
+import { processShareResponse } from "./nodeUtils";
 export const getAuthMessageFromNodes = (params: GetAuthMessageFromNodesParams) => {
-  const { verifier, verifierId, passkeyPubKey, endpoints } = params;
+  const { verifier, verifierId, passkeyPubKey, endpoints, requiredNodeIndexes } = params;
   const threeFourthsThreshold = ~~((endpoints.length * 3) / 4) + 1;
 
   if (!verifierId && !passkeyPubKey) {
@@ -48,7 +53,22 @@ export const getAuthMessageFromNodes = (params: GetAuthMessageFromNodesParams) =
         return true;
       });
       if (completedRequests.length >= threeFourthsThreshold) {
-        return Promise.resolve(completedRequests);
+        // wait for all required node indexes to be resolved
+        if (requiredNodeIndexes.length > 0) {
+          const retrievedNodeIndexes: Record<number, boolean> = {};
+          completedRequests.forEach((x) => {
+            retrievedNodeIndexes[x.result.node_index] = true;
+          });
+          const pendingNodeIndexes = requiredNodeIndexes.filter((x) => {
+            if (!retrievedNodeIndexes[x]) return x;
+            return false;
+          });
+          if (pendingNodeIndexes.length === 0) {
+            return Promise.resolve(completedRequests);
+          }
+        } else {
+          return Promise.resolve(completedRequests);
+        }
       }
       return Promise.reject(new Error("Failed to get auth message from threshold number of nodes"));
     })
@@ -64,7 +84,7 @@ export const getAuthMessageFromNodes = (params: GetAuthMessageFromNodesParams) =
 };
 
 export const linkPasskey = async (params: LinkPasskeyParams) => {
-  const { endpoints, messages, label, passkeyPubKey, oAuthKeySignatures, keyType, passkeyAuthData } = params;
+  const { endpoints, messages, label, passkeyPubKey, oAuthKeySignatures, keyType, sessionData, passkeyAuthData } = params;
   const halfThreshold = ~~(endpoints.length / 2) + 1;
 
   if (!endpoints || endpoints.length < halfThreshold) {
@@ -82,6 +102,7 @@ export const linkPasskey = async (params: LinkPasskeyParams) => {
         verifier_account_signature: oAuthKeySignatures[i],
         key_type: keyType,
         passkey_auth_data: passkeyAuthData,
+        session_data: sessionData,
       }),
       {},
       { logTracingHeader: config.logRequestTracing }
@@ -113,7 +134,7 @@ export const linkPasskey = async (params: LinkPasskeyParams) => {
 };
 
 export const unlinkPasskey = async (params: UnLinkPasskeyParams) => {
-  const { endpoints, messages, passkeyPubKey, oAuthKeySignatures, keyType } = params;
+  const { endpoints, messages, passkeyPubKey, oAuthKeySignatures, sessionData, keyType } = params;
   const halfThreshold = ~~(endpoints.length / 2) + 1;
 
   if (!endpoints || endpoints.length < halfThreshold) {
@@ -129,6 +150,7 @@ export const unlinkPasskey = async (params: UnLinkPasskeyParams) => {
         passkey_pub_key: passkeyPubKey,
         verifier_account_signature: oAuthKeySignatures[i],
         key_type: keyType,
+        session_data: sessionData,
       }),
       {},
       { logTracingHeader: config.logRequestTracing }
@@ -225,3 +247,70 @@ export const listLinkedPasskey = async (params: ListLinkedPasskeysParams) => {
       .catch(reject);
   });
 };
+
+export async function _linkedPasskeyRetrieveShares(params: {
+  serverTimeOffset: number;
+  ecCurve: ec;
+  keyType: KeyType;
+  allowHost: string;
+  network: TORUS_NETWORK_TYPE;
+  clientId: string;
+  endpoints: string[];
+  nodePubkeys: INodePub[];
+  indexes: number[];
+  passkeyPublicKey: string;
+  passkeyVerifierID: string;
+  idToken: string;
+  sessionExpSecond: number;
+  extraParams: TorusUtilsPasskeyExtraParams;
+}) {
+  const { endpoints, passkeyPublicKey, passkeyVerifierID, idToken, keyType, sessionExpSecond, extraParams, serverTimeOffset, ecCurve, network } =
+    params;
+
+  // generate temporary private and public key that is used to secure receive shares
+  const sessionAuthKey = generatePrivate();
+  const pubKey = getPublic(sessionAuthKey).toString("hex");
+  const sessionPubX = pubKey.slice(2, 66);
+  const sessionPubY = pubKey.slice(66);
+  const promiseArrRequest: Promise<void | JRPCResponse<ShareRequestResult>>[] = [];
+
+  const passkeyExtraParams = { ...extraParams } as TorusUtilsPasskeyExtraParams;
+  for (let i = 0; i < endpoints.length; i += 1) {
+    const p = post<JRPCResponse<ShareRequestResult>>(
+      endpoints[i],
+      generateJsonRPCObject(JRPC_METHODS.RETRIEVE_SHARES_WITH_LINKED_PASSKEY, {
+        encrypted: "yes",
+        key_type: keyType,
+        passkey_pub_key: passkeyPublicKey,
+        temp_pub_x: sessionPubX,
+        temp_pub_y: sessionPubY,
+        passkey_auth_data: {
+          verifier_id: passkeyVerifierID,
+          idtoken: idToken,
+          key_type: keyType,
+          session_token_exp_second: sessionExpSecond,
+          ...passkeyExtraParams,
+        },
+        client_time: Math.floor(Date.now() / 1000).toString(),
+      }),
+      {},
+      { logTracingHeader: config.logRequestTracing }
+    );
+    promiseArrRequest.push(p);
+  }
+  return processShareResponse(
+    {
+      legacyMetadataHost: "", // this method only works for sapphire
+      serverTimeOffset,
+      sessionAuthKey,
+      enableOneKey: true,
+      ecCurve,
+      keyType,
+      network,
+      verifierParams: { verifier_id: passkeyPublicKey },
+      endpoints,
+      isImportedShares: false,
+    },
+    promiseArrRequest
+  );
+}

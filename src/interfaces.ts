@@ -292,7 +292,6 @@ export interface RetrieveSharesParams {
   idToken: string;
   nodePubkeys: INodePub[];
   extraParams?: TorusUtilsExtraParams;
-  useLinkedPasskey?: boolean;
   useDkg?: boolean;
   checkCommitment?: boolean;
 }
