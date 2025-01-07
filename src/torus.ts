@@ -171,10 +171,10 @@ class Torus {
   async getPublicAddress(
     endpoints: string[],
     torusNodePubs: INodePub[],
-    { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string }
+    { verifier, verifierId, extendedVerifierId, keyType }: { verifier: string; verifierId: string; extendedVerifierId?: string; keyType: KeyType }
   ): Promise<TorusPublicKey> {
     log.info(torusNodePubs, { verifier, verifierId, extendedVerifierId });
-    return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId }, this.enableOneKey);
+    return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId, keyType }, this.enableOneKey);
   }
 
   async importPrivateKey(params: ImportKeyParams): Promise<TorusKey> {
@@ -264,15 +264,17 @@ class Torus {
 
   private async getNewPublicAddress(
     endpoints: string[],
-    { verifier, verifierId, extendedVerifierId }: { verifier: string; verifierId: string; extendedVerifierId?: string },
+    { verifier, verifierId, extendedVerifierId, keyType }: { verifier: string; verifierId: string; extendedVerifierId?: string; keyType?: KeyType },
     enableOneKey: boolean
   ): Promise<TorusPublicKey> {
+    const localKeyType = keyType ?? this.keyType;
+
     const keyAssignResult = await GetPubKeyOrKeyAssign({
       endpoints,
       network: this.network,
       verifier,
       verifierId,
-      keyType: this.keyType,
+      keyType: localKeyType,
       extendedVerifierId,
     });
 
@@ -330,14 +332,14 @@ class Torus {
     }
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
-    const oAuthAddress = generateAddressFromPubKey(this.keyType, oAuthPubKey.getX(), oAuthPubKey.getY());
+    const oAuthAddress = generateAddressFromPubKey(localKeyType, oAuthPubKey.getX(), oAuthPubKey.getY());
 
     if (!finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
     }
     const finalX = finalPubKey ? finalPubKey.getX().toString(16, 64) : "";
     const finalY = finalPubKey ? finalPubKey.getY().toString(16, 64) : "";
-    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.keyType, finalPubKey.getX(), finalPubKey.getY()) : "";
+    const finalAddress = finalPubKey ? generateAddressFromPubKey(localKeyType, finalPubKey.getX(), finalPubKey.getY()) : "";
     return {
       oAuthKeyData: {
         walletAddress: oAuthAddress,
