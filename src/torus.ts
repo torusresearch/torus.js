@@ -16,6 +16,7 @@ import {
   encodeEd25519Point,
   generateAddressFromPubKey,
   generateShares,
+  getEcCurve,
   getEd25519ExtendedPublicKey,
   getMetadata,
   getOrSetNonce,
@@ -268,6 +269,7 @@ class Torus {
     enableOneKey: boolean
   ): Promise<TorusPublicKey> {
     const localKeyType = keyType ?? this.keyType;
+    const localEc = getEcCurve(localKeyType);
 
     const keyAssignResult = await GetPubKeyOrKeyAssign({
       endpoints,
@@ -305,7 +307,7 @@ class Torus {
     let finalPubKey: curve.base.BasePoint;
     if (extendedVerifierId) {
       // for tss key no need to add pub nonce
-      finalPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
+      finalPubKey = localEc.keyFromPublic({ x: X, y: Y }).getPublic();
       oAuthPubKey = finalPubKey;
     } else if (LEGACY_NETWORKS_ROUTE_MAP[this.network as TORUS_LEGACY_NETWORK_TYPE]) {
       return this.formatLegacyPublicKeyData({
@@ -318,11 +320,11 @@ class Torus {
       });
     } else {
       const v2NonceResult = nonceResult as v2NonceResultType;
-      oAuthPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
-      finalPubKey = this.ec
+      oAuthPubKey = localEc.keyFromPublic({ x: X, y: Y }).getPublic();
+      finalPubKey = localEc
         .keyFromPublic({ x: X, y: Y })
         .getPublic()
-        .add(this.ec.keyFromPublic({ x: v2NonceResult.pubNonce.x, y: v2NonceResult.pubNonce.y }).getPublic());
+        .add(localEc.keyFromPublic({ x: v2NonceResult.pubNonce.x, y: v2NonceResult.pubNonce.y }).getPublic());
 
       pubNonce = { X: v2NonceResult.pubNonce.x, Y: v2NonceResult.pubNonce.y };
     }
@@ -369,8 +371,12 @@ class Torus {
     enableOneKey: boolean;
     isNewKey: boolean;
     serverTimeOffset: number;
+    keyType?: KeyType;
   }): Promise<TorusPublicKey> {
-    const { finalKeyResult, enableOneKey, isNewKey, serverTimeOffset } = params;
+    const { finalKeyResult, enableOneKey, isNewKey, serverTimeOffset, keyType } = params;
+    const localKeyType = keyType ?? this.keyType;
+    const localEc = getEcCurve(localKeyType);
+
     const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
     let nonceResult: GetOrSetNonceResult;
     let nonce: BN;
@@ -378,12 +384,12 @@ class Torus {
     let typeOfUser: GetOrSetNonceResult["typeOfUser"];
     let pubNonce: { X: string; Y: string } | undefined;
 
-    const oAuthPubKey = this.ec.keyFromPublic({ x: X, y: Y }).getPublic();
+    const oAuthPubKey = localEc.keyFromPublic({ x: X, y: Y }).getPublic();
 
     const finalServerTimeOffset = this.serverTimeOffset || serverTimeOffset;
     if (enableOneKey) {
       try {
-        nonceResult = await getOrSetNonce(this.legacyMetadataHost, this.ec, finalServerTimeOffset, X, Y, undefined, !isNewKey);
+        nonceResult = await getOrSetNonce(this.legacyMetadataHost, localEc, finalServerTimeOffset, X, Y, undefined, !isNewKey);
         nonce = new BN(nonceResult.nonce || "0", 16);
         typeOfUser = nonceResult.typeOfUser;
       } catch {
@@ -391,15 +397,15 @@ class Torus {
       }
       if (nonceResult.typeOfUser === "v1") {
         nonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: X, pub_key_Y: Y });
-        finalPubKey = this.ec
+        finalPubKey = localEc
           .keyFromPublic({ x: X, y: Y })
           .getPublic()
-          .add(this.ec.keyFromPrivate(nonce.toString(16, 64), "hex").getPublic());
+          .add(localEc.keyFromPrivate(nonce.toString(16, 64), "hex").getPublic());
       } else if (nonceResult.typeOfUser === "v2") {
-        finalPubKey = this.ec
+        finalPubKey = localEc
           .keyFromPublic({ x: X, y: Y })
           .getPublic()
-          .add(this.ec.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
+          .add(localEc.keyFromPublic({ x: nonceResult.pubNonce.x, y: nonceResult.pubNonce.y }).getPublic());
         pubNonce = { X: nonceResult.pubNonce.x, Y: nonceResult.pubNonce.y };
       } else {
         throw new Error("getOrSetNonce should always return typeOfUser.");
@@ -407,10 +413,10 @@ class Torus {
     } else {
       typeOfUser = "v1";
       nonce = await getMetadata(this.legacyMetadataHost, { pub_key_X: X, pub_key_Y: Y });
-      finalPubKey = this.ec
+      finalPubKey = localEc
         .keyFromPublic({ x: X, y: Y })
         .getPublic()
-        .add(this.ec.keyFromPrivate(nonce.toString(16, 64), "hex").getPublic());
+        .add(localEc.keyFromPrivate(nonce.toString(16, 64), "hex").getPublic());
     }
 
     if (!oAuthPubKey) {
@@ -418,14 +424,14 @@ class Torus {
     }
     const oAuthX = oAuthPubKey.getX().toString(16, 64);
     const oAuthY = oAuthPubKey.getY().toString(16, 64);
-    const oAuthAddress = generateAddressFromPubKey(this.keyType, oAuthPubKey.getX(), oAuthPubKey.getY());
+    const oAuthAddress = generateAddressFromPubKey(localKeyType, oAuthPubKey.getX(), oAuthPubKey.getY());
 
     if (typeOfUser === "v2" && !finalPubKey) {
       throw new Error("Unable to derive finalPubKey");
     }
     const finalX = finalPubKey ? finalPubKey.getX().toString(16, 64) : "";
     const finalY = finalPubKey ? finalPubKey.getY().toString(16, 64) : "";
-    const finalAddress = finalPubKey ? generateAddressFromPubKey(this.keyType, finalPubKey.getX(), finalPubKey.getY()) : "";
+    const finalAddress = finalPubKey ? generateAddressFromPubKey(localKeyType, finalPubKey.getX(), finalPubKey.getY()) : "";
     return {
       oAuthKeyData: {
         walletAddress: oAuthAddress,
