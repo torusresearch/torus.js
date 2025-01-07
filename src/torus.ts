@@ -172,7 +172,7 @@ class Torus {
   async getPublicAddress(
     endpoints: string[],
     torusNodePubs: INodePub[],
-    { verifier, verifierId, extendedVerifierId, keyType }: { verifier: string; verifierId: string; extendedVerifierId?: string; keyType: KeyType }
+    { verifier, verifierId, extendedVerifierId, keyType }: { verifier: string; verifierId: string; extendedVerifierId?: string; keyType?: KeyType }
   ): Promise<TorusPublicKey> {
     log.info(torusNodePubs, { verifier, verifierId, extendedVerifierId });
     return this.getNewPublicAddress(endpoints, { verifier, verifierId, extendedVerifierId, keyType }, this.enableOneKey);
