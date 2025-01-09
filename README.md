@@ -106,4 +106,4 @@ fetchNodeDetails
 ## Requirements
 
 - This package requires a peer dependency of `@babel/runtime`
-- Node 16+
+- Node 20+
