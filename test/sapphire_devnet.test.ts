@@ -2,8 +2,8 @@ import { faker } from "@faker-js/faker";
 import { TORUS_LEGACY_NETWORK, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
-import { expect } from "chai";
 import { ec as EC } from "elliptic";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { generatePrivateKey, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
@@ -21,11 +21,11 @@ const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 const HashEnabledVerifier = "torus-test-verifierid-hash";
 
-describe("torus utils sapphire devnet", function () {
+describe("torus utils sapphire devnet", () => {
   let torus: TorusUtils;
   let TORUS_NODE_MANAGER: NodeDetailManager;
 
-  beforeEach("one time execution before all tests", async function () {
+  beforeEach(() => {
     TORUS_NODE_MANAGER = new NodeDetailManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET });
     torus = new TorusUtils({
       network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET,
@@ -35,11 +35,10 @@ describe("torus utils sapphire devnet", function () {
     TorusUtils.enableLogging(false);
   });
 
-  it("should fetch public address of a legacy v1 user", async function () {
-    const verifier = "google-lrc"; // any verifier
+  it("should fetch public address of a legacy v1 user", async () => {
+    const verifier = "google-lrc";
     const LEGACY_TORUS_NODE_MANAGER = new NodeDetailManager({
       network: TORUS_LEGACY_NETWORK.TESTNET,
-      // fndServerEndpoint: "http://localhost:8060/node-details",
     });
 
     const verifierDetails = { verifier, verifierId: "himanshu@tor.us" };
@@ -50,10 +49,10 @@ describe("torus utils sapphire devnet", function () {
     });
     const { torusNodeSSSEndpoints: torusNodeEndpoints, torusNodePub } = await LEGACY_TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicKeyData = await legacyTorus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails);
-    expect(publicKeyData.metadata.typeOfUser).to.equal("v1");
-    expect(publicKeyData.finalKeyData.walletAddress).to.equal("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
+    expect(publicKeyData.metadata.typeOfUser).toBe("v1");
+    expect(publicKeyData.finalKeyData.walletAddress).toBe("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
     delete publicKeyData.metadata.serverTimeOffset;
-    expect(publicKeyData).eql({
+    expect(publicKeyData).toEqual({
       oAuthKeyData: {
         walletAddress: "0xf1e76fcDD28b5AA06De01de508fF21589aB9017E",
         X: "b3f2b4d8b746353fe670e0c39ac9adb58056d4d7b718d06b623612d4ec49268b",
@@ -74,7 +73,7 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should be able to login a v1 user", async function () {
+  it("should be able to login a v1 user", async () => {
     const email = "himanshu@tor.us";
     const verifier = "google-lrc";
     const token = generateIdToken(email, "ES256");
@@ -92,11 +91,11 @@ describe("torus utils sapphire devnet", function () {
     const retrieveSharesResponse = await legacyTorus.retrieveShares(
       getRetrieveSharesParams(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token, torusNodePub)
     );
-    expect(retrieveSharesResponse.finalKeyData.privKey).to.be.equal("dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9");
+    expect(retrieveSharesResponse.finalKeyData.privKey).toBe("dca7f29d234dc71561efe1a874d872bf34f6528bc042fe35e57197eac1f14eb9");
     delete retrieveSharesResponse.sessionData;
     delete retrieveSharesResponse.metadata.serverTimeOffset;
 
-    expect(retrieveSharesResponse).eql({
+    expect(retrieveSharesResponse).toEqual({
       oAuthKeyData: {
         walletAddress: "0xbeFfcC367D741C53A63F50eA805c1e93d3C64fEc",
         X: "2b1c47c8fbca61ee7f82a8aff53a357f6b66af0dffbef6a3e3ac649180616e51",
@@ -124,10 +123,9 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should fetch user type and public address of legacy v2 user", async function () {
+  it("should fetch user type and public address of legacy v2 user", async () => {
     const LEGACY_TORUS_NODE_MANAGER = new NodeDetailManager({
       network: TORUS_LEGACY_NETWORK.TESTNET,
-      // fndServerEndpoint: "http://localhost:8060/node-details",
     });
     const v2Verifier = "tkey-google-lrc";
     // 1/1 user
@@ -145,12 +143,12 @@ describe("torus utils sapphire devnet", function () {
       verifier: v2Verifier,
       verifierId: v2TestEmail,
     });
-    expect(result.finalKeyData.walletAddress).to.equal("0xE91200d82029603d73d6E307DbCbd9A7D0129d8D");
-    expect(result.metadata.typeOfUser).to.equal("v2");
-    expect(result.metadata.serverTimeOffset).lessThan(20);
+    expect(result.finalKeyData.walletAddress).toBe("0xE91200d82029603d73d6E307DbCbd9A7D0129d8D");
+    expect(result.metadata.typeOfUser).toBe("v2");
+    expect(result.metadata.serverTimeOffset).toBeLessThan(20);
 
     delete result.metadata.serverTimeOffset;
-    expect(result).eql({
+    expect(result).toEqual({
       oAuthKeyData: {
         walletAddress: "0x376597141d8d219553378313d18590F373B09795",
         X: "86cd2db15b7a9937fa8ab7d0bf8e7f4113b64d1f4b2397aad35d6d4749d2fb6c",
@@ -179,12 +177,12 @@ describe("torus utils sapphire devnet", function () {
       verifier: v2Verifier,
       verifierId: v2nTestEmail,
     });
-    expect(data.metadata.typeOfUser).to.equal("v2");
-    expect(data.finalKeyData.walletAddress).to.equal("0x1016DA7c47A04C76036637Ea02AcF1d29c64a456");
-    expect(data.metadata.serverTimeOffset).lessThan(20);
+    expect(data.metadata.typeOfUser).toBe("v2");
+    expect(data.finalKeyData.walletAddress).toBe("0x1016DA7c47A04C76036637Ea02AcF1d29c64a456");
+    expect(data.metadata.serverTimeOffset).toBeLessThan(20);
 
     delete data.metadata.serverTimeOffset;
-    expect(data).eql({
+    expect(data).toEqual({
       oAuthKeyData: {
         walletAddress: "0xd45383fbF04BccFa0450d7d8ee453ca86b7C6544",
         X: "d25cc473fbb448d20b5551f3c9aa121e1924b3d197353347187c47ad13ecd5d8",
@@ -208,15 +206,15 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should fetch public address", async function () {
+  it("should fetch public address", async () => {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.metadata.serverTimeOffset).lessThan(20);
+    expect(result.metadata.serverTimeOffset).toBeLessThan(20);
     delete result.metadata.serverTimeOffset;
 
-    expect(result).eql({
+    expect(result).toEqual({
       oAuthKeyData: {
         walletAddress: "0x137B3607958562D03Eb3C6086392D1eFa01aA6aa",
         X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
@@ -240,48 +238,48 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should fetch public address of imported user", async function () {
+  it("should fetch public address of imported user", async () => {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.walletAddress).to.not.equal(null);
-    expect(result.finalKeyData.walletAddress).to.not.equal("");
-    expect(result.finalKeyData.walletAddress).to.not.equal(null);
-    expect(result.oAuthKeyData.walletAddress).to.not.equal("");
-    expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
-    expect(result.metadata.typeOfUser).to.equal("v2");
-    expect(result.metadata.upgraded).to.equal(false);
+    expect(result.finalKeyData.walletAddress).not.toBe(null);
+    expect(result.finalKeyData.walletAddress).not.toBe("");
+    expect(result.finalKeyData.walletAddress).not.toBe(null);
+    expect(result.oAuthKeyData.walletAddress).not.toBe("");
+    expect(result.oAuthKeyData.walletAddress).not.toBe(null);
+    expect(result.metadata.typeOfUser).toBe("v2");
+    expect(result.metadata.upgraded).toBe(false);
   });
 
-  it("should keep public address same", async function () {
+  it("should keep public address same", async () => {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: faker.internet.email() };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
 
     const result1 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result1.metadata.serverTimeOffset).lessThan(20);
+    expect(result1.metadata.serverTimeOffset).toBeLessThan(20);
 
     delete result1.metadata.serverTimeOffset;
     const result2 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result2.metadata.serverTimeOffset).lessThan(20);
+    expect(result2.metadata.serverTimeOffset).toBeLessThan(20);
 
     delete result2.metadata.serverTimeOffset;
 
-    expect(result1.finalKeyData).eql(result2.finalKeyData);
-    expect(result1.oAuthKeyData).eql(result2.oAuthKeyData);
-    expect(result1.metadata).eql(result2.metadata);
+    expect(result1.finalKeyData).toEqual(result2.finalKeyData);
+    expect(result1.oAuthKeyData).toEqual(result2.oAuthKeyData);
+    expect(result1.metadata).toEqual(result2.metadata);
   });
 
-  it("should fetch user type and public address", async function () {
+  it("should fetch user type and public address", async () => {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.metadata.serverTimeOffset).lessThan(20);
+    expect(result.metadata.serverTimeOffset).toBeLessThan(20);
     delete result.metadata.serverTimeOffset;
 
-    expect(result).eql({
+    expect(result).toEqual({
       oAuthKeyData: {
         walletAddress: "0x137B3607958562D03Eb3C6086392D1eFa01aA6aa",
         X: "118a674da0c68f16a1123de9611ba655f4db1e336fe1b2d746028d65d22a3c6b",
@@ -305,17 +303,17 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should be able to key assign", async function () {
+  it("should be able to key assign", async () => {
     const email = `${faker.internet.email()}`;
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.walletAddress).to.not.equal("");
-    expect(result.finalKeyData.walletAddress).to.not.equal(null);
+    expect(result.finalKeyData.walletAddress).not.toBe("");
+    expect(result.finalKeyData.walletAddress).not.toBe(null);
   });
 
-  it("should be able to login", async function () {
+  it("should be able to login", async () => {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -329,10 +327,10 @@ describe("torus utils sapphire devnet", function () {
         nodeDetails.torusNodePub
       )
     );
-    expect(result.metadata.serverTimeOffset).lessThan(20);
+    expect(result.metadata.serverTimeOffset).toBeLessThan(20);
     delete result.metadata.serverTimeOffset;
 
-    expect(result).eql({
+    expect(result).toEqual({
       finalKeyData: {
         walletAddress: "0x462A8BF111A55C9354425F875F89B22678c0Bc44",
         X: "36e257717f746cdd52ba85f24f7c9040db8977d3b0354de70ed43689d24fa1b1",
@@ -367,7 +365,7 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should be able to login without commitments", async function () {
+  it("should be able to login without commitments", async () => {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -384,10 +382,10 @@ describe("torus utils sapphire devnet", function () {
         false
       )
     );
-    expect(result.metadata.serverTimeOffset).lessThan(20);
+    expect(result.metadata.serverTimeOffset).toBeLessThan(20);
     delete result.metadata.serverTimeOffset;
 
-    expect(result).eql({
+    expect(result).toEqual({
       finalKeyData: {
         walletAddress: "0x462A8BF111A55C9354425F875F89B22678c0Bc44",
         X: "36e257717f746cdd52ba85f24f7c9040db8977d3b0354de70ed43689d24fa1b1",
@@ -422,7 +420,7 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should be able to login with non dkg keys", async function () {
+  it("should be able to login with non dkg keys", async () => {
     const email = `atomicimporttest2`;
     const token = generateIdToken(email, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
@@ -442,10 +440,10 @@ describe("torus utils sapphire devnet", function () {
     );
 
     const publicResult = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.X).eql(publicResult.finalKeyData.X);
+    expect(result.finalKeyData.X).toEqual(publicResult.finalKeyData.X);
   });
 
-  it("should be able to login a new user with non dkg keys", async function () {
+  it("should be able to login a new user with non dkg keys", async () => {
     const email = `${faker.internet.email()}`;
     const token = generateIdToken(email, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
@@ -466,10 +464,10 @@ describe("torus utils sapphire devnet", function () {
 
     const publicResult = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
 
-    expect(result.finalKeyData.X).eql(publicResult.finalKeyData.X);
+    expect(result.finalKeyData.X).toEqual(publicResult.finalKeyData.X);
   });
 
-  it("should be able to login even when node is down", async function () {
+  it("should be able to login even when node is down", async () => {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -486,7 +484,7 @@ describe("torus utils sapphire devnet", function () {
     );
     delete result.metadata.serverTimeOffset;
 
-    expect(result).eql({
+    expect(result).toEqual({
       finalKeyData: {
         walletAddress: "0x462A8BF111A55C9354425F875F89B22678c0Bc44",
         X: "36e257717f746cdd52ba85f24f7c9040db8977d3b0354de70ed43689d24fa1b1",
@@ -521,7 +519,7 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should be able to update the `sessionTime` of the token signature data", async function () {
+  it("should be able to update the `sessionTime` of the token signature data", async () => {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
 
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
@@ -547,12 +545,12 @@ describe("torus utils sapphire devnet", function () {
     const parsedSigsData = signatures.map((s) => JSON.parse(atob(s.data)));
     parsedSigsData.forEach((ps) => {
       const sessionTime = ps.exp - Math.floor(Date.now() / 1000);
-      expect(sessionTime).greaterThan(customSessionTime - 5); // giving a latency leeway of 5 seconds
-      expect(sessionTime).lessThanOrEqual(customSessionTime);
+      expect(sessionTime).toBeGreaterThan(customSessionTime - 5); // giving a latency leeway of 5 seconds
+      expect(sessionTime).toBeLessThanOrEqual(customSessionTime);
     });
   });
 
-  it("should be able to import a key for a new user", async function () {
+  it("should be able to import a key for a new user", async () => {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const ec = new EC("secp256k1");
@@ -571,12 +569,12 @@ describe("torus utils sapphire devnet", function () {
         privHex
       )
     );
-    expect(result.finalKeyData.privKey).to.be.equal(privHex);
+    expect(result.finalKeyData.privKey).toBe(privHex);
     const result1 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, { verifier: TORUS_TEST_VERIFIER, verifierId: email });
-    expect(result1.finalKeyData.walletAddress).to.be.equal(result.finalKeyData.walletAddress);
+    expect(result1.finalKeyData.walletAddress).toBe(result.finalKeyData.walletAddress);
   });
 
-  it("should fetch pub address of tss verifier id", async function () {
+  it("should fetch pub address of tss verifier id", async () => {
     const email = TORUS_EXTENDED_VERIFIER_EMAIL;
     const nonce = 0;
     const tssTag = "default";
@@ -585,10 +583,10 @@ describe("torus utils sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.metadata.serverTimeOffset).lessThan(20);
+    expect(result.metadata.serverTimeOffset).toBeLessThan(20);
     delete result.metadata.serverTimeOffset;
 
-    expect(result).eql({
+    expect(result).toEqual({
       oAuthKeyData: {
         walletAddress: "0xBd6Bc8aDC5f2A0526078Fd2016C4335f64eD3a30",
         X: "d45d4ad45ec643f9eccd9090c0a2c753b1c991e361388e769c0dfa90c210348c",
@@ -609,7 +607,7 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should assign key to tss verifier id", async function () {
+  it("should assign key to tss verifier id", async () => {
     const email = faker.internet.email();
     const nonce = 0;
     const tssTag = "default";
@@ -618,14 +616,14 @@ describe("torus utils sapphire devnet", function () {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.walletAddress).to.not.equal(null);
-    expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
-    expect(result.metadata.typeOfUser).to.equal("v2");
-    expect(result.metadata.nonce).to.eql(new BN("0"));
-    expect(result.metadata.upgraded).to.equal(false);
+    expect(result.finalKeyData.walletAddress).not.toBe(null);
+    expect(result.oAuthKeyData.walletAddress).not.toBe(null);
+    expect(result.metadata.typeOfUser).toBe("v2");
+    expect(result.metadata.nonce).toEqual(new BN("0"));
+    expect(result.metadata.upgraded).toBe(false);
   });
 
-  it("should allow test tss verifier id to fetch shares", async function () {
+  it("should allow test tss verifier id to fetch shares", async () => {
     const email = faker.internet.email();
     const nonce = 0;
     const tssTag = "default";
@@ -643,23 +641,23 @@ describe("torus utils sapphire devnet", function () {
         nodeDetails.torusNodePub
       )
     );
-    expect(result.finalKeyData.privKey).to.not.equal(null);
-    expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
-    expect(result.metadata.typeOfUser).to.equal("v2");
-    expect(result.metadata.nonce).to.eql(new BN("0"));
-    expect(result.metadata.upgraded).to.equal(true);
+    expect(result.finalKeyData.privKey).not.toBe(null);
+    expect(result.oAuthKeyData.walletAddress).not.toBe(null);
+    expect(result.metadata.typeOfUser).toBe("v2");
+    expect(result.metadata.nonce).toEqual(new BN("0"));
+    expect(result.metadata.upgraded).toBe(true);
   });
 
-  it("should fetch public address when verifierID hash enabled", async function () {
+  it("should fetch public address when verifierID hash enabled", async () => {
     const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_HASH_ENABLED_TEST_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.walletAddress).to.equal("0xF79b5ffA48463eba839ee9C97D61c6063a96DA03");
-    expect(result.metadata.serverTimeOffset).lessThan(20);
+    expect(result.finalKeyData.walletAddress).toBe("0xF79b5ffA48463eba839ee9C97D61c6063a96DA03");
+    expect(result.metadata.serverTimeOffset).toBeLessThan(20);
     delete result.metadata.serverTimeOffset;
 
-    expect(result).eql({
+    expect(result).toEqual({
       oAuthKeyData: {
         walletAddress: "0x4135ad20D2E9ACF37D64E7A6bD8AC34170d51219",
         X: "9c591943683c0e5675f99626cea84153a3c5b72c6e7840f8b8b53d0f2bb50c67",
@@ -684,7 +682,7 @@ describe("torus utils sapphire devnet", function () {
   });
 
   // to do: update pub keys
-  it.skip("should lookup return hash when verifierID hash enabled", async function () {
+  it.skip("should lookup return hash when verifierID hash enabled", async () => {
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: HashEnabledVerifier, verifierId: TORUS_HASH_ENABLED_TEST_EMAIL });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     for (const endpoint of torusNodeEndpoints) {
@@ -692,21 +690,21 @@ describe("torus utils sapphire devnet", function () {
       const pubKeyY = "575b7a4d0ef9921b3b1b84f30d412e87bc69b4eab83f6706e247cceb9e985a1e";
       const response = await lookupVerifier(endpoint, pubKeyX, pubKeyY);
       const verifierID = response.result.verifiers[HashEnabledVerifier][0];
-      expect(verifierID).to.equal("086c23ab78578f2fce9a1da11c0071ec7c2225adb1bf499ffaee98675bee29b7");
+      expect(verifierID).toBe("086c23ab78578f2fce9a1da11c0071ec7c2225adb1bf499ffaee98675bee29b7");
     }
   });
 
-  it("should fetch user type and public address when verifierID hash enabled", async function () {
+  it("should fetch user type and public address when verifierID hash enabled", async () => {
     const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_HASH_ENABLED_TEST_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, verifierDetails);
-    expect(result.finalKeyData.walletAddress).to.equal("0xF79b5ffA48463eba839ee9C97D61c6063a96DA03");
-    expect(result.metadata.serverTimeOffset).lessThan(20);
+    expect(result.finalKeyData.walletAddress).toBe("0xF79b5ffA48463eba839ee9C97D61c6063a96DA03");
+    expect(result.metadata.serverTimeOffset).toBeLessThan(20);
 
     delete result.metadata.serverTimeOffset;
 
-    expect(result).eql({
+    expect(result).toEqual({
       oAuthKeyData: {
         walletAddress: "0x4135ad20D2E9ACF37D64E7A6bD8AC34170d51219",
         X: "9c591943683c0e5675f99626cea84153a3c5b72c6e7840f8b8b53d0f2bb50c67",
@@ -730,7 +728,7 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should be able to login when verifierID hash enabled", async function () {
+  it("should be able to login when verifierID hash enabled", async () => {
     const token = generateIdToken(TORUS_HASH_ENABLED_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: HashEnabledVerifier, verifierId: TORUS_HASH_ENABLED_TEST_EMAIL };
 
@@ -748,8 +746,8 @@ describe("torus utils sapphire devnet", function () {
     );
     delete result.metadata.serverTimeOffset;
 
-    expect(result.finalKeyData.privKey).to.be.equal("066270dfa345d3d0415c8223e045f366b238b50870de7e9658e3c6608a7e2d32");
-    expect(result).eql({
+    expect(result.finalKeyData.privKey).toBe("066270dfa345d3d0415c8223e045f366b238b50870de7e9658e3c6608a7e2d32");
+    expect(result).toEqual({
       finalKeyData: {
         walletAddress: "0xF79b5ffA48463eba839ee9C97D61c6063a96DA03",
         X: "21cd0ae3168d60402edb8bd65c58ff4b3e0217127d5bb5214f03f84a76f24d8a",
@@ -784,7 +782,7 @@ describe("torus utils sapphire devnet", function () {
     });
   });
 
-  it("should be able to aggregate login", async function () {
+  it("should be able to aggregate login", async () => {
     const email = faker.internet.email();
     const idToken = generateIdToken(email, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
@@ -806,18 +804,18 @@ describe("torus utils sapphire devnet", function () {
         nodeDetails.torusNodePub
       )
     );
-    expect(result.metadata.serverTimeOffset).lessThan(20);
+    expect(result.metadata.serverTimeOffset).toBeLessThan(20);
     delete result.metadata.serverTimeOffset;
 
-    expect(result.finalKeyData.walletAddress).to.not.equal(null);
-    expect(result.finalKeyData.walletAddress).to.not.equal("");
-    expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
-    expect(result.metadata.typeOfUser).to.equal("v2");
-    expect(result.metadata.nonce).to.not.equal(null);
-    expect(result.metadata.upgraded).to.equal(false);
+    expect(result.finalKeyData.walletAddress).not.toBe(null);
+    expect(result.finalKeyData.walletAddress).not.toBe("");
+    expect(result.oAuthKeyData.walletAddress).not.toBe(null);
+    expect(result.metadata.typeOfUser).toBe("v2");
+    expect(result.metadata.nonce).not.toBe(null);
+    expect(result.metadata.upgraded).toBe(false);
   });
 
-  it("should be able to login with different accounts and get different addresses for each", async function () {
+  it("should be able to login with different accounts and get different addresses for each", async () => {
     const email1 = faker.internet.email();
     const email2 = faker.internet.email();
 
@@ -856,28 +854,28 @@ describe("torus utils sapphire devnet", function () {
       idToken: hashedIdToken2.substring(2),
       nodePubkeys: nodeDetails2.torusNodePub,
     });
-    expect(result1.metadata.serverTimeOffset).lessThan(20);
+    expect(result1.metadata.serverTimeOffset).toBeLessThan(20);
 
-    expect(result1.finalKeyData.walletAddress).to.not.equal(null);
-    expect(result1.finalKeyData.walletAddress).to.not.equal("");
-    expect(result1.oAuthKeyData.walletAddress).to.not.equal(null);
-    expect(result1.metadata.typeOfUser).to.equal("v2");
-    expect(result1.metadata.nonce).to.not.equal(null);
-    expect(result1.metadata.upgraded).to.equal(false);
+    expect(result1.finalKeyData.walletAddress).not.toBe(null);
+    expect(result1.finalKeyData.walletAddress).not.toBe("");
+    expect(result1.oAuthKeyData.walletAddress).not.toBe(null);
+    expect(result1.metadata.typeOfUser).toBe("v2");
+    expect(result1.metadata.nonce).not.toBe(null);
+    expect(result1.metadata.upgraded).toBe(false);
 
-    expect(result2.metadata.serverTimeOffset).lessThan(20);
+    expect(result2.metadata.serverTimeOffset).toBeLessThan(20);
 
-    expect(result2.finalKeyData.walletAddress).to.not.equal(null);
-    expect(result2.finalKeyData.walletAddress).to.not.equal("");
-    expect(result2.oAuthKeyData.walletAddress).to.not.equal(null);
-    expect(result2.metadata.typeOfUser).to.equal("v2");
-    expect(result2.metadata.nonce).to.not.equal(null);
-    expect(result2.metadata.upgraded).to.equal(false);
+    expect(result2.finalKeyData.walletAddress).not.toBe(null);
+    expect(result2.finalKeyData.walletAddress).not.toBe("");
+    expect(result2.oAuthKeyData.walletAddress).not.toBe(null);
+    expect(result2.metadata.typeOfUser).toBe("v2");
+    expect(result2.metadata.nonce).not.toBe(null);
+    expect(result2.metadata.upgraded).toBe(false);
 
-    expect(result2.finalKeyData.walletAddress).to.not.equal(result1.finalKeyData.walletAddress);
+    expect(result2.finalKeyData.walletAddress).not.toBe(result1.finalKeyData.walletAddress);
   });
 
-  it("should be able to login with the same account repeatedly and get the same address", async function () {
+  it("should be able to login with the same account repeatedly and get the same address", async () => {
     const addresses = [];
     const iterations = 5;
     const email = faker.internet.email();
@@ -900,60 +898,64 @@ describe("torus utils sapphire devnet", function () {
         idToken: hashedIdToken.substring(2),
         nodePubkeys: nodeDetails.torusNodePub,
       });
-      expect(result.metadata.serverTimeOffset).lessThan(20);
+      expect(result.metadata.serverTimeOffset).toBeLessThan(20);
       delete result.metadata.serverTimeOffset;
 
-      expect(result.finalKeyData.walletAddress).to.not.equal(null);
-      expect(result.finalKeyData.walletAddress).to.not.equal("");
-      expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
-      expect(result.metadata.typeOfUser).to.equal("v2");
-      expect(result.metadata.nonce).to.not.equal(null);
-      expect(result.metadata.upgraded).to.equal(false);
+      expect(result.finalKeyData.walletAddress).not.toBe(null);
+      expect(result.finalKeyData.walletAddress).not.toBe("");
+      expect(result.oAuthKeyData.walletAddress).not.toBe(null);
+      expect(result.metadata.typeOfUser).toBe("v2");
+      expect(result.metadata.nonce).not.toBe(null);
+      expect(result.metadata.upgraded).toBe(false);
 
       addresses.push(result.finalKeyData.walletAddress);
     }
     const set = new Set(addresses);
-    expect(set.size).to.equal(1);
+    expect(set.size).toBe(1);
   });
 
-  it("should be able to login with a fixed set of different accounts repeatedly and get a constant set of addresses", async function () {
-    const addresses = [];
-    const iterations = 5;
-    for (let i = 0; i <= iterations; i++) {
-      const email = faker.internet.email();
-      for (let k = 0; k <= iterations; k++) {
-        const idToken = generateIdToken(email, "ES256");
-        const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
-        const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
+  it(
+    "should be able to login with a fixed set of different accounts repeatedly and get a constant set of addresses",
+    { timeout: 20000 },
+    async () => {
+      const addresses = [];
+      const iterations = 5;
+      for (let i = 0; i <= iterations; i++) {
+        const email = faker.internet.email();
+        for (let k = 0; k <= iterations; k++) {
+          const idToken = generateIdToken(email, "ES256");
+          const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+          const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
 
-        const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
-        const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
-        const result = await torus.retrieveShares({
-          endpoints: torusNodeEndpoints,
-          indexes: nodeDetails.torusIndexes,
-          verifier: TORUS_TEST_AGGREGATE_VERIFIER,
-          verifierParams: {
-            verify_params: [{ verifier_id: email, idtoken: idToken }],
-            sub_verifier_ids: [TORUS_TEST_VERIFIER],
-            verifier_id: email,
-          },
-          idToken: hashedIdToken.substring(2),
-          nodePubkeys: nodeDetails.torusNodePub,
-        });
-        expect(result.metadata.serverTimeOffset).lessThan(20);
-        delete result.metadata.serverTimeOffset;
+          const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+          const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+          const result = await torus.retrieveShares({
+            endpoints: torusNodeEndpoints,
+            indexes: nodeDetails.torusIndexes,
+            verifier: TORUS_TEST_AGGREGATE_VERIFIER,
+            verifierParams: {
+              verify_params: [{ verifier_id: email, idtoken: idToken }],
+              sub_verifier_ids: [TORUS_TEST_VERIFIER],
+              verifier_id: email,
+            },
+            idToken: hashedIdToken.substring(2),
+            nodePubkeys: nodeDetails.torusNodePub,
+          });
+          expect(result.metadata.serverTimeOffset).toBeLessThan(20);
+          delete result.metadata.serverTimeOffset;
 
-        expect(result.finalKeyData.walletAddress).to.not.equal(null);
-        expect(result.finalKeyData.walletAddress).to.not.equal("");
-        expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
-        expect(result.metadata.typeOfUser).to.equal("v2");
-        expect(result.metadata.nonce).to.not.equal(null);
-        expect(result.metadata.upgraded).to.equal(false);
+          expect(result.finalKeyData.walletAddress).not.toBe(null);
+          expect(result.finalKeyData.walletAddress).not.toBe("");
+          expect(result.oAuthKeyData.walletAddress).not.toBe(null);
+          expect(result.metadata.typeOfUser).toBe("v2");
+          expect(result.metadata.nonce).not.toBe(null);
+          expect(result.metadata.upgraded).toBe(false);
 
-        addresses.push(result.finalKeyData.walletAddress);
+          addresses.push(result.finalKeyData.walletAddress);
+        }
       }
+      const set = new Set(addresses);
+      expect(set.size).toBe(6);
     }
-    const set = new Set(addresses);
-    expect(set.size).to.equal(6);
-  });
+  );
 });

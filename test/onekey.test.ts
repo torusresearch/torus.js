@@ -2,7 +2,7 @@ import { faker } from "@faker-js/faker";
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
-import { expect } from "chai";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { keccak256, TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
@@ -15,10 +15,10 @@ const TORUS_TEST_EMAIL = "hello@tor.us";
 const TORUS_TEST_VERIFIER = "torus-test-health";
 const TORUS_TEST_AGGREGATE_VERIFIER = "torus-test-health-aggregate";
 
-describe("torus onekey", function () {
+describe("torus onekey", () => {
   let torus: TorusUtils;
 
-  beforeEach("one time execution before all tests", async function () {
+  beforeEach(() => {
     torus = new TorusUtils({
       enableOneKey: true,
       network: TORUS_LEGACY_NETWORK.TESTNET,
@@ -26,17 +26,17 @@ describe("torus onekey", function () {
     });
   });
 
-  it("should still fetch v1 public address correctly", async function () {
-    const verifier = "google-lrc"; // any verifier
+  it("should still fetch v1 public address correctly", async () => {
+    const verifier = "google-lrc";
     const verifierDetails = { verifier, verifierId: "himanshu@tor.us" };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
-    expect(publicAddress.finalKeyData.walletAddress).to.be.equal("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
-    expect(publicAddress.metadata.serverTimeOffset).lessThan(20);
+    expect(publicAddress.finalKeyData.walletAddress).toBe("0x930abEDDCa6F9807EaE77A3aCc5c78f20B168Fd1");
+    expect(publicAddress.metadata.serverTimeOffset).toBeLessThan(20);
 
     delete publicAddress.metadata.serverTimeOffset;
 
-    expect(publicAddress).eql({
+    expect(publicAddress).toEqual({
       oAuthKeyData: {
         walletAddress: "0xf1e76fcDD28b5AA06De01de508fF21589aB9017E",
         X: "b3f2b4d8b746353fe670e0c39ac9adb58056d4d7b718d06b623612d4ec49268b",
@@ -57,19 +57,18 @@ describe("torus onekey", function () {
     });
   });
 
-  it("should still login v1 account correctly", async function () {
+  it("should still login v1 account correctly", async () => {
     const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(
       getRetrieveSharesParams(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: TORUS_TEST_EMAIL }, token, torusNodePub)
     );
-    expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
-
+    expect(retrieveSharesResponse.metadata.serverTimeOffset).toBeLessThan(20);
     delete retrieveSharesResponse.metadata.serverTimeOffset;
 
-    expect(retrieveSharesResponse.finalKeyData.privKey).to.be.equal("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
-    expect(retrieveSharesResponse).eql({
+    expect(retrieveSharesResponse.finalKeyData.privKey).toBe("296045a5599afefda7afbdd1bf236358baff580a0fe2db62ae5c1bbe817fbae4");
+    expect(retrieveSharesResponse).toEqual({
       finalKeyData: {
         walletAddress: "0x53010055542cCc0f2b6715a5c53838eC4aC96EF7",
         X: "3fa78a0bfb9ec48810bf1ee332360def2600c4aef528ff8b1e49a0d304722c91",
@@ -104,7 +103,7 @@ describe("torus onekey", function () {
     });
   });
 
-  it("should still aggregate account v1 user correctly", async function () {
+  it("should still aggregate account v1 user correctly", async () => {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
     const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
@@ -123,12 +122,11 @@ describe("torus onekey", function () {
         torusNodePub
       )
     );
-    expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
-
+    expect(retrieveSharesResponse.metadata.serverTimeOffset).toBeLessThan(20);
     delete retrieveSharesResponse.metadata.serverTimeOffset;
 
-    expect(retrieveSharesResponse.finalKeyData.walletAddress).to.be.equal("0xE1155dB406dAD89DdeE9FB9EfC29C8EedC2A0C8B");
-    expect(retrieveSharesResponse).eql({
+    expect(retrieveSharesResponse.finalKeyData.walletAddress).toBe("0xE1155dB406dAD89DdeE9FB9EfC29C8EedC2A0C8B");
+    expect(retrieveSharesResponse).toEqual({
       finalKeyData: {
         walletAddress: "0xE1155dB406dAD89DdeE9FB9EfC29C8EedC2A0C8B",
         X: "78658b2671f1bd6a488baf2afb8ce6f8d8b9a1a70842130b3c8756a9d51d9723",
@@ -163,21 +161,21 @@ describe("torus onekey", function () {
     });
   });
 
-  it("should be able to key assign", async function () {
-    const verifier = TORUS_TEST_VERIFIER; // any verifier
+  it("should be able to key assign", async () => {
+    const verifier = TORUS_TEST_VERIFIER;
     const email = faker.internet.email();
     const verifierDetails = { verifier, verifierId: email };
     const { torusNodeEndpoints, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const publicAddress = (await torus.getPublicAddress(torusNodeEndpoints, torusNodePub, verifierDetails)) as TorusPublicKey;
-    expect(publicAddress.metadata.typeOfUser).to.equal("v2");
-    expect(publicAddress.metadata.upgraded).to.equal(false);
-    expect(publicAddress.finalKeyData.walletAddress).to.not.equal("");
-    expect(publicAddress.finalKeyData.walletAddress).to.not.equal(null);
-    expect(publicAddress.oAuthKeyData.walletAddress).to.not.equal("");
-    expect(publicAddress.oAuthKeyData.walletAddress).to.not.equal(null);
+    expect(publicAddress.metadata.typeOfUser).toBe("v2");
+    expect(publicAddress.metadata.upgraded).toBe(false);
+    expect(publicAddress.finalKeyData.walletAddress).not.toBe("");
+    expect(publicAddress.finalKeyData.walletAddress).not.toBeNull();
+    expect(publicAddress.oAuthKeyData.walletAddress).not.toBe("");
+    expect(publicAddress.oAuthKeyData.walletAddress).not.toBeNull();
   });
 
-  it("should be able to key assign via login", async function () {
+  it("should be able to key assign via login", async () => {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
@@ -185,16 +183,16 @@ describe("torus onekey", function () {
     const result = await torus.retrieveShares(
       getRetrieveSharesParams(torusNodeEndpoints, torusIndexes, TORUS_TEST_VERIFIER, { verifier_id: email }, token, torusNodePub)
     );
-    expect(!result.metadata.nonce.eq(new BN("0")));
-    expect(result.metadata.typeOfUser).to.equal("v2");
-    expect(result.metadata.upgraded).to.equal(false);
-    expect(result.finalKeyData.walletAddress).to.not.equal("");
-    expect(result.finalKeyData.walletAddress).to.not.equal(null);
-    expect(result.oAuthKeyData.walletAddress).to.not.equal("");
-    expect(result.oAuthKeyData.walletAddress).to.not.equal(null);
+    expect(!result.metadata.nonce.eq(new BN("0"))).toBe(true);
+    expect(result.metadata.typeOfUser).toBe("v2");
+    expect(result.metadata.upgraded).toBe(false);
+    expect(result.finalKeyData.walletAddress).not.toBe("");
+    expect(result.finalKeyData.walletAddress).not.toBeNull();
+    expect(result.oAuthKeyData.walletAddress).not.toBe("");
+    expect(result.oAuthKeyData.walletAddress).not.toBeNull();
   });
 
-  it("should still login v2 account correctly", async function () {
+  it("should still login v2 account correctly", async () => {
     const token = generateIdToken("Jonathan.Nolan@hotmail.com", "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "Jonathan.Nolan@hotmail.com" };
     const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
@@ -208,12 +206,12 @@ describe("torus onekey", function () {
         torusNodePub
       )
     );
-    expect(retrieveSharesResponse.metadata.serverTimeOffset).lessThan(20);
+    expect(retrieveSharesResponse.metadata.serverTimeOffset).toBeLessThan(20);
     delete retrieveSharesResponse.metadata.serverTimeOffset;
 
-    expect(retrieveSharesResponse.finalKeyData.privKey).to.be.equal("9ec5b0504e252e35218c7ce1e4660eac190a1505abfbec7102946f92ed750075");
-    expect(retrieveSharesResponse.finalKeyData.walletAddress).to.be.equal("0x2876820fd9536BD5dd874189A85d71eE8bDf64c2");
-    expect(retrieveSharesResponse).eql({
+    expect(retrieveSharesResponse.finalKeyData.privKey).toBe("9ec5b0504e252e35218c7ce1e4660eac190a1505abfbec7102946f92ed750075");
+    expect(retrieveSharesResponse.finalKeyData.walletAddress).toBe("0x2876820fd9536BD5dd874189A85d71eE8bDf64c2");
+    expect(retrieveSharesResponse).toEqual({
       finalKeyData: {
         walletAddress: "0x2876820fd9536BD5dd874189A85d71eE8bDf64c2",
         X: "ad4c223520aac9bc3ec72399869601fd59f29363471131914e2ed2bc4ba46e54",
