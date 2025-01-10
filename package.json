@@ -24,8 +24,8 @@
     "@babel/runtime": "7.x"
   },
   "dependencies": {
-    "@toruslabs/constants": "^14.2.0",
     "@toruslabs/bs58": "^1.0.0",
+    "@toruslabs/constants": "^14.2.0",
     "@toruslabs/eccrypto": "^6.0.0",
     "@toruslabs/http-helpers": "^7.0.1",
     "bn.js": "^5.2.1",
@@ -37,6 +37,7 @@
   "devDependencies": {
     "@babel/register": "^7.25.9",
     "@babel/runtime": "^7.26.0",
+    "@faker-js/faker": "^9.3.0",
     "@toruslabs/config": "^3.0.0",
     "@toruslabs/eslint-config-typescript": "^4.0.2",
     "@toruslabs/fetch-node-details": "^14.2.0",
@@ -47,11 +48,11 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/mocha": "^10.0.10",
     "@types/sinon": "^17.0.3",
+    "@vitest/coverage-istanbul": "^2.1.8",
     "chai": "^5.1.2",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "eslint": "^9.17.0",
-    "@faker-js/faker": "^9.3.0",
     "husky": "^9.1.7",
     "jsonwebtoken": "^9.0.2",
     "lint-staged": "^15.3.0",
@@ -60,7 +61,8 @@
     "rimraf": "^6.0.1",
     "sinon": "^19.0.2",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
   },
   "repository": {
     "type": "git",
