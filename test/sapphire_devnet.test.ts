@@ -916,7 +916,7 @@ describe("torus utils sapphire devnet", () => {
 
   it(
     "should be able to login with a fixed set of different accounts repeatedly and get a constant set of addresses",
-    { timeout: 20000 },
+    { timeout: 60000 },
     async () => {
       const addresses = [];
       const iterations = 5;
