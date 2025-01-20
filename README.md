@@ -30,8 +30,8 @@ This library handles these checks and allows you to query the Torus network easi
 
 This module is distributed in 3 formats
 
-- `esm` build `dist/torusUtils.esm.js` in es6 format
-- `commonjs` build `dist/torusUtils.cjs.js` in es5 format
+- `lib.esm` build `dist/lib.esm/index.js` in es6 format
+- `lib.cjs` build `dist/lib.cjs/index.js` in es5 format
 - `umd` build `dist/torusUtils.umd.min.js` in es5 format without polyfilling corejs minified
 
 By default, the appropriate format is used for your specified usecase
