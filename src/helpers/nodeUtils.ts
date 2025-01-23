@@ -451,28 +451,16 @@ export async function retrieveOrImportShare(params: {
       nodeSigs.map((x) => x && x.pub_key_x),
       halfThreshold
     );
-  } else if (!checkCommitment && finalImportedShares.length > 0) {
-    // in case not allowed to override existing key for import request
-    // check if key exists
-    if (!overrideExistingKey) {
-      const keyLookupResult = await VerifierLookupRequest({ endpoints, verifier, verifierId: verifierParams.verifier_id, keyType });
-      if (
-        keyLookupResult.errorResult &&
-        !(keyLookupResult.errorResult?.data as string)?.includes("Verifier + VerifierID has not yet been assigned")
-      ) {
-        throw new Error(
-          `node results do not match at first lookup ${JSON.stringify(keyLookupResult.keyResult || {})}, ${JSON.stringify(keyLookupResult.errorResult || {})}`
-        );
-      }
-      if (keyLookupResult.keyResult?.keys?.length > 0) {
-        isExistingKey = !!keyLookupResult.keyResult.keys[0];
-      }
-    }
   }
+  let isImportingShares = false;
+
   const promiseArrRequest = [];
 
-  const canImportedShares = overrideExistingKey || (!useDkg && !isExistingKey);
-  if (canImportedShares) {
+  // if dkg is not used, we need to get existing key or import new shares from client
+  const getExistingKeyOrImportNewShares = !useDkg;
+  if (overrideExistingKey) {
+    console.log("importing new shares");
+    isImportingShares = true;
     const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
     const items: Record<string, unknown>[] = [];
     for (let i = 0; i < endpoints.length; i += 1) {
@@ -515,7 +503,55 @@ export async function retrieveOrImportShare(params: {
       { logTracingHeader: config.logRequestTracing }
     ).catch((err) => log.error("share req", err));
     promiseArrRequest.push(p);
+  } else if (getExistingKeyOrImportNewShares) {
+    console.log("importing new shares or fetch existing key");
+
+    isImportingShares = true;
+    const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
+    const items: Record<string, unknown>[] = [];
+    for (let i = 0; i < endpoints.length; i += 1) {
+      const importedShare = finalImportedShares[i];
+      if (!importedShare) {
+        throw new Error(`invalid imported share at index ${i}`);
+      }
+      items.push({
+        ...verifierParams,
+        idtoken: idToken,
+        nodesignatures: nodeSigs,
+        verifieridentifier: verifier,
+        pub_key_x: importedShare.oauth_pub_key_x,
+        pub_key_y: importedShare.oauth_pub_key_y,
+        signing_pub_key_x: importedShare.signing_pub_key_x,
+        signing_pub_key_y: importedShare.signing_pub_key_y,
+        encrypted_share: importedShare.encrypted_share,
+        encrypted_share_metadata: importedShare.encrypted_share_metadata,
+        node_index: importedShare.node_index,
+        key_type: importedShare.key_type,
+        nonce_data: importedShare.nonce_data,
+        nonce_signature: importedShare.nonce_signature,
+        sss_endpoint: endpoints[i],
+        ...extraParams,
+      });
+    }
+    const p = post<JRPCResponse<ImportShareRequestResult[]>>(
+      endpoints[proxyEndpointNum],
+      generateJsonRPCObject(JRPC_METHODS.GET_KEY_OR_IMPORT_SHARES, {
+        encrypted: "yes",
+        use_temp: true,
+        verifieridentifier: verifier,
+        distributed_metadata: true,
+        temppubx: nodeSigs.length === 0 && !checkCommitment ? sessionPubX : "", // send session pub key x only if node signatures are not available (Ie. in non commitment flow)
+        temppuby: nodeSigs.length === 0 && !checkCommitment ? sessionPubY : "", // send session pub key y only if node signatures are not available (Ie. in non commitment flow)
+        item: items,
+        key_type: keyType,
+        one_key_flow: true,
+      }),
+      {},
+      { logTracingHeader: config.logRequestTracing }
+    ).catch((err) => log.error("share req", err));
+    promiseArrRequest.push(p);
   } else {
+    console.log("fetch existing shares or assign new key with dkg");
     for (let i = 0; i < endpoints.length; i += 1) {
       const p = post<JRPCResponse<ShareRequestResult>>(
         endpoints[i],
@@ -610,7 +646,7 @@ export async function retrieveOrImportShare(params: {
       }
     });
 
-    const thresholdReqCount = canImportedShares ? endpoints.length : halfThreshold;
+    const thresholdReqCount = isImportingShares && !isExistingKey ? endpoints.length : halfThreshold;
     // optimistically run lagrange interpolation once threshold number of shares have been received
     // this is matched against the user public key to ensure that shares are consistent
     // Note: no need of thresholdMetadataNonce for extended_verifier_id key
