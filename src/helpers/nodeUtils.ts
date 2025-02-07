@@ -459,7 +459,6 @@ export async function retrieveOrImportShare(params: {
   // if dkg is not used, we need to get existing key or import new shares from client
   const getExistingKeyOrImportNewShares = !useDkg;
   if (overrideExistingKey) {
-    console.log("importing new shares");
     isImportingShares = true;
     const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
     const items: Record<string, unknown>[] = [];
@@ -504,9 +503,6 @@ export async function retrieveOrImportShare(params: {
     ).catch((err) => log.error("share req", err));
     promiseArrRequest.push(p);
   } else if (getExistingKeyOrImportNewShares) {
-    console.log("importing new shares or fetch existing key");
-
-    isImportingShares = true;
     const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
     const items: Record<string, unknown>[] = [];
     for (let i = 0; i < endpoints.length; i += 1) {
@@ -551,7 +547,6 @@ export async function retrieveOrImportShare(params: {
     ).catch((err) => log.error("share req", err));
     promiseArrRequest.push(p);
   } else {
-    console.log("fetch existing shares or assign new key with dkg");
     for (let i = 0; i < endpoints.length; i += 1) {
       const p = post<JRPCResponse<ShareRequestResult>>(
         endpoints[i],
