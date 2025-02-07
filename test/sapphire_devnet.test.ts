@@ -316,22 +316,18 @@ describe("torus utils sapphire devnet", function () {
   });
 
   it("should be able to login", async function () {
-    const email = `${faker.internet.email()}`;
-
-    const token = generateIdToken(email, "ES256");
-    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
+    const token = generateIdToken(TORUS_TEST_EMAIL, "ES256");
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_TEST_EMAIL });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
     const result = await torus.retrieveShares(
       getRetrieveSharesParams(
         torusNodeEndpoints,
         nodeDetails.torusIndexes,
         TORUS_TEST_VERIFIER,
-        { verifier_id: email },
+        { verifier_id: TORUS_TEST_EMAIL },
         token,
         nodeDetails.torusNodePub,
-        {},
-        false,
-        false
+        {}
       )
     );
     expect(result.metadata.serverTimeOffset).lessThan(20);
