@@ -381,7 +381,7 @@ describe("torus utils sapphire devnet", function () {
         token,
         nodeDetails.torusNodePub,
         {},
-        true,
+        false,
         false
       )
     );

@@ -456,9 +456,11 @@ export async function retrieveOrImportShare(params: {
 
   const promiseArrRequest = [];
 
-  // if dkg is not used, we need to get existing key or import new shares from client
-  const getExistingKeyOrImportNewShares = !useDkg;
+  // if dkg is not used and may be its not a existing key,
+  // we need to get existing key or import new shares from client
+  const getExistingKeyOrImportNewShares = !useDkg && !isExistingKey;
   if (overrideExistingKey) {
+    // import new key flow
     isImportingShares = true;
     const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
     const items: Record<string, unknown>[] = [];
@@ -503,6 +505,7 @@ export async function retrieveOrImportShare(params: {
     ).catch((err) => log.error("share req", err));
     promiseArrRequest.push(p);
   } else if (getExistingKeyOrImportNewShares) {
+    // no dkg login and registration flow
     const proxyEndpointNum = getProxyCoordinatorEndpointIndex(endpoints, verifier, verifierParams.verifier_id);
     const items: Record<string, unknown>[] = [];
     for (let i = 0; i < endpoints.length; i += 1) {
@@ -547,6 +550,7 @@ export async function retrieveOrImportShare(params: {
     ).catch((err) => log.error("share req", err));
     promiseArrRequest.push(p);
   } else {
+    // dkg login and registration flow
     for (let i = 0; i < endpoints.length; i += 1) {
       const p = post<JRPCResponse<ShareRequestResult>>(
         endpoints[i],

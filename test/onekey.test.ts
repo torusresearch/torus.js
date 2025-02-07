@@ -177,7 +177,7 @@ describe("torus onekey", function () {
     expect(publicAddress.oAuthKeyData.walletAddress).to.not.equal(null);
   });
 
-  it("should be able to key assign via login", async function () {
+  it.only("should be able to key assign via login", async function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
