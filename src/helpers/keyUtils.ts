@@ -13,26 +13,6 @@ import { encParamsBufToHex, generatePrivateKey, getKeyCurve, keccak256 } from ".
 import { generateRandomPolynomial } from "./langrangeInterpolatePoly";
 import { generateNonceMetadataParams, getSecpKeyFromEd25519 } from "./metadataUtils";
 
-const secp256k1EC = new EC("secp256k1");
-const ed25519EC = new EC("ed25519");
-
-/**
- * Returns the correct elliptic curve for the given keyType.
- *
- * @param keyType - The key type to get the curve for.
- * @throws \{Error\} If the keyType is not valid.
- * @returns \{EC\} The elliptic curve.
- *
- */
-export const getEcCurve = (keyType: KeyType): EC => {
-  if (keyType === KEY_TYPE.SECP256K1) {
-    return secp256k1EC;
-  } else if (keyType === KEY_TYPE.ED25519) {
-    return ed25519EC;
-  }
-  throw new Error(`Invalid keyType: ${keyType}`);
-};
-
 export function stripHexPrefix(str: string): string {
   return str.startsWith("0x") ? str.slice(2) : str;
 }

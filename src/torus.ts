@@ -16,8 +16,8 @@ import {
   encodeEd25519Point,
   generateAddressFromPubKey,
   generateShares,
-  getEcCurve,
   getEd25519ExtendedPublicKey,
+  getKeyCurve,
   getMetadata,
   getOrSetNonce,
   GetOrSetNonceError,
@@ -269,7 +269,7 @@ class Torus {
     enableOneKey: boolean
   ): Promise<TorusPublicKey> {
     const localKeyType = keyType ?? this.keyType;
-    const localEc = getEcCurve(localKeyType);
+    const localEc = getKeyCurve(localKeyType);
 
     const keyAssignResult = await GetPubKeyOrKeyAssign({
       endpoints,
@@ -375,7 +375,7 @@ class Torus {
   }): Promise<TorusPublicKey> {
     const { finalKeyResult, enableOneKey, isNewKey, serverTimeOffset, keyType } = params;
     const localKeyType = keyType ?? this.keyType;
-    const localEc = getEcCurve(localKeyType);
+    const localEc = getKeyCurve(localKeyType);
 
     const { pub_key_X: X, pub_key_Y: Y } = finalKeyResult.keys[0];
     let nonceResult: GetOrSetNonceResult;

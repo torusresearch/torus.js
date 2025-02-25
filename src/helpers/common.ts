@@ -16,11 +16,14 @@ export const generatePrivateKey = (ecCurve: EC, buf: typeof Buffer): Buffer => {
   return ecCurve.genKeyPair().getPrivate().toArrayLike(buf);
 };
 
+const secp256k1EC = new EC("secp256k1");
+const ed25519EC = new EC("ed25519");
+
 export const getKeyCurve = (keyType: KeyType) => {
-  if (keyType === KEY_TYPE.ED25519) {
-    return new EC(KEY_TYPE.ED25519);
-  } else if (keyType === KEY_TYPE.SECP256K1) {
-    return new EC(KEY_TYPE.SECP256K1);
+  if (keyType === KEY_TYPE.SECP256K1) {
+    return secp256k1EC;
+  } else if (keyType === KEY_TYPE.ED25519) {
+    return ed25519EC;
   }
   throw new Error(`Invalid keyType: ${keyType}`);
 };
