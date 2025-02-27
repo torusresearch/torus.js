@@ -357,7 +357,8 @@ describe("torus utils sapphire devnet", function () {
         TORUS_TEST_VERIFIER,
         { verifier_id: TORUS_TEST_EMAIL },
         token,
-        nodeDetails.torusNodePub
+        nodeDetails.torusNodePub,
+        {}
       )
     );
     expect(result.metadata.serverTimeOffset).lessThan(20);
@@ -411,7 +412,7 @@ describe("torus utils sapphire devnet", function () {
         token,
         nodeDetails.torusNodePub,
         {},
-        true,
+        false,
         false
       )
     );

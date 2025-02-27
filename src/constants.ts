@@ -4,6 +4,7 @@ export const JRPC_METHODS = {
   COMMITMENT_REQUEST: "CommitmentRequest",
   IMPORT_SHARES: "ImportShares",
   GET_SHARE_OR_KEY_ASSIGN: "GetShareOrKeyAssign",
+  GET_KEY_OR_IMPORT_SHARES: "GetKeyOrImportShares",
 };
 
 export const SAPPHIRE_METADATA_URL = "https://node-1.node.web3auth.io/metadata";
