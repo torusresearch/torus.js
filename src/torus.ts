@@ -272,6 +272,10 @@ class Torus {
     const localKeyType = keyType ?? this.keyType;
     const localEc = getKeyCurve(localKeyType);
 
+    if (localKeyType === KEY_TYPE.ED25519 && LEGACY_NETWORKS_ROUTE_MAP[this.network as TORUS_LEGACY_NETWORK_TYPE]) {
+      throw new Error(`keyType: ${keyType} is not supported by ${this.network} network`);
+    }
+
     const keyAssignResult = await GetPubKeyOrKeyAssign({
       endpoints,
       network: this.network,
