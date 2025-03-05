@@ -3,10 +3,10 @@ import { JRPCResponse, KEY_TYPE } from "@toruslabs/constants";
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import log from "loglevel";
 
-import { JRPC_METHODS } from "../constants";
-import { GetORSetKeyResponse, KeyType } from "../interfaces";
-import { Some } from "../some";
-import { normalizeKeysResult, thresholdSame } from "./common";
+import { JRPC_METHODS } from "../../src/constants";
+import { normalizeKeysResult, thresholdSame } from "../../src/helpers/common";
+import { GetORSetKeyResponse, KeyType } from "../../src/interfaces";
+import { Some } from "../../src/some";
 
 // for ex: [https://node-1.node.web3auth.io/sss/jrpc, https://node-2.node.web3auth.io/sss/jrpc ....]
 export const GetOrSetTssDKGPubKey = async (params: {

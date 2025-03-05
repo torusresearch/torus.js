@@ -3,7 +3,7 @@ import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import { expect } from "chai";
 
-import { GetOrSetTssDKGPubKey } from "../src";
+import { GetOrSetTssDKGPubKey } from "./utils/tssPubKeyUtils";
 
 describe("setTssKey", function () {
   const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
