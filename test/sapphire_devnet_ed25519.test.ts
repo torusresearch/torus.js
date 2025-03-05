@@ -164,28 +164,28 @@ describe("torus utils ed25519 sapphire devnet", function () {
     delete result.sessionData;
     expect(result).eql({
       oAuthKeyData: {
-        walletAddress: "HV19ETHePfCtZK55Bo5znHXLfd46nu4AQbjtbYumY7ea",
-        X: "1f5f95f5af0a67b4af731608fdb26115efcb011dcf64a355bf2442e4ec058ae0",
-        Y: "33f3317a574a5444b78aecc56dd894a56d1fbb90134bc7c63d0f9d11f969e7f4",
-        privKey: "07b1ff9ec97c93ac3d5125db8283ec0b22056623d0a9407a48c9def302db07b7",
+        walletAddress: "CmbriSJicm3fga5cTtwWEmZxC2eMzXbntZRt7CMNoo1w",
+        X: "10249abbadc55312ce60f8a6ef522f3c1f076f5df33f0017f9d30116a5793b98",
+        Y: "6e613d07eaaaec03430ff89498044a53e18317a9ab5b897d8122b51d5f86ddae",
+        privKey: "08fcf6cc843ea4ad9d7b314ca57b3fdc8bccf9293d7a3fb70dd3f7ea8c506fec",
       },
       postboxKeyData: {
-        X: "a7fa19a07eb387e3b1a95843f7d56f8ca88d11c632c4f53b8554068876451d27",
-        Y: "6ddc5c79c28d197991ecf9304b4e66ecc2e98dcf3cb73ec3c79953bd87e4a6ff",
-        privKey: "fa5efb87dbdcea273654342d622fcbfa087f4a572caf76d2214e00a8732c6ddf",
+        X: "ae706aa0becae4b1d6435a42010bdc616254e136d5054bdf431a04e36068fa1c",
+        Y: "c54dc56e25661c227ad5bfab26368da7fce8629f22c127b24b2c2db93a3c45f1",
+        privKey: "4a0629fffdec0303b76e5e8dfabf21edd4e1957e234e180b7767453a0b301bd0",
       },
       finalKeyData: {
-        walletAddress: "Dp6eiDQs7LbHLVATSEaA7NUm9DkEAZTXdzXy13vbYoq8",
-        X: "2cfc2713bd866494690b50d0cb1500878903130a0a1a31fae1ffa5f8cd436407",
-        Y: "775cc21e123af488ad2c1fd70b22f9427a0596691c991186d42e69fa08ee5cbe",
-        privKey: "cfe3a737880b01da41765e90466400512564bf3e12648e8e715ae54b53b1e11b",
+        walletAddress: "6jNaYT5c1EgYaASeBte79hSQ1m1FKq6fsAzMo8SgxpiF",
+        X: "3c244876ef8205fdc66d4a2f6d460945a9dbdbcb149519a5fbd33a4f4b1f99ae",
+        Y: "5c4c708d2b09c114f0b5c4d3a002b0c26b3d6ba49eb1e57c8e67b1ba2f3a2555",
+        privKey: "7cfc7bfbf35aaf17ecf1a7fed0688eba887993dcc987a03c69ee26e2d70e5c90",
       },
       metadata: {
         pubNonce: {
-          X: "78f007266e249301a241bcb72dba7d305f41f11a432dd8f4dec22c9a0035b3ac",
-          Y: "7e0545c176528910726ad528e12e1fa39e106ad06957e807a2660c9214596d33",
+          X: "6afdf51271677bc31c38ee8e540e74f2f77252814bcaf547f1038a6df620dc0f",
+          Y: "1a58d067a52bd15447cbfd31cc2e8c67231e5883d245dbf03d83bb0c91d4fe68",
         },
-        nonce: new BN("58c39dd2c8dcdbd740b758623c88b9dfb36d6e3b590d073a1456c0268af8270", "hex"),
+        nonce: new BN("2d19eb6bd599c6dd1473e821b1de1982f10ee7b53e9b303067e1edc42538c19", "hex"),
         typeOfUser: "v2",
         upgraded: false,
       },
