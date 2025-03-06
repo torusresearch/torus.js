@@ -89,6 +89,7 @@ export interface CommitmentRequestResult {
   nodeindex: string;
   pub_key_x: string;
 }
+
 export interface JRPCResponse<T> {
   id: number;
   jsonrpc: "2.0";

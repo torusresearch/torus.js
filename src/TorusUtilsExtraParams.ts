@@ -1,8 +1,4 @@
-export interface TorusUtilsExtraParams {
-  nonce?: string; // farcaster
-
-  message?: string; // farcaster
-
+export interface TorusUtilsPasskeyExtraParams {
   signature?: string; // farcaster, passkey, webauthn
 
   clientDataJson?: string; // passkey, webauthn
@@ -16,6 +12,13 @@ export interface TorusUtilsExtraParams {
   rpOrigin?: string; // passkey, webauthn
 
   rpId?: string; // passkey, webauthn
+}
+export interface TorusUtilsExtraParams extends TorusUtilsPasskeyExtraParams {
+  nonce?: string; // farcaster
+
+  message?: string; // farcaster
+
+  signature?: string; // farcaster, passkey, webauthn
 
   session_token_exp_second?: number;
 
