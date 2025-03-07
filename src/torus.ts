@@ -6,6 +6,7 @@ import {
   getKeyCurve,
   getMetadata,
   getOrSetNonce,
+  GetOrSetNonceError,
 } from "@toruslabs/common-lib";
 import {
   INodePub,
@@ -21,7 +22,7 @@ import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 
 import { config } from "./config";
-import { GetOrSetNonceError, GetPubKeyOrKeyAssign, retrieveOrImportShare } from "./helpers";
+import { GetPubKeyOrKeyAssign, retrieveOrImportShare } from "./helpers";
 import {
   GetOrSetNonceResult,
   ImportKeyParams,
