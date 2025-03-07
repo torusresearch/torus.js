@@ -1,4 +1,12 @@
-import { encodeEd25519Point, generateAddressFromPubKey, generateShares, getEd25519ExtendedPublicKey, getKeyCurve } from "@toruslabs/common-lib";
+import {
+  encodeEd25519Point,
+  generateAddressFromPubKey,
+  generateShares,
+  getEd25519ExtendedPublicKey,
+  getKeyCurve,
+  getMetadata,
+  getOrSetNonce,
+} from "@toruslabs/common-lib";
 import {
   INodePub,
   KEY_TYPE,
@@ -13,7 +21,7 @@ import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 
 import { config } from "./config";
-import { getMetadata, getOrSetNonce, GetOrSetNonceError, GetPubKeyOrKeyAssign, retrieveOrImportShare } from "./helpers";
+import { GetOrSetNonceError, GetPubKeyOrKeyAssign, retrieveOrImportShare } from "./helpers";
 import {
   GetOrSetNonceResult,
   ImportKeyParams,

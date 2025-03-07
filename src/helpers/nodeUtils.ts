@@ -1,10 +1,16 @@
 import {
   calculateMedian,
+  decryptNodeData,
+  decryptNodeDataWithPadding,
+  decryptSeedData,
   derivePubKey,
   generate32BytesPrivateKeyBuffer,
   generateAddressFromPrivKey,
   generateAddressFromPubKey,
   generateShares,
+  getMetadata,
+  getOrSetNonce,
+  getOrSetSapphireMetadataNonce,
   getProxyCoordinatorEndpointIndex,
   getSecpKeyFromEd25519,
   kCombinations,
@@ -46,14 +52,6 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { TorusUtilsExtraParams } from "../TorusUtilsExtraParams";
-import {
-  decryptNodeData,
-  decryptNodeDataWithPadding,
-  decryptSeedData,
-  getMetadata,
-  getOrSetNonce,
-  getOrSetSapphireMetadataNonce,
-} from "./metadataUtils";
 
 export const GetPubKeyOrKeyAssign = async (params: {
   endpoints: string[];
