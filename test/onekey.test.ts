@@ -1,10 +1,11 @@
 import { faker } from "@faker-js/faker";
+import { keccak256 } from "@toruslabs/common-lib";
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 
-import { keccak256, TorusPublicKey } from "../src";
+import { TorusPublicKey } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, getRetrieveSharesParams } from "./helpers";
 
