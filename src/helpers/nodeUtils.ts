@@ -1,3 +1,4 @@
+import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generateShares } from "@toruslabs/common-lib";
 import { INodePub, KEY_TYPE, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
@@ -40,7 +41,6 @@ import {
   retryCommitment,
   thresholdSame,
 } from "./common";
-import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generateShares } from "./keyUtils";
 import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import {
   decryptNodeData,
@@ -419,7 +419,8 @@ export async function retrieveOrImportShare(params: {
     finalImportedShares = newImportedShares;
   } else if (!useDkg) {
     const bufferKey = keyType === KEY_TYPE.SECP256K1 ? generatePrivateKey(ecCurve, Buffer) : await getRandomBytes(32);
-    const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, Buffer.from(bufferKey));
+    const nodeIndexesBN = indexes.map((index) => new BN(index));
+    const generatedShares = await generateShares(keyType, serverTimeOffset, nodeIndexesBN, nodePubkeys, Buffer.from(bufferKey));
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
 
