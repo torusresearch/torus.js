@@ -1,12 +1,11 @@
 // Note: Endpoints should be the sss node endpoints along with path
-import { Some } from "@toruslabs/common-lib";
+import { normalizeKeysResult, Some, thresholdSame } from "@toruslabs/common-lib";
 import { JRPCResponse, KEY_TYPE } from "@toruslabs/constants";
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import log from "loglevel";
 
 import { JRPC_METHODS } from "../constants";
 import { GetORSetKeyResponse, KeyType } from "../interfaces";
-import { normalizeKeysResult, thresholdSame } from "./common";
 
 // for ex: [https://node-1.node.web3auth.io/sss/jrpc, https://node-2.node.web3auth.io/sss/jrpc ....]
 export const GetOrSetTssDKGPubKey = async (params: {

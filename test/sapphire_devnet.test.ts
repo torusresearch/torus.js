@@ -1,11 +1,11 @@
 import { faker } from "@faker-js/faker";
+import { generate32BytesPrivateKeyBuffer, keccak256 } from "@toruslabs/common-lib";
 import { TORUS_LEGACY_NETWORK, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 import { ec as EC } from "elliptic";
 
-import { generatePrivateKey, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, getImportKeyParams, getRetrieveSharesParams, lookupVerifier } from "./helpers";
 
@@ -587,7 +587,7 @@ describe("torus utils sapphire devnet", function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const ec = new EC("secp256k1");
-    const privKeyBuffer = generatePrivateKey(ec, Buffer);
+    const privKeyBuffer = generate32BytesPrivateKeyBuffer(ec);
     const privHex = privKeyBuffer.toString("hex");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -604,7 +604,7 @@ describe("torus utils sapphire devnet", function () {
     );
     expect(result.finalKeyData.privKey).to.be.equal(privHex);
     const result1 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, { verifier: TORUS_TEST_VERIFIER, verifierId: email });
-    expect(result1.finalKeyData.walletAddress).to.be.equal(result.finalKeyData.walletAddress);
+    expect(result1.finalKeyData.walletAddress.toLowerCase()).to.be.equal(result.finalKeyData.walletAddress.toLowerCase());
   });
 
   it("should fetch pub address of tss verifier id", async function () {
