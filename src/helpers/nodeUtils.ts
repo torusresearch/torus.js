@@ -1,4 +1,4 @@
-import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generateShares } from "@toruslabs/common-lib";
+import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generateShares, Some } from "@toruslabs/common-lib";
 import { INodePub, KEY_TYPE, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
@@ -28,7 +28,6 @@ import {
   VerifierParams,
 } from "../interfaces";
 import log from "../loglevel";
-import { Some } from "../some";
 import { TorusUtilsExtraParams } from "../TorusUtilsExtraParams";
 import {
   calculateMedian,
@@ -726,7 +725,7 @@ export async function retrieveOrImportShare(params: {
           });
       });
 
-      if (sharedState.resolved) return undefined;
+      if (sharedState?.resolved) return undefined;
 
       const decryptedShares = sharesResolved.reduce(
         (acc, curr, index) => {
