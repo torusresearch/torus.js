@@ -1,11 +1,11 @@
 import { faker } from "@faker-js/faker";
+import { generate32BytesPrivateKeyBuffer, keccak256AndHexify } from "@toruslabs/auth-network-utils";
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 import { ec as EC } from "elliptic";
 
-import { generatePrivateKey, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, getImportKeyParams, getRetrieveSharesParams } from "./helpers";
 
@@ -66,7 +66,7 @@ describe("torus utils sapphire mainnet", function () {
     const token = generateIdToken(email, "ES256");
     const ec = new EC("secp256k1");
 
-    const privKeyBuffer = generatePrivateKey(ec, Buffer);
+    const privKeyBuffer = generate32BytesPrivateKeyBuffer(ec);
     const privHex = privKeyBuffer.toString("hex");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -394,7 +394,7 @@ describe("torus utils sapphire mainnet", function () {
   it("should be able to aggregate login", async function () {
     const email = faker.internet.email();
     const idToken = generateIdToken(email, "ES256");
-    const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+    const hashedIdToken = keccak256AndHexify(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
 
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
@@ -424,7 +424,7 @@ describe("torus utils sapphire mainnet", function () {
   it("should be able to aggregate login without commitment", async function () {
     const email = faker.internet.email();
     const idToken = generateIdToken(email, "ES256");
-    const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+    const hashedIdToken = keccak256AndHexify(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
 
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);

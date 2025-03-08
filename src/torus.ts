@@ -1,4 +1,11 @@
 import {
+  encodeEd25519Point,
+  generateAddressFromPubKey,
+  generateShares,
+  getEd25519ExtendedPublicKey,
+  getKeyCurve,
+} from "@toruslabs/auth-network-utils";
+import {
   INodePub,
   KEY_TYPE,
   LEGACY_NETWORKS_ROUTE_MAP,
@@ -12,18 +19,8 @@ import BN from "bn.js";
 import { curve, ec as EC } from "elliptic";
 
 import { config } from "./config";
-import {
-  encodeEd25519Point,
-  generateAddressFromPubKey,
-  generateShares,
-  getEd25519ExtendedPublicKey,
-  getKeyCurve,
-  getMetadata,
-  getOrSetNonce,
-  GetOrSetNonceError,
-  GetPubKeyOrKeyAssign,
-  retrieveOrImportShare,
-} from "./helpers";
+import { GetPubKeyOrKeyAssign, retrieveOrImportShare } from "./helpers";
+import { getMetadata, getOrSetNonce, GetOrSetNonceError } from "./helpers/metadataUtils";
 import {
   GetOrSetNonceResult,
   ImportKeyParams,
@@ -218,7 +215,8 @@ class Torus {
       }
     }
 
-    const sharesData = await generateShares(this.ec, this.keyType, this.serverTimeOffset, nodeIndexes, nodePubkeys, privKeyBuffer);
+    const nodeIndexesBN = nodeIndexes.map((index) => new BN(index));
+    const sharesData = await generateShares(this.keyType, this.serverTimeOffset, nodeIndexesBN, nodePubkeys, privKeyBuffer);
     if (this.keyType === KEY_TYPE.ED25519) {
       const ed25519Key = getEd25519ExtendedPublicKey(privKeyBuffer);
       const ed25519PubKey = encodeEd25519Point(ed25519Key.point);

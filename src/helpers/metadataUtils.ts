@@ -1,3 +1,4 @@
+import { encParamsHexToBuf, getKeyCurve, keccak256AndHexify, NonceMetadataParams, SetNonceData } from "@toruslabs/auth-network-utils";
 import { KEY_TYPE, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { decrypt } from "@toruslabs/eccrypto";
 import { Data, post } from "@toruslabs/http-helpers";
@@ -8,17 +9,9 @@ import stringify from "json-stable-stringify";
 import log from "loglevel";
 
 import { SAPPHIRE_DEVNET_METADATA_URL, SAPPHIRE_METADATA_URL } from "../constants";
-import {
-  EciesHex,
-  EncryptedSeed,
-  GetOrSetNonceResult,
-  KeyType,
-  MetadataParams,
-  NonceMetadataParams,
-  SapphireMetadataParams,
-  SetNonceData,
-} from "../interfaces";
-import { encParamsHexToBuf, getKeyCurve, keccak256 } from "./common";
+import { EciesHex, EncryptedSeed, GetOrSetNonceResult, KeyType, MetadataParams, SapphireMetadataParams } from "../interfaces";
+
+export class GetOrSetNonceError extends Error {}
 
 export const getSecpKeyFromEd25519 = (
   ed25519Scalar: BN
@@ -29,7 +22,7 @@ export const getSecpKeyFromEd25519 = (
   const secp256k1Curve = getKeyCurve(KEY_TYPE.SECP256K1);
 
   const ed25519Key = ed25519Scalar.toString("hex", 64);
-  const keyHash = keccakHash(Buffer.from(ed25519Key, "hex"));
+  const keyHash: Uint8Array = keccakHash(Buffer.from(ed25519Key, "hex"));
   const secpKey = new BN(keyHash).umod(secp256k1Curve.n).toString("hex", 64);
   const bufferKey = Buffer.from(secpKey, "hex");
 
@@ -84,7 +77,7 @@ export function generateMetadataParams(ecCurve: EC, serverTimeOffset: number, me
     data: message,
     timestamp: new BN(~~(serverTimeOffset + Date.now() / 1000)).toString(16),
   };
-  const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+  const sig = key.sign(keccak256AndHexify(Buffer.from(stringify(setData), "utf8")).slice(2));
   return {
     pub_key_X: key.getPublic().getX().toString("hex"), // DO NOT PAD THIS. BACKEND DOESN'T
     pub_key_Y: key.getPublic().getY().toString("hex"), // DO NOT PAD THIS. BACKEND DOESN'T
@@ -118,6 +111,31 @@ export function generateNonceMetadataParams(
   nonce?: BN,
   seed?: string
 ): NonceMetadataParams {
+  // // metadata only uses secp for sig validation
+  // const key = getKeyCurve(KEY_TYPE.SECP256K1).keyFromPrivate(privateKey.toString("hex", 64), "hex");
+  // const setData: Partial<SetNonceData> = {
+  //   operation,
+  //   timestamp: new BN(~~(serverTimeOffset + Date.now() / 1000)).toString(16),
+  // };
+
+  // if (nonce) {
+  //   setData.data = nonce.toString("hex", 64);
+  // }
+
+  // if (seed) {
+  //   setData.seed = seed;
+  // } else {
+  //   setData.seed = ""; // setting it as empty to keep ordering same while serializing the data on backend.
+  // }
+
+  // const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+  // return {
+  //   pub_key_X: key.getPublic().getX().toString("hex", 64),
+  //   pub_key_Y: key.getPublic().getY().toString("hex", 64),
+  //   set_data: setData,
+  //   key_type: keyType,
+  //   signature: Buffer.from(sig.r.toString(16, 64) + sig.s.toString(16, 64) + new BN("").toString(16, 2), "hex").toString("base64"),
+  // };
   // metadata only uses secp for sig validation
   const key = getKeyCurve(KEY_TYPE.SECP256K1).keyFromPrivate(privateKey.toString("hex", 64), "hex");
   const setData: Partial<SetNonceData> = {
@@ -135,7 +153,7 @@ export function generateNonceMetadataParams(
     setData.seed = ""; // setting it as empty to keep ordering same while serializing the data on backend.
   }
 
-  const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+  const sig = key.sign(keccak256AndHexify(Buffer.from(stringify(setData), "utf8")).slice(2));
   return {
     pub_key_X: key.getPublic().getX().toString("hex", 64),
     pub_key_Y: key.getPublic().getY().toString("hex", 64),
@@ -246,7 +264,7 @@ export async function getOrSetSapphireMetadataNonce(
       operation: "getOrSetNonce",
       timestamp: new BN(~~(serverTimeOffset + Date.now() / 1000)).toString(16),
     };
-    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+    const sig = key.sign(keccak256AndHexify(Buffer.from(stringify(setData), "utf8")).slice(2));
     data = {
       ...data,
       set_data: setData,

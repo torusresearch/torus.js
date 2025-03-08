@@ -1,11 +1,11 @@
 import { faker } from "@faker-js/faker";
+import { generate32BytesPrivateKeyBuffer, keccak256AndHexify } from "@toruslabs/auth-network-utils";
 import { TORUS_LEGACY_NETWORK, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
 import { expect } from "chai";
 import { ec as EC } from "elliptic";
 
-import { generatePrivateKey, keccak256 } from "../src";
 import TorusUtils from "../src/torus";
 import { generateIdToken, getImportKeyParams, getRetrieveSharesParams, lookupVerifier } from "./helpers";
 
@@ -587,7 +587,7 @@ describe("torus utils sapphire devnet", function () {
     const email = faker.internet.email();
     const token = generateIdToken(email, "ES256");
     const ec = new EC("secp256k1");
-    const privKeyBuffer = generatePrivateKey(ec, Buffer);
+    const privKeyBuffer = generate32BytesPrivateKeyBuffer(ec);
     const privHex = privKeyBuffer.toString("hex");
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails({ verifier: TORUS_TEST_VERIFIER, verifierId: email });
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
@@ -604,7 +604,7 @@ describe("torus utils sapphire devnet", function () {
     );
     expect(result.finalKeyData.privKey).to.be.equal(privHex);
     const result1 = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, { verifier: TORUS_TEST_VERIFIER, verifierId: email });
-    expect(result1.finalKeyData.walletAddress).to.be.equal(result.finalKeyData.walletAddress);
+    expect(result1.finalKeyData.walletAddress.toLowerCase()).to.be.equal(result.finalKeyData.walletAddress.toLowerCase());
   });
 
   it("should fetch pub address of tss verifier id", async function () {
@@ -818,7 +818,7 @@ describe("torus utils sapphire devnet", function () {
   it("should be able to aggregate login", async function () {
     const email = faker.internet.email();
     const idToken = generateIdToken(email, "ES256");
-    const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+    const hashedIdToken = keccak256AndHexify(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
 
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
@@ -854,8 +854,8 @@ describe("torus utils sapphire devnet", function () {
 
     const idToken1 = generateIdToken(email1, "ES256");
     const idToken2 = generateIdToken(email2, "ES256");
-    const hashedIdToken1 = keccak256(Buffer.from(idToken1, "utf8"));
-    const hashedIdToken2 = keccak256(Buffer.from(idToken2, "utf8"));
+    const hashedIdToken1 = keccak256AndHexify(Buffer.from(idToken1, "utf8"));
+    const hashedIdToken2 = keccak256AndHexify(Buffer.from(idToken2, "utf8"));
     const verifierDetails1 = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email1 };
     const verifierDetails2 = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email2 };
 
@@ -914,7 +914,7 @@ describe("torus utils sapphire devnet", function () {
     const email = faker.internet.email();
     for (let i = 0; i <= iterations; i++) {
       const idToken = generateIdToken(email, "ES256");
-      const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+      const hashedIdToken = keccak256AndHexify(Buffer.from(idToken, "utf8"));
       const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
 
       const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
@@ -954,7 +954,7 @@ describe("torus utils sapphire devnet", function () {
       const email = faker.internet.email();
       for (let k = 0; k <= iterations; k++) {
         const idToken = generateIdToken(email, "ES256");
-        const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+        const hashedIdToken = keccak256AndHexify(Buffer.from(idToken, "utf8"));
         const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
 
         const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);

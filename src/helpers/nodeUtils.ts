@@ -1,3 +1,21 @@
+import {
+  calculateMedian,
+  derivePubKey,
+  generate32BytesPrivateKeyBuffer,
+  generateAddressFromPrivKey,
+  generateAddressFromPubKey,
+  generateShares,
+  getProxyCoordinatorEndpointIndex,
+  getSecpKeyFromEd25519,
+  kCombinations,
+  keccak256AndHexify,
+  lagrangeInterpolation,
+  normalizeKeysResult,
+  normalizeLookUpResult,
+  retryCommitment,
+  Some,
+  thresholdSame,
+} from "@toruslabs/auth-network-utils";
 import { INodePub, KEY_TYPE, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
@@ -27,21 +45,7 @@ import {
   VerifierParams,
 } from "../interfaces";
 import log from "../loglevel";
-import { Some } from "../some";
 import { TorusUtilsExtraParams } from "../TorusUtilsExtraParams";
-import {
-  calculateMedian,
-  generatePrivateKey,
-  getProxyCoordinatorEndpointIndex,
-  kCombinations,
-  keccak256,
-  normalizeKeysResult,
-  normalizeLookUpResult,
-  retryCommitment,
-  thresholdSame,
-} from "./common";
-import { derivePubKey, generateAddressFromPrivKey, generateAddressFromPubKey, generateShares } from "./keyUtils";
-import { lagrangeInterpolation } from "./langrangeInterpolatePoly";
 import {
   decryptNodeData,
   decryptNodeDataWithPadding,
@@ -49,7 +53,6 @@ import {
   getMetadata,
   getOrSetNonce,
   getOrSetSapphireMetadataNonce,
-  getSecpKeyFromEd25519,
 } from "./metadataUtils";
 
 export const GetPubKeyOrKeyAssign = async (params: {
@@ -232,7 +235,7 @@ const commitmentRequest = async (params: {
   overrideExistingKey: boolean;
 }): Promise<(void | JRPCResponse<CommitmentRequestResult>)[]> => {
   const { idToken, endpoints, indexes, keyType, verifier, verifierParams, pubKeyX, pubKeyY, finalImportedShares, overrideExistingKey } = params;
-  const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
+  const tokenCommitment = keccak256AndHexify(Buffer.from(idToken, "utf8"));
   const threeFourthsThreshold = ~~((endpoints.length * 3) / 4) + 1;
   const halfThreshold = ~~(endpoints.length / 2) + 1;
 
@@ -348,6 +351,7 @@ const commitmentRequest = async (params: {
       .catch(reject);
   });
 };
+
 export async function retrieveOrImportShare(params: {
   legacyMetadataHost: string;
   serverTimeOffset: number;
@@ -418,8 +422,9 @@ export async function retrieveOrImportShare(params: {
     }
     finalImportedShares = newImportedShares;
   } else if (!useDkg) {
-    const bufferKey = keyType === KEY_TYPE.SECP256K1 ? generatePrivateKey(ecCurve, Buffer) : await getRandomBytes(32);
-    const generatedShares = await generateShares(ecCurve, keyType, serverTimeOffset, indexes, nodePubkeys, Buffer.from(bufferKey));
+    const bufferKey = keyType === KEY_TYPE.SECP256K1 ? generate32BytesPrivateKeyBuffer(ecCurve) : await getRandomBytes(32);
+    const nodeIndexesBN = indexes.map((index) => new BN(index));
+    const generatedShares = await generateShares(keyType, serverTimeOffset, nodeIndexesBN, nodePubkeys, Buffer.from(bufferKey));
     finalImportedShares = [...finalImportedShares, ...generatedShares];
   }
 
@@ -558,7 +563,7 @@ export async function retrieveOrImportShare(params: {
         serverTimeOffsetResponse?: number;
       }
     | undefined
-  >(promiseArrRequest, async (shareResponseResult, sharedState) => {
+  >(promiseArrRequest, async (shareResponseResult) => {
     let thresholdNonceData: GetOrSetNonceResult;
     let shareResponses: (void | JRPCResponse<ShareRequestResult>)[] = [];
     // for import shares case, where result is an array
@@ -724,8 +729,6 @@ export async function retrieveOrImportShare(params: {
             node_puby: (completedRequests[index] as JRPCResponse<ShareRequestResult>).result.node_puby,
           });
       });
-
-      if (sharedState.resolved) return undefined;
 
       const decryptedShares = sharesResolved.reduce(
         (acc, curr, index) => {

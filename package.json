@@ -24,8 +24,9 @@
     "@babel/runtime": "7.x"
   },
   "dependencies": {
-    "@toruslabs/constants": "^14.0.0",
+    "@toruslabs/auth-network-utils": "file:toruslabs-auth-network-utils-0.0.1.tgz",
     "@toruslabs/bs58": "^1.0.0",
+    "@toruslabs/constants": "^14.0.0",
     "@toruslabs/eccrypto": "^5.0.4",
     "@toruslabs/http-helpers": "^7.0.0",
     "bn.js": "^5.2.1",
@@ -37,6 +38,7 @@
   "devDependencies": {
     "@babel/register": "^7.25.7",
     "@babel/runtime": "^7.25.7",
+    "@faker-js/faker": "^9.0.3",
     "@toruslabs/config": "^2.2.0",
     "@toruslabs/eslint-config-typescript": "^3.3.4",
     "@toruslabs/fetch-node-details": "^14.0.1",
@@ -51,7 +53,6 @@
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "eslint": "^8.57.0",
-    "@faker-js/faker": "^9.0.3",
     "husky": "^9.1.6",
     "jsonwebtoken": "^9.0.2",
     "lint-staged": "^15.2.10",
