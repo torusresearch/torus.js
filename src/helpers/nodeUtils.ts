@@ -1,16 +1,10 @@
 import {
   calculateMedian,
-  decryptNodeData,
-  decryptNodeDataWithPadding,
-  decryptSeedData,
   derivePubKey,
   generate32BytesPrivateKeyBuffer,
   generateAddressFromPrivKey,
   generateAddressFromPubKey,
   generateShares,
-  getMetadata,
-  getOrSetNonce,
-  getOrSetSapphireMetadataNonce,
   getProxyCoordinatorEndpointIndex,
   getSecpKeyFromEd25519,
   kCombinations,
@@ -52,6 +46,14 @@ import {
 } from "../interfaces";
 import log from "../loglevel";
 import { TorusUtilsExtraParams } from "../TorusUtilsExtraParams";
+import {
+  decryptNodeData,
+  decryptNodeDataWithPadding,
+  decryptSeedData,
+  getMetadata,
+  getOrSetNonce,
+  getOrSetSapphireMetadataNonce,
+} from "./metadataUtils";
 
 export const GetPubKeyOrKeyAssign = async (params: {
   endpoints: string[];
@@ -349,6 +351,7 @@ const commitmentRequest = async (params: {
       .catch(reject);
   });
 };
+
 export async function retrieveOrImportShare(params: {
   legacyMetadataHost: string;
   serverTimeOffset: number;
@@ -560,7 +563,7 @@ export async function retrieveOrImportShare(params: {
         serverTimeOffsetResponse?: number;
       }
     | undefined
-  >(promiseArrRequest, async (shareResponseResult, sharedState) => {
+  >(promiseArrRequest, async (shareResponseResult) => {
     let thresholdNonceData: GetOrSetNonceResult;
     let shareResponses: (void | JRPCResponse<ShareRequestResult>)[] = [];
     // for import shares case, where result is an array
@@ -726,8 +729,6 @@ export async function retrieveOrImportShare(params: {
             node_puby: (completedRequests[index] as JRPCResponse<ShareRequestResult>).result.node_puby,
           });
       });
-
-      if (sharedState?.resolved) return undefined;
 
       const decryptedShares = sharesResolved.reduce(
         (acc, curr, index) => {
