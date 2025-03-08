@@ -1,4 +1,4 @@
-import { encParamsHexToBuf, getKeyCurve, keccak256, NonceMetadataParams, SetNonceData } from "@toruslabs/common-lib";
+import { encParamsHexToBuf, getKeyCurve, keccak256AndHexify, NonceMetadataParams, SetNonceData } from "@toruslabs/auth-network-utils";
 import { KEY_TYPE, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE, TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { decrypt } from "@toruslabs/eccrypto";
 import { Data, post } from "@toruslabs/http-helpers";
@@ -77,7 +77,7 @@ export function generateMetadataParams(ecCurve: EC, serverTimeOffset: number, me
     data: message,
     timestamp: new BN(~~(serverTimeOffset + Date.now() / 1000)).toString(16),
   };
-  const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+  const sig = key.sign(keccak256AndHexify(Buffer.from(stringify(setData), "utf8")).slice(2));
   return {
     pub_key_X: key.getPublic().getX().toString("hex"), // DO NOT PAD THIS. BACKEND DOESN'T
     pub_key_Y: key.getPublic().getY().toString("hex"), // DO NOT PAD THIS. BACKEND DOESN'T
@@ -153,7 +153,7 @@ export function generateNonceMetadataParams(
     setData.seed = ""; // setting it as empty to keep ordering same while serializing the data on backend.
   }
 
-  const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+  const sig = key.sign(keccak256AndHexify(Buffer.from(stringify(setData), "utf8")).slice(2));
   return {
     pub_key_X: key.getPublic().getX().toString("hex", 64),
     pub_key_Y: key.getPublic().getY().toString("hex", 64),
@@ -264,7 +264,7 @@ export async function getOrSetSapphireMetadataNonce(
       operation: "getOrSetNonce",
       timestamp: new BN(~~(serverTimeOffset + Date.now() / 1000)).toString(16),
     };
-    const sig = key.sign(keccak256(Buffer.from(stringify(setData), "utf8")).slice(2));
+    const sig = key.sign(keccak256AndHexify(Buffer.from(stringify(setData), "utf8")).slice(2));
     data = {
       ...data,
       set_data: setData,

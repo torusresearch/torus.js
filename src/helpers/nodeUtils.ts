@@ -8,14 +8,14 @@ import {
   getProxyCoordinatorEndpointIndex,
   getSecpKeyFromEd25519,
   kCombinations,
-  keccak256,
+  keccak256AndHexify,
   lagrangeInterpolation,
   normalizeKeysResult,
   normalizeLookUpResult,
   retryCommitment,
   Some,
   thresholdSame,
-} from "@toruslabs/common-lib";
+} from "@toruslabs/auth-network-utils";
 import { INodePub, KEY_TYPE, LEGACY_NETWORKS_ROUTE_MAP, TORUS_LEGACY_NETWORK_TYPE, TORUS_NETWORK_TYPE } from "@toruslabs/constants";
 import { generatePrivate, getPublic } from "@toruslabs/eccrypto";
 import { generateJsonRPCObject, get, post } from "@toruslabs/http-helpers";
@@ -235,7 +235,7 @@ const commitmentRequest = async (params: {
   overrideExistingKey: boolean;
 }): Promise<(void | JRPCResponse<CommitmentRequestResult>)[]> => {
   const { idToken, endpoints, indexes, keyType, verifier, verifierParams, pubKeyX, pubKeyY, finalImportedShares, overrideExistingKey } = params;
-  const tokenCommitment = keccak256(Buffer.from(idToken, "utf8"));
+  const tokenCommitment = keccak256AndHexify(Buffer.from(idToken, "utf8"));
   const threeFourthsThreshold = ~~((endpoints.length * 3) / 4) + 1;
   const halfThreshold = ~~(endpoints.length / 2) + 1;
 

@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import { keccak256 } from "@toruslabs/common-lib";
+import { keccak256AndHexify } from "@toruslabs/auth-network-utils";
 import { TORUS_LEGACY_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
@@ -107,7 +107,7 @@ describe("torus onekey", function () {
 
   it("should still aggregate account v1 user correctly", async function () {
     const idToken = generateIdToken(TORUS_TEST_EMAIL, "ES256");
-    const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+    const hashedIdToken = keccak256AndHexify(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: TORUS_TEST_EMAIL };
     const { torusNodeEndpoints, torusIndexes, torusNodePub } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const retrieveSharesResponse = await torus.retrieveShares(

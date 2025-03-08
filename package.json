@@ -24,8 +24,8 @@
     "@babel/runtime": "7.x"
   },
   "dependencies": {
+    "@toruslabs/auth-network-utils": "file:toruslabs-auth-network-utils-0.0.1.tgz",
     "@toruslabs/bs58": "^1.0.0",
-    "@toruslabs/common-lib": "file:toruslabs-common-lib-0.0.1.tgz",
     "@toruslabs/constants": "^14.0.0",
     "@toruslabs/eccrypto": "^5.0.4",
     "@toruslabs/http-helpers": "^7.0.0",

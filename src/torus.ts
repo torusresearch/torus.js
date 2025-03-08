@@ -1,4 +1,10 @@
-import { encodeEd25519Point, generateAddressFromPubKey, generateShares, getEd25519ExtendedPublicKey, getKeyCurve } from "@toruslabs/common-lib";
+import {
+  encodeEd25519Point,
+  generateAddressFromPubKey,
+  generateShares,
+  getEd25519ExtendedPublicKey,
+  getKeyCurve,
+} from "@toruslabs/auth-network-utils";
 import {
   INodePub,
   KEY_TYPE,

@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import { generate32BytesPrivateKeyBuffer, keccak256 } from "@toruslabs/common-lib";
+import { generate32BytesPrivateKeyBuffer, keccak256AndHexify } from "@toruslabs/auth-network-utils";
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
 import BN from "bn.js";
@@ -394,7 +394,7 @@ describe("torus utils sapphire mainnet", function () {
   it("should be able to aggregate login", async function () {
     const email = faker.internet.email();
     const idToken = generateIdToken(email, "ES256");
-    const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+    const hashedIdToken = keccak256AndHexify(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
 
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
@@ -424,7 +424,7 @@ describe("torus utils sapphire mainnet", function () {
   it("should be able to aggregate login without commitment", async function () {
     const email = faker.internet.email();
     const idToken = generateIdToken(email, "ES256");
-    const hashedIdToken = keccak256(Buffer.from(idToken, "utf8"));
+    const hashedIdToken = keccak256AndHexify(Buffer.from(idToken, "utf8"));
     const verifierDetails = { verifier: TORUS_TEST_AGGREGATE_VERIFIER, verifierId: email };
 
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);

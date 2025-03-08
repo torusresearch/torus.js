@@ -1,5 +1,5 @@
 // Note: Endpoints should be the sss node endpoints along with path
-import { normalizeKeysResult, Some, thresholdSame } from "@toruslabs/common-lib";
+import { normalizeKeysResult, Some, thresholdSame } from "@toruslabs/auth-network-utils";
 import { JRPCResponse, KEY_TYPE } from "@toruslabs/constants";
 import { generateJsonRPCObject, post } from "@toruslabs/http-helpers";
 import log from "loglevel";
