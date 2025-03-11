@@ -1,39 +1,43 @@
 import { faker } from "@faker-js/faker";
 import { TORUS_SAPPHIRE_NETWORK } from "@toruslabs/constants";
 import { NodeDetailManager } from "@toruslabs/fetch-node-details";
-import { expect } from "chai";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { GetOrSetTssDKGPubKey } from "../src";
 
-describe("setTssKey", function () {
+describe("setTssKey", () => {
   const TORUS_EXTENDED_VERIFIER_EMAIL = "testextenderverifierid@example.com";
   const TORUS_TEST_VERIFIER = "torus-test-health";
 
   let TORUS_NODE_MANAGER: NodeDetailManager;
 
-  beforeEach("one time execution before all tests", async function () {
+  beforeEach(() => {
     TORUS_NODE_MANAGER = new NodeDetailManager({ network: TORUS_SAPPHIRE_NETWORK.SAPPHIRE_DEVNET });
   });
 
-  it("should assign key to tss verifier id", async function () {
-    const email = faker.internet.email();
-    const nonce = 0;
-    const tssTag = "default";
-    const tssVerifierId = `${email}\u0015${tssTag}\u0016${nonce}`;
-    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
+  it(
+    "should assign key to tss verifier id",
+    async () => {
+      const email = faker.internet.email();
+      const nonce = 0;
+      const tssTag = "default";
+      const tssVerifierId = `${email}\u0015${tssTag}\u0016${nonce}`;
+      const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: email };
 
-    const { torusNodeSSSEndpoints: torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+      const { torusNodeSSSEndpoints: torusNodeEndpoints } = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
 
-    const result = await GetOrSetTssDKGPubKey({
-      endpoints: torusNodeEndpoints,
-      verifier: TORUS_TEST_VERIFIER,
-      verifierId: email,
-      tssVerifierId,
-    });
-    expect(result.key.pubKeyX).to.not.equal(null);
-  });
+      const result = await GetOrSetTssDKGPubKey({
+        endpoints: torusNodeEndpoints,
+        verifier: TORUS_TEST_VERIFIER,
+        verifierId: email,
+        tssVerifierId,
+      });
+      expect(result.key.pubKeyX).not.toBeNull();
+    },
+    { timeout: 10000 }
+  );
 
-  it("should fetch pub address of tss verifier id", async function () {
+  it("should fetch pub address of tss verifier id", async () => {
     const email = TORUS_EXTENDED_VERIFIER_EMAIL;
     const nonce = 0;
     const tssTag = "default";
@@ -49,7 +53,7 @@ describe("setTssKey", function () {
       tssVerifierId,
     });
     delete result.key.createdAt;
-    expect(result).eql({
+    expect(result).toEqual({
       key: {
         pubKeyX: "d45d4ad45ec643f9eccd9090c0a2c753b1c991e361388e769c0dfa90c210348c",
         pubKeyY: "fdc151b136aa7df94e97cc7d7007e2b45873c4b0656147ec70aad46e178bce1e",
@@ -60,7 +64,7 @@ describe("setTssKey", function () {
     });
   });
 
-  it("should fail if more than one endpoints are invalid", async function () {
+  it("should fail if more than one endpoints are invalid", async () => {
     const email = TORUS_EXTENDED_VERIFIER_EMAIL;
     const nonce = 0;
     const tssTag = "default";
@@ -71,18 +75,14 @@ describe("setTssKey", function () {
     torusNodeEndpoints[2] = "https://invalid.torus.com";
     torusNodeEndpoints[3] = "https://invalid.torus.com";
     torusNodeEndpoints[4] = "https://invalid.torus.com";
-    try {
-      await GetOrSetTssDKGPubKey({
+
+    await expect(
+      GetOrSetTssDKGPubKey({
         endpoints: torusNodeEndpoints,
         verifier: TORUS_TEST_VERIFIER,
         verifierId: email,
         tssVerifierId,
-      });
-      // If the function doesn't throw an error, fail the test
-      expect.fail("Expected an error to be thrown");
-    } catch (error) {
-      // Test passes if an error is thrown
-      expect(error).to.be.instanceOf(Error);
-    }
+      })
+    ).rejects.toThrow();
   });
 });
