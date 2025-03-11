@@ -238,7 +238,38 @@ describe("torus utils sapphire devnet", () => {
     });
   });
 
-  it("should fetch public address of imported user", async () => {
+  it("should should fetch public address with keyType", async function () {
+    const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: "Willa_Funk11@gmail.com" };
+    const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
+    const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
+    const result = await torus.getPublicAddress(torusNodeEndpoints, nodeDetails.torusNodePub, { ...verifierDetails, keyType: "ed25519" });
+    expect(result.finalKeyData.walletAddress).toBe("HHmiJMCAwhyf9ZWNtj7FEKGXeeC2NjUjPobpDKm43yKs");
+    delete result.metadata.serverTimeOffset;
+    expect(result).toEqual({
+      oAuthKeyData: {
+        walletAddress: "49yLu8yLqpuCXchzjQSt1tpBz8AP2E9EzzP7a8QtxmTE",
+        X: "5d39eba90fafbce150b33b9a60b41e1cfdf9e2640b55bf96b787173d74f8e415",
+        Y: "099639b7da35c1f31a44da7399a29d7db8eaa9639582cf7ed80aa4f7216adf2e",
+      },
+      finalKeyData: {
+        walletAddress: "HHmiJMCAwhyf9ZWNtj7FEKGXeeC2NjUjPobpDKm43yKs",
+        X: "575203523b34bcfa2c25c428871c421afd69dbcb7375833b52ef264aaa466a81",
+        Y: "26f0b1f5740088c2ecf676081b8e2fe5254f1cbb693947ae391af13500d706f2",
+      },
+      metadata: {
+        pubNonce: {
+          X: "71bf997547c1ac3f0babee87ebac055e8542863ebb1ba66e8092499eacbffd22",
+          Y: "71a0a70c5ae06d7eeb45673d4081fdfc9f29c4acfbbb57bf52a33dd7630599b1",
+        },
+        nonce: new BN("0", "hex"),
+        typeOfUser: "v2",
+        upgraded: false,
+      },
+      nodesData: result.nodesData,
+    });
+  });
+
+  it("should fetch public address of imported user", async function () {
     const verifierDetails = { verifier: TORUS_TEST_VERIFIER, verifierId: TORUS_IMPORT_EMAIL };
     const nodeDetails = await TORUS_NODE_MANAGER.getNodeDetails(verifierDetails);
     const torusNodeEndpoints = nodeDetails.torusNodeSSSEndpoints;
